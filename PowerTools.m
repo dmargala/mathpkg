@@ -1,4 +1,5 @@
 (* ::Package:: *)
+
 (* Created 4-Jan-2013 by David Kirkby (University of California, Irvine) <dkirkby@uci.edu> *)
 
 BeginPackage["DeepZot`PowerTools`"]
@@ -8,10 +9,9 @@ PowerTools::usage=
 "A collection of utilities for working with cosmological power spectra."
 
 
-loadPower::usage=
-"Loads a tabulated power spectrum from a text file containing one value of k and P(k)
-separated by white space on each line. Returns a function that interpolates
-in log(k) and log(P(k)) and extrapolates using power laws in k."
+makePower::usage=
+"Converted tabulated values of {k,P(k)} into a function that interpolates
+in log(k) and P(k) and extrapolates using power laws in k."
 
 
 sbTransform::usage=
@@ -31,20 +31,18 @@ Module[{a,c},
 ]
 
 
-loadPower[filename_]:=
-With[{tabulated=Import[filename]},
-	Module[{interpolator,kmin,kmax,plo,phi},
-		interpolator=Interpolation[Log[tabulated]];
-		kmin=tabulated[[1,1]];
-		kmax=tabulated[[-1,1]];
-		plo=powerLaw[tabulated[[;;2]]];
-		phi=powerLaw[tabulated[[-2;;]]];
-		Function[k,
-			Which[
-				k<=kmin,plo[k],
-				k>=kmax,phi[k],
-				True,Exp[interpolator[Log[k]]]
-			]
+makePower[tabulated_]:=
+Module[{interpolator,kmin,kmax,plo,phi},
+	interpolator=Interpolation[tabulated/.{k_,Pk_}:>{Log[k],Pk}];
+	kmin=tabulated[[1,1]];
+	kmax=tabulated[[-1,1]];
+	plo=powerLaw[tabulated[[;;2]]];
+	phi=powerLaw[tabulated[[-2;;]]];
+	Function[k,
+		Which[
+			k<=kmin,plo[k],
+			k>=kmax,phi[k],
+			True,interpolator[Log[k]]
 		]
 	]
 ]
