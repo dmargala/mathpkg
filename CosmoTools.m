@@ -41,6 +41,11 @@ z <= zmax for the specified Hubble function. If hValue is specified,
 results are in Gyr, otherwise they are in Gyr/h."
 
 
+ageOfUniverse::usage=
+"Returns the age of the universe for the specified Hubble function. If hValue is specified,
+the result is in Gyr, otherwise it is in Gyr/h."
+
+
 Begin["Private`"]
 
 
@@ -73,12 +78,14 @@ With[{\[CapitalOmega]rad=radiationDensity[Tcmb,Nnu]/criticalDensityToday[hValue]
 
 
 buildFunction[integrand_,zmax_,ptsPerDecade_]:=
-Module[{npts,zval,partials,tabulated,interpolator},
+Module[{npts,ds,sval,partials,tabulated,interpolator},
 	npts=Ceiling[N[Log[1+zmax]ptsPerDecade/Log[10]]];
-	zval=Table[(1+zmax)^(n/(npts-1))-1,{n,0,npts-1}]//N;
-	partials=Table[NIntegrate[integrand[zz],{zz,zval[[n]],zval[[n+1]]}],{n,1,npts-1}];
+    (* Integrate and interpolate in s = log(z) *)
+    ds=Log[1+zmax]/(npts-1);
+	sval=Table[n ds,{n,0,npts-1}];
+	partials=Table[NIntegrate[integrand[Exp[s]-1]Exp[s],{s,sval[[n]],sval[[n+1]]}],{n,1,npts-1}];
 	tabulated=Prepend[Accumulate[partials],0];
-	interpolator=Interpolation[Transpose[{Log[1+zval],tabulated}]];
+	interpolator=Interpolation[Transpose[{sval,tabulated}]];
 	Function[z,interpolator[Log[1+z]]]
 ]
 
@@ -94,6 +101,13 @@ lookbackTimeFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
 Module[{scale},
 	scale=Units`Convert[1/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),Units`Year]/(10^9 Units`Year);
 	buildFunction[scale/(1+#1)/hubble[#1]&,zmax,ptsPerDecade]
+]
+
+
+ageOfUniverse[hubble_,hValue_:1]:=
+Module[{scale},
+	scale=Units`Convert[1/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),Units`Year]/(10^9 Units`Year);
+	scale NIntegrate[1/hubble[Exp[t]-1],{t,0,Infinity}]
 ]
 
 
