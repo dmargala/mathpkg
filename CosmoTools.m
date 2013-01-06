@@ -30,8 +30,15 @@ hubbleFunction::usage=
 
 
 comovingDistanceFunction::usage=
-"Returns a function that evaluates the comoving distance in Mph/c
-to a redshift zmin <= z <= zmax."
+"Returns a function that evaluates the comoving distance to a redshift
+z <= zmax for the specified Hubble function. If hValue is specified,
+results are in Mpc, otherwise they are in Mpc/h."
+
+
+lookbackTimeFunction::usage=
+"Returns a function that evaluates the lookback time to a redshift
+z <= zmax for the specified Hubble function. If hValue is specified,
+results are in Gyr, otherwise they are in Gyr/h."
 
 
 Begin["Private`"]
@@ -62,6 +69,31 @@ With[{\[CapitalOmega]rad=radiationDensity[Tcmb,Nnu]/criticalDensityToday[hValue]
 			Sqrt[de+\[CapitalOmega]k (1+z)^2+(1-de-\[CapitalOmega]rad-\[CapitalOmega]k)(1+z)^3+\[CapitalOmega]rad (1+z)^4]
 		]
 	]
+]
+
+
+buildFunction[integrand_,zmax_,ptsPerDecade_]:=
+Module[{npts,zval,partials,tabulated,interpolator},
+	npts=Ceiling[N[Log[1+zmax]ptsPerDecade/Log[10]]];
+	zval=Table[(1+zmax)^(n/(npts-1))-1,{n,0,npts-1}]//N;
+	partials=Table[NIntegrate[integrand[zz],{zz,zval[[n]],zval[[n+1]]}],{n,1,npts-1}];
+	tabulated=Prepend[Accumulate[partials],0];
+	interpolator=Interpolation[Transpose[{Log[1+zval],tabulated}]];
+	Function[z,interpolator[Log[1+z]]]
+]
+
+
+comovingDistanceFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
+Module[{scale},
+	scale=Units`Convert[PhysicalConstants`SpeedOfLight/(100 hValue Units`Kilo Units`Meter/Units`Second),1];
+	buildFunction[scale/hubble[#1]&,zmax,ptsPerDecade]
+]
+
+
+lookbackTimeFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
+Module[{scale},
+	scale=Units`Convert[1/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),Units`Year]/(10^9 Units`Year);
+	buildFunction[scale/(1+#1)/hubble[#1]&,zmax,ptsPerDecade]
 ]
 
 
