@@ -26,7 +26,8 @@ equation of state parameters w0,wa."
 
 
 hubbleFunction::usage=
-"Returns a function that evalutes H(z)/H(0) for the specified cosmology."
+"Returns a function that evalutes H(z)/H(0) for the specified cosmology. The hValue
+only matters if radiation is included."
 
 
 comovingDistanceFunction::usage=
@@ -39,6 +40,12 @@ lookbackTimeFunction::usage=
 "Returns a function that evaluates the lookback time to a redshift
 z <= zmax for the specified Hubble function. If hValue is specified,
 results are in Gyr, otherwise they are in Gyr/h."
+
+
+conformalTimeFunction::usage=
+"Returns a function that evaluates the conformal time at redshift z <= zmax
+for the specified Hubble function. If hValue is specified, results are in Gyr,
+otherwise they are in Gyr/h."
 
 
 ageOfUniverse::usage=
@@ -90,24 +97,37 @@ Module[{npts,ds,sval,partials,tabulated,interpolator},
 ]
 
 
+hubbleScale[numerator_,hValue_,units_]:=
+Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec))/units,1]
+
+
 comovingDistanceFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
 Module[{scale},
-	scale=Units`Convert[PhysicalConstants`SpeedOfLight/(100 hValue Units`Kilo Units`Meter/Units`Second),1];
+    scale=hubbleScale[PhysicalConstants`SpeedOfLight,hValue,Units`Mega Units`Parsec];
 	buildFunction[scale/hubble[#1]&,zmax,ptsPerDecade]
 ]
 
 
 lookbackTimeFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
 Module[{scale},
-	scale=Units`Convert[1/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),Units`Year]/(10^9 Units`Year);
+    scale=hubbleScale[1,hValue,Units`Giga Units`Year];
 	buildFunction[scale/(1+#1)/hubble[#1]&,zmax,ptsPerDecade]
 ]
 
 
 ageOfUniverse[hubble_,hValue_:1]:=
 Module[{scale},
-	scale=Units`Convert[1/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),Units`Year]/(10^9 Units`Year);
-	scale NIntegrate[1/hubble[Exp[t]-1],{t,0,Infinity}]
+    scale=hubbleScale[1,hValue,Units`Giga Units`Year];
+	scale NIntegrate[1/hubble[Exp[s]-1],{s,0,Infinity}]
+]
+
+
+conformalTimeFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
+Module[{scale,eta0,func},
+    scale=hubbleScale[1,hValue,Units`Giga Units`Year];
+    eta0=scale NIntegrate[1/hubble[Exp[s]-1]Exp[s],{s,0,Infinity}];
+    func=buildFunction[scale/hubble[#1]&,zmax,ptsPerDecade];
+    Function[z,eta0-func[z]]
 ]
 
 
