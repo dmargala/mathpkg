@@ -74,7 +74,7 @@ darkEnergyEvolution[z_,w0_,wa_]:=
 Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]
 
 
-hubbleFunction[hValue_,\[CapitalOmega]\[CapitalLambda]_,w0_,wa_,\[CapitalOmega]k_,Tcmb_,Nnu_]:=
+hubbleFunction[hValue_:0.7,\[CapitalOmega]\[CapitalLambda]_:0.73,w0_:-1,wa_:0,\[CapitalOmega]k_:0,Tcmb_:2.725,Nnu_:3.046]:=
 With[{\[CapitalOmega]rad=radiationDensity[Tcmb,Nnu]/criticalDensityToday[hValue]},
 	Function[z,
 		With[{de=\[CapitalOmega]\[CapitalLambda] darkEnergyEvolution[z,w0,wa]},
