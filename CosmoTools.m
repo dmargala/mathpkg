@@ -36,6 +36,12 @@ z <= zmax for the specified Hubble function. If hValue is specified,
 results are in Mpc, otherwise they are in Mpc/h."
 
 
+angularDiameterDistanceFunction::usage
+"Returns a function that evaluates the comoving angular diameter distance to a redshift
+z <= zmax for the specified Hubble function and curvature \[CapitalOmega]k. If hValue is specified,
+results are in Mpc, otherwise they are in Mpc/h."
+
+
 lookbackTimeFunction::usage=
 "Returns a function that evaluates the lookback time to a redshift
 z <= zmax for the specified Hubble function. If hValue is specified,
@@ -105,6 +111,21 @@ comovingDistanceFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
 Module[{scale},
     scale=hubbleScale[PhysicalConstants`SpeedOfLight,hValue,Units`Mega Units`Parsec];
 	buildFunction[scale/hubble[#1]&,zmax,ptsPerDecade]
+]
+
+
+curvatureFunction[\[CapitalOmega]k_]:=Which[
+\[CapitalOmega]k>0,Function[Dc,Sinh[Sqrt[\[CapitalOmega]k]Dc]/Sqrt[\[CapitalOmega]k]],
+\[CapitalOmega]k<0,Function[Dc,Sin[Sqrt[-\[CapitalOmega]k]Dc]/Sqrt[-\[CapitalOmega]k]],
+True,Function[Dc,Dc]]
+
+
+angularDiameterDistanceFunction[hubble_,zmax_,\[CapitalOmega]k_,hValue_:1,ptsPerDecade_:20]:=
+Module[{scale,func,curved},
+    scale=hubbleScale[PhysicalConstants`SpeedOfLight,hValue,Units`Mega Units`Parsec];
+	func=buildFunction[1/hubble[#1]&,zmax,ptsPerDecade];
+    curved=curvatureFunction[\[CapitalOmega]k];
+    Function[z,scale curved[func[z]]]
 ]
 
 
