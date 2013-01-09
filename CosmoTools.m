@@ -76,11 +76,11 @@ Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]
 
 hubbleFunction[hValue_:0.7,\[CapitalOmega]\[CapitalLambda]_:0.73,w0_:-1,wa_:0,\[CapitalOmega]k_:0,Tcmb_:2.725,Nnu_:3.046]:=
 With[{\[CapitalOmega]rad=radiationDensity[Tcmb,Nnu]/criticalDensityToday[hValue]},
-	Function[z,
+	Function[z,Evaluate[
 		With[{de=\[CapitalOmega]\[CapitalLambda] darkEnergyEvolution[z,w0,wa]},
-			Sqrt[de+\[CapitalOmega]k (1+z)^2+(1-de-\[CapitalOmega]rad-\[CapitalOmega]k)(1+z)^3+\[CapitalOmega]rad (1+z)^4]
+			Sqrt[Simplify[de+\[CapitalOmega]k (1+z)^2+(1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]rad-\[CapitalOmega]k)(1+z)^3+\[CapitalOmega]rad (1+z)^4]]
 		]
-	]
+	]]
 ]
 
 
