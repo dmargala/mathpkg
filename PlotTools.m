@@ -9,6 +9,11 @@ PlotTools::usage=
 "A collection of plotting utilities."
 
 
+createFrame::usage=
+"Creates an empty plot frame of the specified type (Plot,LogPlot,LogLogPlot,LogLinearPlot),
+with the specified axis limits and options."
+
+
 temperatureMap::usage=
 "A replacement for the builtin TemperatureMap that is pure white at its midpoint."
 
@@ -24,6 +29,17 @@ coverageContourPlot::usage=
 
 
 Begin["Private`"]
+
+
+createFrame[type_:Plot,{xmin_,xmax_},{ymin_,ymax_},options___]:=
+Module[{method,prototype,defaults},
+    method=ToExpression["List"<>ToString[type]];
+    defaults={Frame->True,LabelStyle->Medium};
+    If[StringPosition[ToString[type],"Log"]!={},AppendTo[defaults,{GridLines->Automatic,GridLinesStyle->LightGray}]];
+    prototype=method[{{1,1}},PlotRange->{{xmin,xmax},{ymin,ymax}},options,defaults];
+    DeleteCases[prototype,{__,_Point},Infinity]
+]
+HoldFirst[createFrame]
 
 
 temperatureMap[z_]:=With[{
