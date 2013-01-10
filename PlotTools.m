@@ -18,6 +18,13 @@ temperatureMap::usage=
 "A replacement for the builtin TemperatureMap that is pure white at its midpoint."
 
 
+drawEllipse::usage=
+"Draws an ellipse centered at (x,y) whose bounding box dimensions are 2(dx,dy),
+with tangents at (dx,rho dy) and (rho dx,dy). Use dx = \!\(\*SubscriptBox[\(n\[Sigma]\), \(x\)]\), dy = \!\(\*SubscriptBox[\(n\[Sigma]\), \(y\)]\) to draw the
+n-sigma contour of a likelihood. For a Gaussian likelihood, use n = 1.51517 for
+68% CL and n = 2.44775 for 95% CL."
+
+
 rasterize::usage=
 "Converts graphics output into a rasterized format with anti-aliasing.
 The raster dimensions will be magnification*ImageSize and anti-aliasing will
@@ -47,6 +54,19 @@ r=Clip[2 z,{0,1}],
 g=1-4(z-0.5)^2,
 b=Clip[3-4z,{0,1}]
 },RGBColor[r,g,b]
+]
+
+
+(* See http://pdg.lbl.gov/2012/reviews/rpp2012-rev-statistics.pdf and http://users.tkk.fi/mvermeer/uncertainty.pdf *)
+drawEllipse[x_,y_,dx_,dy_,rho_,fillStyle_:{Opacity[0.3]},edgeStyle_:{}]:=
+Module[{avg,dlam,dab,\[Lambda]1,\[Lambda]2,\[Phi]},
+    avg=(dx^2+dy^2)/2;
+    dab=rho dx dy;
+    dlam=Sqrt[(dx^2-dy^2)^2/4+dab^2];
+    \[Lambda]1=avg+dlam;
+    \[Lambda]2=avg-dlam;
+    \[Phi]=ArcTan[(dx^2-dy^2),2 dab]/2;
+    Graphics[{Directive[fillStyle],EdgeForm[edgeStyle],Rotate[Disk[{x,y},{Sqrt[\[Lambda]1],Sqrt[\[Lambda]2]}],\[Phi],{x,y}]}]
 ]
 
 
