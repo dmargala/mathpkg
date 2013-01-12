@@ -14,6 +14,10 @@ createFrame::usage=
 with the specified axis limits and options."
 
 
+pointWithErrorBar::usage=
+"Creates a point with a vertical error bar."
+
+
 temperatureMap::usage=
 "A replacement for the builtin TemperatureMap that is pure white at its midpoint."
 
@@ -46,7 +50,18 @@ Module[{method,prototype,defaults},
     prototype=method[{{1,1}},PlotRange->{{xmin,xmax},{ymin,ymax}},options,defaults];
     DeleteCases[prototype,{__,_Point},Infinity]
 ]
-HoldFirst[createFrame]
+HoldFirst[createFrame];
+
+
+pointWithErrorBar[x_,y_,dyPlus_,dyMinus_:Automatic,size_:0.01,style_:{},xmap_:Identity,ymap_:Identity]:=
+With[{xy={xmap[x],ymap[y]},xyp={xmap[x],ymap[y+dyPlus]},xym={xmap[x],ymap[y-If[dyMinus===Automatic,dyPlus,dyMinus]]}},
+Graphics[{Directive[style],
+    PointSize[2 size],Point[xy],
+    Thickness[size/4],Line[{xym,xyp}],
+    Line[{Scaled[{-size,0},xym],Scaled[{+size,0},xym]}],
+    Line[{Scaled[{-size,0},xyp],Scaled[{+size,0},xyp]}]
+}]
+]
 
 
 temperatureMap[z_]:=With[{
