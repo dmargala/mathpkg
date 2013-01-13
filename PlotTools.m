@@ -14,7 +14,7 @@ createFrame::usage=
 with the specified axis limits and options."
 
 
-pointWithErrorBar::usage=
+pointWithError::usage=
 "Creates a point with a vertical error bar."
 
 
@@ -53,15 +53,53 @@ Module[{method,prototype,defaults},
 HoldFirst[createFrame];
 
 
-pointWithErrorBar[x_,y_,dyPlus_,dyMinus_:Automatic,size_:0.01,style_:{},xmap_:Identity,ymap_:Identity]:=
-With[{xy={xmap[x],ymap[y]},xyp={xmap[x],ymap[y+dyPlus]},xym={xmap[x],ymap[y-If[dyMinus===Automatic,dyPlus,dyMinus]]}},
-Graphics[{Directive[style],
-    PointSize[2 size],Point[xy],
-    Thickness[size/4],Line[{xym,xyp}],
-    Line[{Scaled[{-size,0},xym],Scaled[{+size,0},xym]}],
-    Line[{Scaled[{-size,0},xyp],Scaled[{+size,0},xyp]}]
-}]
+Clear[errorInterval]
+
+
+errorInterval[{plus_,minus_}]:={plus,minus} /; NumericQ[plus]&&NumericQ[minus]&&plus>=0&&minus<=0
+errorInterval[plusMinus_]:=errorInterval[{+plusMinus,-plusMinus}] /; NumericQ[plusMinus]&&plusMinus>=0
+
+
+errorIntervals[dy_]:={errorInterval[0],errorInterval[dy]}
+errorIntervals[{dx_,dy_}]:={errorInterval[dx],errorInterval[dy]}
+
+
+errorLine[xy1_,xy2_,size_,withTicks_]:=
+Module[{graphics},
+    graphics=Line[{xy1,xy2}];
 ]
+
+
+pointWithError[point_,error_,options:OptionsPattern[]]:=
+With[{theSize=OptionValue[size],theStyle=OptionValue[style],theError=errorIntervals[error]},
+Module[{mapper,graphics,xy1,xy2},
+    mapper={OptionValue[xMap][#1[[1]]],OptionValue[yMap][#1[[2]]]}&;
+    graphics={PointSize[theSize],Point[mapper[point]]};
+    If[!(style==={}),PrependTo[graphics,Directive[theStyle]]];
+    AppendTo[graphics,Thickness[theSize/4]];
+    If[!(theError[[1]]==={0,0}),
+        xy1=mapper[point+{theError[[1,1]],0}];
+        xy2=mapper[point+{theError[[1,2]],0}];
+        AppendTo[graphics,Line[{xy1,xy2}]];
+        If[OptionValue[xTicks],
+            AppendTo[graphics,Line[{Scaled[{0,theSize/2},xy1],Scaled[{0,-theSize/2},xy1]}]];
+            AppendTo[graphics,Line[{Scaled[{0,theSize/2},xy2],Scaled[{0,-theSize/2},xy2]}]];
+        ]
+    ];
+    If[!(theError[[2]]==={0,0}),
+        xy1=mapper[point+{0,theError[[2,1]]}];
+        xy2=mapper[point+{0,theError[[2,2]]}];
+        AppendTo[graphics,Line[{xy1,xy2}]];
+        If[OptionValue[yTicks],
+            AppendTo[graphics,Line[{Scaled[{theSize/2,0},xy1],Scaled[{-theSize/2,0},xy1]}]];
+            AppendTo[graphics,Line[{Scaled[{theSize/2,0},xy2],Scaled[{-theSize/2,0},xy2]}]];
+        ]
+    ];
+    graphics
+]]
+Options[pointWithError]={
+    size->0.02,style->{},xMap->Identity, yMap->Identity,xTicks->True,yTicks->True
+};
 
 
 temperatureMap[z_]:=With[{
