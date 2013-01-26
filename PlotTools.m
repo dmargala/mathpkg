@@ -18,15 +18,16 @@ pointWithError::usage=
 "Creates a point with a vertical error bar."
 
 
+valueWithFixedPrecision::usage=
+"valueWithFixedPrecision[val,prec] returns a string representation of val rounded to 10^(-prec)."
+
+
 temperatureMap::usage=
 "A replacement for the builtin TemperatureMap that is pure white at its midpoint."
 
 
 drawEllipse::usage=
-"Draws an ellipse centered at (x,y) whose bounding box dimensions are 2(dx,dy),
-with tangents at (dx,rho dy) and (rho dx,dy). Use dx = \!\(\*SubscriptBox[\(n\[Sigma]\), \(x\)]\), dy = \!\(\*SubscriptBox[\(n\[Sigma]\), \(y\)]\) to draw the
-n-sigma contour of a likelihood. For a Gaussian likelihood, use n = 1.51517 for
-68% CL and n = 2.44775 for 95% CL."
+"Draws an ellipse centered at (x,y) whose bounding box dimensions are 2(dx,dy), with tangents at (dx,rho dy) and (rho dx,dy). Use dx = \!\(\*SubscriptBox[\(n\[Sigma]\), \(x\)]\), dy = \!\(\*SubscriptBox[\(n\[Sigma]\), \(y\)]\) to draw the n-sigma contour of a likelihood. For a Gaussian likelihood, use n = 1.51517 for 68% CL and n = 2.44775 for 95% CL."
 
 
 rasterize::usage=
@@ -100,6 +101,19 @@ Module[{mapper,graphics,xy1,xy2},
 Options[pointWithError]={
     size->0.02,style->{},xMap->Identity, yMap->Identity,xTicks->True,yTicks->True
 };
+
+
+valueWithFixedPrecision[value_,precision_Integer]:=
+With[{rounded=Round[value,10^(-precision)]},
+Module[{leftSize,digits,formatted},
+    leftSize=1+Max[0,Floor[Log[10,Abs[rounded]]]];
+    digits=Map[ToString,RealDigits[rounded,10,leftSize+precision,leftSize-1][[1]]];
+    If[precision<0,digits=Join[digits,ConstantArray["0",-precision]]];
+    formatted=digits[[;;leftSize]];
+    If[rounded<0,PrependTo[formatted,"-"]];
+    If[precision>0,formatted=Join[AppendTo[formatted,"."],digits[[-precision;;]]]];
+    StringJoin[formatted]
+]]
 
 
 temperatureMap[z_]:=With[{
