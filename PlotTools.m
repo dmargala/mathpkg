@@ -31,9 +31,12 @@ drawEllipse::usage=
 
 
 rasterize::usage=
-"Converts graphics output into a rasterized format with anti-aliasing.
-The raster dimensions will be magnification*ImageSize and anti-aliasing will
-be performed using the specified oversampling factor."
+"rasterize[g] converts graphics to a bitmap with anti-aliasing.
+rasterize[g,oversampling->os] increases anti-aliasing quality but takes longer.
+The default os=2 is usually ok.
+rasterize[g,magnification->mag] magnifies the generated bitmap relative to its
+on-screen size. The default mag=1 is best for exporting to a presentation, but
+mag=2 or higher is necessary when preparing latex figures."
 
 
 coverageContourPlot::usage=
@@ -52,9 +55,6 @@ Module[{method,prototype,defaults},
     DeleteCases[prototype,{__,_Point},Infinity]
 ]
 HoldFirst[createFrame];
-
-
-Clear[errorInterval]
 
 
 errorInterval[{plus_,minus_}]:={plus,minus} /; NumericQ[plus]&&NumericQ[minus]&&plus>=0&&minus<=0
@@ -137,13 +137,11 @@ Module[{avg,dlam,dab,\[Lambda]1,\[Lambda]2,\[Phi]},
 ]
 
 
-rasterize[graphics_,magnification_:2,oversampling_:2]:=
-With[{size=ImageSize/.Options[graphics,ImageSize]},
-Rasterize[
-	Magnify[graphics,magnification],
-	ImageSize->magnification size,
-	RasterSize->oversampling magnification size]
+rasterize[graphics_,options:OptionsPattern[]]:=
+With[{size=ImageSize/.Options[graphics,ImageSize],mag=OptionValue[magnification],os=OptionValue[oversampling]},
+    Rasterize[Magnify[graphics,mag],ImageSize->mag size,RasterSize->os mag size]
 ]
+Options[rasterize]={ magnification->1,oversampling->2 };
 
 
 coverageContourPlot[data_,{plotXmin_,plotXmax_,dx_},{plotYmin_,plotYmax_,dy_},fractions_:{0.6827,0.9545},plotOptions_:{}]:=
