@@ -26,8 +26,15 @@ equation of state parameters w0,wa."
 
 
 hubbleFunction::usage=
-"Returns a function that evalutes H(z)/H(0) for the specified cosmology. The hValue
-only matters if radiation is included."
+"Returns a function that evalutes H(z)/H(0) for the specified cosmology. Use the following
+options to customize the cosmology:
+ - hValue (0.7) only matters if radiation is included.
+ - \[CapitalOmega]\[CapitalLambda] (0.73) present-day fraction of dark energy.
+ - w0 (-1) dark-energy equation parameter state present-day value.
+ - wa (0) dark-energy equation of state parameter derivative wrt scale a.
+ - \[CapitalOmega]k (0) present-day curvature fraction.
+ - Tcmb (2.725) present-day CMB temperature in Kelvin.
+ - Nnu (3.046) effective number of massless neutrinos."
 
 
 comovingDistanceFunction::usage=
@@ -80,14 +87,28 @@ darkEnergyEvolution[z_,w0_,wa_]:=
 Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]
 
 
-hubbleFunction[hValue_:0.7,\[CapitalOmega]\[CapitalLambda]_:0.73,w0_:-1,wa_:0,\[CapitalOmega]k_:0,Tcmb_:2.725,Nnu_:3.046]:=
-With[{\[CapitalOmega]rad=radiationDensity[Tcmb,Nnu]/criticalDensityToday[hValue]},
+hubbleFunction[options:OptionsPattern[]]:=
+With[{
+    hValue=OptionValue["hValue"],
+    \[CapitalOmega]\[CapitalLambda]=OptionValue["\[CapitalOmega]\[CapitalLambda]"],
+    w0=OptionValue["w0"],
+    wa=OptionValue["wa"],
+    \[CapitalOmega]k=OptionValue["\[CapitalOmega]k"],
+    Tcmb=OptionValue["Tcmb"],
+    Nnu=OptionValue["Nnu"]
+},
+Module[{
+    \[CapitalOmega]rad=radiationDensity[Tcmb,Nnu]/criticalDensityToday[hValue]
+},
 	Function[z,Evaluate[
 		With[{de=\[CapitalOmega]\[CapitalLambda] darkEnergyEvolution[z,w0,wa]},
 			Sqrt[Simplify[de+\[CapitalOmega]k (1+z)^2+(1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]rad-\[CapitalOmega]k)(1+z)^3+\[CapitalOmega]rad (1+z)^4]]
 		]
 	]]
-]
+]]
+Options[hubbleFunction]={
+    "hValue"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,"Tcmb"->2.725,"Nnu"->3.046
+};
 
 
 buildFunction[integrand_,zmax_,ptsPerDecade_]:=
@@ -107,11 +128,13 @@ hubbleScale[numerator_,hValue_,units_]:=
 Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec))/units,1]
 
 
-comovingDistanceFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
+comovingDistanceFunction[hubble_,zmax_,options:OptionsPattern[]]:=
+With[{hValue=OptionValue["hValue"],pointsPerDecade=OptionValue["pointsPerDecade"]},
 Module[{scale},
     scale=hubbleScale[PhysicalConstants`SpeedOfLight,hValue,Units`Mega Units`Parsec];
-	buildFunction[scale/hubble[#1]&,zmax,ptsPerDecade]
-]
+	buildFunction[scale/hubble[#1]&,zmax,pointsPerDecade]
+]]
+Options[comovingDistanceFunction]={"hValue"->1,"pointsPerDecade"->20};
 
 
 curvatureFunction[\[CapitalOmega]k_]:=Which[
@@ -120,20 +143,26 @@ curvatureFunction[\[CapitalOmega]k_]:=Which[
 True,Function[Dc,Dc]]
 
 
-angularDiameterDistanceFunction[hubble_,zmax_,\[CapitalOmega]k_,hValue_:1,ptsPerDecade_:20]:=
+Clear[angularDiameterDistanceFunction]
+angularDiameterDistanceFunction[hubble_,zmax_,\[CapitalOmega]k_,options:OptionsPattern[]]:=
+With[{hValue=OptionValue["hValue"],pointsPerDecade=OptionValue["pointsPerDecade"]},
 Module[{scale,func,curved},
     scale=hubbleScale[PhysicalConstants`SpeedOfLight,hValue,Units`Mega Units`Parsec];
-	func=buildFunction[1/hubble[#1]&,zmax,ptsPerDecade];
+	func=buildFunction[1/hubble[#1]&,zmax,pointsPerDecade];
     curved=curvatureFunction[\[CapitalOmega]k];
     Function[z,scale curved[func[z]]]
-]
+]]
+Options[angularDiameterDistanceFunction]=Options[comovingDistanceFunction];
 
 
-lookbackTimeFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
+Clear[lookbackTimeFunction]
+lookbackTimeFunction[hubble_,zmax_,options:OptionsPattern[]]:=
+With[{hValue=OptionValue["hValue"],pointsPerDecade=OptionValue["pointsPerDecade"]},
 Module[{scale},
     scale=hubbleScale[1,hValue,Units`Giga Units`Year];
-	buildFunction[scale/(1+#1)/hubble[#1]&,zmax,ptsPerDecade]
-]
+	buildFunction[scale/(1+#1)/hubble[#1]&,zmax,pointsPerDecade]
+]]
+Options[lookbackTimeFunction]=Options[comovingDistanceFunction];
 
 
 ageOfUniverse[hubble_,hValue_:1]:=
@@ -143,13 +172,16 @@ Module[{scale},
 ]
 
 
-conformalTimeFunction[hubble_,zmax_,hValue_:1,ptsPerDecade_:20]:=
+Clear[conformalTimeFunction]
+conformalTimeFunction[hubble_,zmax_,options:OptionsPattern[]]:=
+With[{hValue=OptionValue["hValue"],pointsPerDecade=OptionValue["pointsPerDecade"]},
 Module[{scale,eta0,func},
     scale=hubbleScale[1,hValue,Units`Giga Units`Year];
     eta0=scale NIntegrate[1/hubble[Exp[s]-1]Exp[s],{s,0,Infinity}];
-    func=buildFunction[scale/hubble[#1]&,zmax,ptsPerDecade];
+    func=buildFunction[scale/hubble[#1]&,zmax,pointsPerDecade];
     Function[z,eta0-func[z]]
-]
+]]
+Options[conformalTimeFunction]=Options[comovingDistanceFunction];
 
 
 End[]
