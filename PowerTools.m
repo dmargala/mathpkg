@@ -15,9 +15,12 @@ in log(k) and P(k) and extrapolates using power laws in k."
 
 
 sbTransform::usage=
-"Calculates the spherical Bessel transform of the specified function for multipole ell.
-Returns a function defined for r in [rmin,rmax] that is free of any aliasing artifacts.
-Use the veps parameter to control the numerical accuracy of the result."
+"sbTransform[plfunc,rmin,rmax,ell,veps] calculates the spherical Bessel transform
+of the specified function for multipole ell. Returns an interpolating function
+defined for r in [rmin,rmax] that is free of any aliasing artifacts.
+Use the veps parameter to control the numerical accuracy of the result.
+sbTransform[plfunc,rmin,rmax,ell,veps,True] displays the k range and
+sampling that is being used, which can be useful in building a suitable plfunc."
 
 
 Begin["Private`"]
@@ -57,8 +60,7 @@ L1=Log[L0];
 L2=Log[-L1];
 tmp=-L0/(6L1^3)(6 L1^4+6L1^2L2(L1+1)-3L1 L2(L2-2)+L2(2L2^2-9L2+6));
 tmp^((ell+1)/2)
-]
-]
+]]
 
 
 kr0[ell_]:=2^(-((-1 - ell)/(1 + ell))) \[Pi]^(-(1/(2 + 2 ell)))Gamma[3/2 + ell]^(1/(1 + ell))
@@ -86,7 +88,8 @@ gg[s_,plfunc_,ell_,k0_,\[Alpha]_]:=I^ell/(2\[Pi]^2)Exp[(3-\[Alpha])s]k0^3 plfunc
 wrap[n_,nmax_]:=If[n<nmax,n,n-2nmax]
 
 
-sbTransformWork[plfunc_,rmin_,rmax_,ell_,veps_]:=
+Clear[sbTransformWork]
+sbTransformWork[plfunc_,rmin_,rmax_,ell_,veps_,verbose_]:=
 Module[{eps,ndsf,nsf,dsfmax,dsf,kr,k0,r0,nsg,ntot,n,\[Alpha],fdata,fnorm,gdata,fgdata,rgrid,xigrid,rzoom,xizoom,popts},
 eps=epsApprox[veps,ell];
 ndsf=nds[ell,eps,True];
@@ -99,6 +102,7 @@ k0=kr/r0;
 (* Calculate the number of samples needed to cover (rmin,rmax) *)
 nsg=Ceiling[Log[rmax/rmin]/(2dsf)];
 ntot=nsf+nsg;
+If[verbose,Print[k0 Exp[-ntot dsf]," \[LessEqual] k \[LessEqual] ",k0 Exp[+ntot dsf]," is covered with ",2 ntot," samples (",1/dsf," per logint)."]];
 \[Alpha]=(1-ell)/2;
 fdata=Table[
 n=wrap[m,nsg+nsf];
@@ -117,9 +121,10 @@ xigrid=fgdata (rgrid/r0)^(-\[Alpha])/dsf;
 ]
 
 
-sbTransform[plfunc_,rmin_,rmax_,ell_,veps_]:=
+Clear[sbTransform]
+sbTransform[plfunc_,rmin_,rmax_,ell_,veps_,verbose_:False]:=
 Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator},
-{fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[plfunc,rmin,rmax,ell,veps];
+{fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[plfunc,rmin,rmax,ell,veps,verbose];
 rzoom=rgrid[[nsf+1;;-nsf-1]];
 xizoom=xigrid[[nsf+1;;-nsf-1]];
 interpolator=Interpolation[Transpose[{Log[rzoom], xizoom}]];
