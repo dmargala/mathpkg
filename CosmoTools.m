@@ -115,13 +115,15 @@ Options[hubbleFunction]={
 };
 
 
+(* Builds a function that evaluates the integral of I(z) from 0 to zmax with interpolation in log(1+z) *)
 buildFunction[integrand_,zmax_,ptsPerDecade_]:=
 Module[{npts,ds,sval,partials,tabulated,interpolator},
 	npts=Ceiling[N[Log[1+zmax]ptsPerDecade/Log[10]]];
-    (* Integrate and interpolate in s = log(z) *)
+    (* Integrate over equally spaced intervals in s = log(1+z) *)
     ds=Log[1+zmax]/(npts-1);
 	sval=Table[n ds,{n,0,npts-1}];
 	partials=Table[NIntegrate[integrand[Exp[s]-1]Exp[s],{s,sval[[n]],sval[[n+1]]}],{n,1,npts-1}];
+    (* Add the boundary condition that the integral is zero at z = 0 *)
 	tabulated=Prepend[Accumulate[partials],0];
 	interpolator=Interpolation[Transpose[{sval,tabulated}]];
 	Function[z,interpolator[Log[1+z]]]
@@ -147,7 +149,6 @@ curvatureFunction[\[CapitalOmega]k_]:=Which[
 True,Function[Dc,Dc]]
 
 
-Clear[angularDiameterDistanceFunction]
 angularDiameterDistanceFunction[hubble_,zmax_,\[CapitalOmega]k_,options:OptionsPattern[]]:=
 With[{hValue=OptionValue["hValue"],pointsPerDecade=OptionValue["pointsPerDecade"]},
 Module[{scale,func,curved},
@@ -159,7 +160,6 @@ Module[{scale,func,curved},
 Options[angularDiameterDistanceFunction]=Options[comovingDistanceFunction];
 
 
-Clear[lookbackTimeFunction]
 lookbackTimeFunction[hubble_,zmax_,options:OptionsPattern[]]:=
 With[{hValue=OptionValue["hValue"],pointsPerDecade=OptionValue["pointsPerDecade"]},
 Module[{scale},
@@ -176,7 +176,6 @@ Module[{scale},
 ]
 
 
-Clear[conformalTimeFunction]
 conformalTimeFunction[hubble_,zmax_,options:OptionsPattern[]]:=
 With[{hValue=OptionValue["hValue"],pointsPerDecade=OptionValue["pointsPerDecade"]},
 Module[{scale,eta0,func},
