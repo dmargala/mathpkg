@@ -22,6 +22,17 @@ valueWithFixedPrecision::usage=
 "valueWithFixedPrecision[val,prec] returns a string representation of val rounded to 10^(-prec)."
 
 
+autoRangeValue::usage=
+"autoRangeValue[val] returns a string representation of val using an automatically chosen
+SI multiplier. The default format is \"<ranged> <SI-mult>\", e.g. \"12.3 k\" for val=12345.
+The following options are supported:
+  - digits (4): number of digits of precision to display, must be integer.
+  - breakpoint (-1): ranged value is between 10^b and 10^(b+3), must be integer.
+  - separator (\" \"): appears between <ranged> and <SI-mult>.
+  - unit (None): appears after <SI-mult>.
+  - prefixes ({\"y\",\"z\",...,\"Z\",\"Y\"}): prefix labels to use for E-24 through E+24."
+
+
 temperatureMap::usage=
 "A replacement for the builtin TemperatureMap that is pure white at its midpoint."
 
@@ -114,6 +125,30 @@ Module[{leftSize,digits,formatted},
     If[precision>0,formatted=Join[AppendTo[formatted,"."],digits[[-precision;;]]]];
     StringJoin[formatted]
 ]]
+
+
+autoRangeValue[value_,options:OptionsPattern[]]:=
+With[{
+    digits=OptionValue["digits"],
+    breakpoint=OptionValue["breakpoint"],
+    prefixes=OptionValue["prefixes"],
+    separator=OptionValue["separator"],
+    unit=OptionValue["unit"]
+},
+Module[{range,rangedValue,size,prefix},
+    Assert[IntegerQ[digits]];
+    Assert[IntegerQ[breakpoint]];
+    range=Quotient[Floor[Log[10,Abs[value]]],3,breakpoint];
+    rangedValue=value 10^(-3range);
+    size=1+Floor[Log[10,Abs[rangedValue]]];
+    prefix=If[Abs[range]>8,"E"<>ToString[3 range],prefixes[[range+9]]];
+    valueWithFixedPrecision[rangedValue,digits-size]<>
+        If[separator===None,"",separator]<>prefix<>If[unit===None,"",unit]
+]]
+Options[autoRangeValue]={
+    "digits"->4,"breakpoint"->-1,"separator"->" ","unit"->None,
+    "prefixes"->{"y","z","a","f","p","n","\[Mu]","m","","k","M","G","T","P","E","Z","Y"}
+};
 
 
 temperatureMap[z_]:=With[{
