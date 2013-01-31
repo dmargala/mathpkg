@@ -13,11 +13,12 @@ CosmoTools::usage=
 
 
 criticalDensityToday::usage=
-"Calcualtes the present critical density in J/\!\(\*SuperscriptBox[\(m\), \(3\)]\)."
+"criticalDensityToday[hValue] calcualtes the present critical density in J/m^3."
 
 
 radiationDensity::usage=
-"Calculates the Stefan-Boltzmann radiation energy density in J/\!\(\*SuperscriptBox[\(m\), \(3\)]\)."
+"radiationDensity[Tcmb,Nnu] calculates the Stefan-Boltzmann radiation energy density
+in J/m^3 for a CMB temperature Tcmb in Kelvin and Nnu massless neutrinos."
 
 
 darkEnergyEvolution::usage=
@@ -73,14 +74,17 @@ criticalDensityToday[hvalue_]:=
 Units`Convert[
 	3 PhysicalConstants`SpeedOfLight^2/
 	(8 \[Pi] PhysicalConstants`GravitationalConstant)
-	(100 hvalue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec))^2,
-	Units`Joule/Units`Meter^3
+	(100 hvalue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec))^2/
+	(Units`Joule/Units`Meter^3),1
 ]
 
 
 radiationDensity[Tcmb_,Nnu_]:=
-(\[Pi]^2/15/(PhysicalConstants`PlanckConstantReduced PhysicalConstants`SpeedOfLight)^3
-(PhysicalConstants`BoltzmannConstant Tcmb Units`Kelvin)^4(1+7/8(4/11)^(4/3)Nnu))
+Units`Convert[
+    (\[Pi]^2/15/(PhysicalConstants`PlanckConstantReduced PhysicalConstants`SpeedOfLight)^3
+    (PhysicalConstants`BoltzmannConstant Tcmb Units`Kelvin)^4(1+7/8(4/11)^(4/3)Nnu))/
+    (Units`Joule/Units`Meter^3),1
+]
 
 
 darkEnergyEvolution[z_,w0_,wa_]:=
