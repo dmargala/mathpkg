@@ -51,7 +51,9 @@ mag=2 or higher is necessary when preparing latex figures."
 
 
 coverageContourPlot::usage=
-"Plots contours of the specified coverage fractions for a dataset."
+"coverageContourPlot[dataset,{x1,x2,dx},{y1,y2,dy}] plots contours containing 68% and 95% of the dataset points
+over the ranges (x1,x2) and (y1,y2) using a cell size (dx,dy) for kernel density estimation. Additional options
+supported are coverageFractions, which specifies the contour levels to draw, and any options of ContourPlot."
 
 
 Begin["Private`"]
@@ -179,7 +181,9 @@ With[{size=ImageSize/.Options[graphics,ImageSize],mag=OptionValue[magnification]
 Options[rasterize]={ magnification->1,oversampling->2 };
 
 
-coverageContourPlot[data_,{plotXmin_,plotXmax_,dx_},{plotYmin_,plotYmax_,dy_},fractions_:{0.6827,0.9545},plotOptions_:{}]:=
+Clear[coverageContourPlot]
+coverageContourPlot[data_,{plotXmin_,plotXmax_,dx_},{plotYmin_,plotYmax_,dy_},options:OptionsPattern[{coverageContourPlot,ContourPlot}]]:=
+With[{plotOptions=FilterRules[{options},Options[ContourPlot]],fractions=OptionValue["coverageFractions"]},
 Module[{kde,xmin,xmax,ymin,ymax,hist,sorted,cummulative,contourLevels},
     (* Build a kernel density estimate of the PDF *)
     kde=SmoothKernelDistribution[data];
@@ -197,9 +201,11 @@ Module[{kde,xmin,xmax,ymin,ymax,hist,sorted,cummulative,contourLevels},
     contourLevels=Map[sorted[[Position[cummulative,First[Nearest[cummulative,#1]],1,1][[1,1]]]]/(dx dy)&,fractions];
     (* plot the contours *)
     ContourPlot[PDF[kde,{x,y}],{x,plotXmin,plotXmax},{y,plotYmin,plotYmax},
-        plotOptions,Contours->contourLevels,PlotRange->{{plotXmin,plotXmax},{plotYmin,plotYmax},All},ContourShading->None
+        Sequence[plotOptions], (* following options can be overridden in plotOptions *)
+        Contours->contourLevels,PlotRange->{{plotXmin,plotXmax},{plotYmin,plotYmax},All},ContourShading->None
     ]
-]
+]]
+Options[coverageContourPlot]={"coverageFractions"->{0.6827,0.9545}};
 
 
 End[]
