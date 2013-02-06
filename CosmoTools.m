@@ -22,15 +22,51 @@ in J/m^3 for a CMB temperature Tcmb in Kelvin and Nnu massless neutrinos."
 
 
 darkEnergyEvolution::usage=
-"Calcualtes the dark energy evolution with redshift as a function of the
-equation of state parameters w0,wa."
+"darkEnergyEvolution[z,w0,wa] calcualtes the dark energy evolution with redshift (eqn 22 of Weinberg 2012)
+as a function of the equation of state parameters w0,wa."
+
+
+createCosmology::usage=
+"createCosmology[name] associates the following definitions with the symbol name:
+ - \[CapitalOmega]rad[name]
+ - hubbleFunction[name]
+Separate help is available for each of these definitions, e.g., ?\[CapitalOmega]rad.
+Use the following options to customize the cosmology that is created:
+ - hValue (0.7) only matters if radiation is included.
+ - \[CapitalOmega]\[Phi] (0.73) present-day fraction of dark energy.
+ - w0 (-1) dark-energy equation parameter state present-day value.
+ - wa (0) dark-energy equation of state parameter derivative wrt scale a.
+ - \[CapitalOmega]k (0) present-day curvature fraction.
+ - Tcmb (2.725) present-day CMB temperature in Kelvin.
+ - Nnu (3.046) effective number of massless neutrinos.
+To clear a previously defined cosmology, use Clear[name]."
+
+
+(* ::InheritFromParent:: *)
+(*"createCosmology[name] creates the following definitions associated with the symbol name:\n - name[hubbleFunction][z] evaluates H(z)/H0\n - ...\nUse the following options to customize the cosmology that is created:\n - hValue (0.7) only matters if radiation is included.\n - \[CapitalOmega]\[CapitalLambda] (0.73) present-day fraction of dark energy.\n - w0 (-1) dark-energy equation parameter state present-day value.\n - wa (0) dark-energy equation of state parameter derivative wrt scale a.\n - \[CapitalOmega]k (0) present-day curvature fraction.\n - Tcmb (2.725) present-day CMB temperature in Kelvin.\n - Nnu (3.046) effective number of massless neutrinos."*)
+
+
+\[CapitalOmega]rad::usage=
+"\[CapitalOmega]rad[name][z] returns the radiation energy density relative to the critical density at the specified redshift."
+
+
+\[CapitalOmega]de::usage=
+"\[CapitalOmega]de[name][z] returns the dark-energy density relative to the critical density at the specified redshift."
+
+
+\[CapitalOmega]mat::usage=
+"\[CapitalOmega]mat[name][z] returns the matter energy density relative to the critical density at the specified redshift."
+
+
+hubble::usage=
+"hubble[name][z] returns H(z)/H0."
 
 
 hubbleFunction::usage=
 "Returns a function that evalutes H(z)/H(0) for the specified cosmology. Use the following
 options to customize the cosmology:
  - hValue (0.7) only matters if radiation is included.
- - \[CapitalOmega]\[CapitalLambda] (0.73) present-day fraction of dark energy.
+ - \[CapitalOmega]\[Phi] (0.73) present-day fraction of dark energy.
  - w0 (-1) dark-energy equation parameter state present-day value.
  - wa (0) dark-energy equation of state parameter derivative wrt scale a.
  - \[CapitalOmega]k (0) present-day curvature fraction.
@@ -89,6 +125,28 @@ Units`Convert[
 
 darkEnergyEvolution[z_,w0_,wa_]:=
 Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]
+
+
+Clear[createCosmology]
+createCosmology[name_,OptionsPattern[]]:=
+With[{
+    hValue=OptionValue["hValue"],
+    \[CapitalOmega]\[CapitalLambda]=OptionValue["\[CapitalOmega]\[CapitalLambda]"],
+    w0=OptionValue["w0"],
+    wa=OptionValue["wa"],
+    \[CapitalOmega]k=OptionValue["\[CapitalOmega]k"],
+    Tcmb=OptionValue["Tcmb"],
+    Nnu=OptionValue["Nnu"]
+},
+    name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu]/criticalDensityToday[hValue](1+z)^4]]];
+    name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda] Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
+    name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[(1-\[CapitalOmega]de[name][0]-\[CapitalOmega]rad[name][0]-\[CapitalOmega]k)(1+z)^3]]];
+    name/: hubble[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]]]]];
+]
+SetAttributes[createCosmology,HoldFirst]
+Options[createCosmology]={
+    "hValue"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,"Tcmb"->2.725,"Nnu"->3.046
+};
 
 
 hubbleFunction[options:OptionsPattern[]]:=
@@ -185,6 +243,17 @@ Module[{scale,eta0,func},
     Function[z,eta0-func[z]]
 ]]
 Options[conformalTimeFunction]=Options[comovingDistanceFunction];
+
+
+(*soundHorizonFunction[hubble_,zmax_,options:OptionsPattern[]]:=
+With[{hValue=OptionValue["hValue"],pointsPerDecade=OptionValue["pointsPerDecade"]},
+Module[{scale,rs0,func},
+    scale=hubbleScale[PhysicalConstants`SpeedOfLight,hValue,Units`Mega Units`Parsec];
+    rs0=scale NIntegrate[...,{s,0,Infinity}];
+    func=buildFunction[scale ...,zmax,pointsPerDecade];
+    Function[z,rs0-func[z]]
+]]
+Options[soundHorizonFunction]=Options[comovingDistanceFunction];*)
 
 
 End[]
