@@ -21,16 +21,36 @@ radiationDensity::usage=
 in J/m^3 for a CMB temperature Tcmb in Kelvin and Nnu massless neutrinos."
 
 
+zstar::usage=
+"zstar[\[CapitalOmega]mh2,\[CapitalOmega]bh2] calculates the redshift of last scattering using equation (E-1)
+of Hu & Sugiyama 1996 (astro-ph/9510117)."
+
+
+zeq::usage=
+"zeq[\[CapitalOmega]mh2,Tcmb] calculates the redshift of matter-radiation equality using equation (2)
+of Eistenstein & Hu 1998 (astro-ph/9709112)."
+
+
+zdrag::usage=
+"zdrag[\[CapitalOmega]mh2,\[CapitalOmega]bh2] calculates the redshift at which the baryon-photon fluid separates,
+defined as the moment when the Compton drag experienced by the baryons falls below
+some threshold, using equation (4) of Eistenstein & Hu 1998 (astro-ph/9709112)."
+
+
 createCosmology::usage=
 "createCosmology[name] associates the following definitions with the symbol name:
- - \[CapitalOmega]rad[name]
- - \[CapitalOmega]de[name]
- - \[CapitalOmega]mat[name]
- - Hratio[name]
+ - \[CapitalOmega]rad[name][z]
+ - \[CapitalOmega]de[name][z]
+ - \[CapitalOmega]mat[name][z]
+ - Hratio[name][z]
+ - zstar[name]
+ - zeq[name]
+ - zdrag[name]
 Separate help is available for each of these definitions, e.g., ?\[CapitalOmega]rad.
 Use the following options to customize the cosmology that is created:
  - h (0.7) H0/(100 km/s/Mpc).
  - \[CapitalOmega]\[Phi] (0.73) present-day fraction of dark energy.
+ - \[CapitalOmega]bh2 (0.0227) present-day physical baryon fraction.
  - w0 (-1) dark-energy equation parameter state present-day value.
  - wa (0) dark-energy equation of state parameter derivative wrt scale a.
  - \[CapitalOmega]k (0) present-day curvature fraction.
@@ -39,10 +59,6 @@ Use the following options to customize the cosmology that is created:
 Use OptionValue[name,opt] to get option values associated with a cosmology.
 To clear a previously defined cosmology, use Clear[name]. Use the name provided
 here to identify the created cosmology in functions like comovingDistanceFunction."
-
-
-(* ::InheritFromParent:: *)
-(*"createCosmology[name] creates the following definitions associated with the symbol name:\n - name[hubbleFunction][z] evaluates H(z)/H0\n - ...\nUse the following options to customize the cosmology that is created:\n - hValue (0.7) only matters if radiation is included.\n - \[CapitalOmega]\[CapitalLambda] (0.73) present-day fraction of dark energy.\n - w0 (-1) dark-energy equation parameter state present-day value.\n - wa (0) dark-energy equation of state parameter derivative wrt scale a.\n - \[CapitalOmega]k (0) present-day curvature fraction.\n - Tcmb (2.725) present-day CMB temperature in Kelvin.\n - Nnu (3.046) effective number of massless neutrinos."*)
 
 
 \[CapitalOmega]rad::usage=
@@ -114,25 +130,46 @@ Units`Convert[
 ]
 
 
+zstar[\[CapitalOmega]mh2_,\[CapitalOmega]bh2_]:=
+With[{g1=0.0783 \[CapitalOmega]bh2^(-0.238)/(1+39.5 \[CapitalOmega]bh2^(0.763)),g2=0.560/(1+21.1 \[CapitalOmega]bh2^(1.81))},
+    1048(1+0.00124 \[CapitalOmega]bh2^(-0.738))(1+g1 \[CapitalOmega]mh2^g2)
+]
+
+
+zeq[\[CapitalOmega]mh2_,Tcmb_]:=25000 \[CapitalOmega]mh2 (2.7/Tcmb)^4
+
+
+zdrag[\[CapitalOmega]mh2_,\[CapitalOmega]bh2_]:=
+With[{b1=0.313 \[CapitalOmega]mh2^(-0.419)(1+0.607 \[CapitalOmega]mh2^(0.674)),b2=0.238 \[CapitalOmega]mh2^(0.223)},
+    1291 \[CapitalOmega]mh2^(0.251)/(1+0.659 \[CapitalOmega]mh2^(0.828))(1+b1 \[CapitalOmega]bh2^b2)
+]
+
+
 createCosmology[name_,OptionsPattern[]]:=
 With[{
     h=OptionValue["h"],
     \[CapitalOmega]\[CapitalLambda]=OptionValue["\[CapitalOmega]\[CapitalLambda]"],
+    \[CapitalOmega]bh2=OptionValue["\[CapitalOmega]bh2"],
     w0=OptionValue["w0"],
     wa=OptionValue["wa"],
     \[CapitalOmega]k=OptionValue["\[CapitalOmega]k"],
     Tcmb=OptionValue["Tcmb"],
     Nnu=OptionValue["Nnu"]
 },
-    name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,"Tcmb"->Tcmb,"Nnu"->Nnu };
+    name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,"Tcmb"->Tcmb,"Nnu"->Nnu };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu]/criticalDensityToday[h](1+z)^4]]];
     name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda] Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
     name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[(1-\[CapitalOmega]de[name][0]-\[CapitalOmega]rad[name][0]-\[CapitalOmega]k)(1+z)^3]]];
     name/: Hratio[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]]]]];
+    With[{\[CapitalOmega]mh2=\[CapitalOmega]mat[name][0]h^2},
+        name/: zstar[name]=zstar[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
+        name/: zeq[name]=zeq[\[CapitalOmega]mh2,Tcmb];
+        name/: zdrag[name]=zdrag[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
+    ]
 ]
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
-    "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,"Tcmb"->2.725,"Nnu"->3.046
+    "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"\[CapitalOmega]bh2"->0.0227,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,"Tcmb"->2.725,"Nnu"->3.046
 };
 
 
