@@ -180,7 +180,7 @@ With[{
         name/: zdrag[name]=zdrag[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
     ];
     With[{\[CapitalOmega]\[Gamma]=radiationDensity[Tcmb,0]/criticalDensityToday[h],\[CapitalOmega]b=\[CapitalOmega]bh2/h^2},
-        name/: betas[name]=Function[z,Evaluate[Simplify[1/Sqrt[3(1+(3\[CapitalOmega]b)/(4\[CapitalOmega]b)/(1+z))]]]];
+        name/: betas[name]=Function[z,Evaluate[Simplify[1/Sqrt[3(1+(3\[CapitalOmega]b)/(4\[CapitalOmega]\[Gamma])/(1+z))]]]];
     ]
 ]
 SetAttributes[createCosmology,HoldFirst]
@@ -279,11 +279,13 @@ Options[conformalTimeFunction]={"physical"->True};
 Clear[soundHorizonFunction]
 soundHorizonFunction[cosmology_,zmax_,options:OptionsPattern[{soundHorizonFunction,buildFunction}]]:=
 With[{physical=OptionValue["physical"]},
-Module[{h,scale},
+Module[{h,scale,r0},
     h=If[physical===True,OptionValue[cosmology,"h"],1];
     scale=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
-    buildFunction[1,zmax,"scale"->scale,FilterRules[{options},Options[buildFunction]]]
-]
+    r0=NIntegrate[betas[cosmology][Exp[s]-1]/Hratio[cosmology][Exp[s]-1]Exp[s],{s,0,Infinity}];
+    buildFunction[betas[cosmology][#1]/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->((r0-#1)&),FilterRules[{options},Options[buildFunction]]]
+]]
+Options[soundHorizonFunction]={"physical"->False};
 
 
 End[]
