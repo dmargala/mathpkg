@@ -102,7 +102,8 @@ as for comovingDistanceFunction."
 
 
 ageOfUniverse::usage=
-"ageOfUniverse[cosmology] returns the age of the universe in Gyr for the named cosmology."
+"ageOfUniverse[cosmology] returns the age of the universe in Gyr for the named cosmology.
+Result is cached after first evaluation."
 
 
 lookbackTimeFunction::usage=
@@ -246,7 +247,8 @@ With[{transform=curvatureFunction[OptionValue[cosmology,"\[CapitalOmega]k"]]},
 ]
 
 
-ageOfUniverse[cosmology_]:=
+Clear[ageOfUniverse]
+ageOfUniverse[cosmology_]:=ageOfUniverse[cosmology]^=
 Module[{scale},
     scale=hubbleScale[1,OptionValue[cosmology,"h"],Units`Giga Units`Year];
 	scale NIntegrate[1/Hratio[cosmology][Exp[s]-1],{s,0,Infinity}]
