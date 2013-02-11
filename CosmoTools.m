@@ -42,10 +42,12 @@ createCosmology::usage=
  - \[CapitalOmega]rad[name][z]
  - \[CapitalOmega]de[name][z]
  - \[CapitalOmega]mat[name][z]
+ - H0[name]
  - Hratio[name][z]
  - zstar[name]
  - zeq[name]
  - zdrag[name]
+ - betas[name][z]
 Separate help is available for each of these definitions, e.g., ?\[CapitalOmega]rad.
 Use the following options to customize the cosmology that is created:
  - h (0.7) H0/(100 km/s/Mpc).
@@ -81,6 +83,10 @@ Hratio::usage=
 "Hratio[name][z] returns H(z)/H0."
 
 
+betas::usage=
+"betas[name][z] returns the sound speed in the bayron-photon fluid relative to the speed of light."
+
+
 comovingDistanceFunction::usage=
 "comovingDistanceFunction[cosmology,zmax] returns a function that evaluates the comoving distance
 to a redshift z <= zmax for the named cosmology. Possible options are:
@@ -110,6 +116,11 @@ to a redshift z <= zmax for the named cosmology. Possible options are:
 conformalTimeFunction::usage=
 "conformalTimeFunction[cosmology,zmax] returns a function that evaluates the conformal time
 at redshift z <= zmax for the named cosmology. Options are the same as for lookbackTimeFunction."
+
+
+soundHorizonFunction::usage=
+"soundHorizonFunction[cosmology,zmax] returns a function that evaluates the sound horizon at
+redshift z <= zmax for the named cosmology. Options are the same as for comovingDistanceFunction."
 
 
 Begin["Private`"]
@@ -167,6 +178,9 @@ With[{
         name/: zstar[name]=zstar[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
         name/: zeq[name]=zeq[\[CapitalOmega]mh2,Tcmb];
         name/: zdrag[name]=zdrag[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
+    ];
+    With[{\[CapitalOmega]\[Gamma]=radiationDensity[Tcmb,0]/criticalDensityToday[h],\[CapitalOmega]b=\[CapitalOmega]bh2/h^2},
+        name/: betas[name]=Function[z,Evaluate[Simplify[1/Sqrt[3(1+(3\[CapitalOmega]b)/(4\[CapitalOmega]b)/(1+z))]]]];
     ]
 ]
 SetAttributes[createCosmology,HoldFirst]
@@ -262,15 +276,14 @@ Module[{h,scale,eta0},
 Options[conformalTimeFunction]={"physical"->True};
 
 
-(*soundHorizonFunction[hubble_,zmax_,options:OptionsPattern[]]:=
-With[{hValue=OptionValue["hValue"],pointsPerDecade=OptionValue["pointsPerDecade"]},
-Module[{scale,rs0,func},
-    scale=hubbleScale[PhysicalConstants`SpeedOfLight,hValue,Units`Mega Units`Parsec];
-    rs0=scale NIntegrate[...,{s,0,Infinity}];
-    func=buildFunction[scale ...,zmax,pointsPerDecade];
-    Function[z,rs0-func[z]]
-]]
-Options[soundHorizonFunction]=Options[comovingDistanceFunction];*)
+Clear[soundHorizonFunction]
+soundHorizonFunction[cosmology_,zmax_,options:OptionsPattern[{soundHorizonFunction,buildFunction}]]:=
+With[{physical=OptionValue["physical"]},
+Module[{h,scale},
+    h=If[physical===True,OptionValue[cosmology,"h"],1];
+    scale=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
+    buildFunction[1,zmax,"scale"->scale,FilterRules[{options},Options[buildFunction]]]
+]
 
 
 End[]
