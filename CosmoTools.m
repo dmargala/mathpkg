@@ -103,7 +103,7 @@ as for comovingDistanceFunction."
 
 ageOfUniverse::usage=
 "ageOfUniverse[cosmology] returns the age of the universe in Gyr for the named cosmology.
-Result is cached after first evaluation."
+The result is cached after first evaluation."
 
 
 lookbackTimeFunction::usage=
@@ -122,6 +122,11 @@ at redshift z <= zmax for the named cosmology. Options are the same as for lookb
 soundHorizonFunction::usage=
 "soundHorizonFunction[cosmology,zmax] returns a function that evaluates the sound horizon at
 redshift z <= zmax for the named cosmology. Options are the same as for comovingDistanceFunction."
+
+
+rsdrag::usage=
+"rsdrag[cosmology] returns the sound horizon in Mpc at zdrag for the named cosmology.
+The result is cached after the first evaluation."
 
 
 Begin["Private`"]
@@ -288,6 +293,15 @@ Module[{h,scale,r0},
     buildFunction[betas[cosmology][#1]/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->((r0-#1)&),FilterRules[{options},Options[buildFunction]]]
 ]]
 Options[soundHorizonFunction]={"physical"->False};
+
+
+Clear[rsdrag]
+rsdrag[cosmology_]:=rsdrag[cosmology]^=
+Module[{scale,sdrag},
+    scale=hubbleScale[PhysicalConstants`SpeedOfLight,OptionValue[cosmology,"h"],Units`Mega Units`Parsec];
+    sdrag=Log[1+zdrag[cosmology]];
+    scale NIntegrate[betas[cosmology][Exp[s]-1]/Hratio[cosmology][Exp[s]-1]Exp[s],{s,sdrag,Infinity}]
+]
 
 
 End[]
