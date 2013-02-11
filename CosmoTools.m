@@ -85,7 +85,8 @@ comovingDistanceFunction::usage=
 "comovingDistanceFunction[cosmology,zmax] returns a function that evaluates the comoving distance
 to a redshift z <= zmax for the named cosmology. Possible options are:
  - physical (False) units are Mpc (True) or Mpc/h (False).
- - pointsPerDecade (20) number of interpolation points to use per decade."
+ - pointsPerDecade (20) number of interpolation points to use per decade.
+ - inverted (False) return inverse function z(Dc) instead of Dc(z) when True."
 
 
 angularDiameterDistanceFunction::usage
@@ -102,7 +103,8 @@ lookbackTimeFunction::usage=
 "lookbackTimeFunction[cosmology,zmax] returns a function that evaluates the lookback time
 to a redshift z <= zmax for the named cosmology. Possible options are:
  - physical (True) units Gyr (True) or Gyr/h (False).
- - pointsPerDecade (20) number of interpolation points to use per decade."
+ - pointsPerDecade (20) number of interpolation points to use per decade.
+ - inverted (False) return inverse function z(tLB) instead of tLB(z) when True."
 
 
 conformalTimeFunction::usage=
@@ -173,19 +175,32 @@ Options[createCosmology]={
 };
 
 
-(* Builds a function that evaluates the integral of I(z) from 0 to zmax with interpolation in log(1+z) *)
-buildFunction[integrand_,zmax_,ptsPerDecade_]:=
+(* Builds a function that evaluates f[z]=scale*transform[Integral[integrand[zz],{zz,0,z}]] using interpolation
+in log(1+z) with the specified number of points per decade. The default scale=1 and transform[f]=f.
+With inverted\[Rule]True, evaluates z[f] instead of f[z]. *)
+Clear[buildFunction]
+buildFunction[integrand_,zmax_,OptionsPattern[]]:=
+With[{pointsPerDecade=OptionValue["pointsPerDecade"],inverted=OptionValue["inverted"],
+scale=OptionValue["scale"],transform=OptionValue["transform"]},
 Module[{npts,ds,sval,partials,tabulated,interpolator},
-	npts=Ceiling[N[Log[1+zmax]ptsPerDecade/Log[10]]];
+	npts=Ceiling[N[Log[1+zmax]pointsPerDecade/Log[10]]];
     (* Integrate over equally spaced intervals in s = log(1+z) *)
     ds=Log[1+zmax]/(npts-1);
 	sval=Table[n ds,{n,0,npts-1}];
 	partials=Table[NIntegrate[integrand[Exp[s]-1]Exp[s],{s,sval[[n]],sval[[n+1]]}],{n,1,npts-1}];
     (* Add the boundary condition that the integral is zero at z = 0 *)
 	tabulated=Prepend[Accumulate[partials],0];
-	interpolator=Interpolation[Transpose[{sval,tabulated}]];
-	Function[z,interpolator[Log[1+z]]]
-]
+    (* Apply the scale and transform to the cummulative integrals *)
+    tabulated=scale Map[transform,tabulated];
+    (* Create the requested interpolation f(z) or z(f) *)
+    If[inverted===True,
+        interpolator=Interpolation[Transpose[{tabulated,sval}]];
+	        Function[f,Exp[interpolator[f]]-1],
+    	interpolator=Interpolation[Transpose[{sval,tabulated}]];
+            Function[z,interpolator[Log[1+z]]]
+    ]
+]]
+Options[buildFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->Identity,"inverted"->False};
 
 
 (* Returns numerator/H0 in the specified units *)
@@ -193,14 +208,15 @@ hubbleScale[numerator_,hValue_,units_]:=
 Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec))/units,1]
 
 
-comovingDistanceFunction[cosmology_,zmax_,options:OptionsPattern[]]:=
-With[{physical=OptionValue["physical"],pointsPerDecade=OptionValue["pointsPerDecade"]},
+Clear[comovingDistanceFunction]
+comovingDistanceFunction[cosmology_,zmax_,options:OptionsPattern[{comovingDistanceFunction,buildFunction}]]:=
+With[{physical=OptionValue["physical"]},
 Module[{h,scale},
     h=If[physical===True,OptionValue[cosmology,"h"],1];
     scale=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
-	buildFunction[scale/Hratio[cosmology][#1]&,zmax,pointsPerDecade]
+	buildFunction[1/Hratio[cosmology][#1]&,zmax,"scale"->scale,FilterRules[{options},Options[buildFunction]]]
 ]]
-Options[comovingDistanceFunction]={"physical"->False,"pointsPerDecade"->20};
+Options[comovingDistanceFunction]={"physical"->False};
 
 
 curvatureFunction[\[CapitalOmega]k_]:=Which[
@@ -209,16 +225,11 @@ curvatureFunction[\[CapitalOmega]k_]:=Which[
 True,Function[Dc,Dc]]
 
 
-angularDiameterDistanceFunction[cosmology_,zmax_,options:OptionsPattern[]]:=
-With[{physical=OptionValue["physical"],pointsPerDecade=OptionValue["pointsPerDecade"]},
-Module[{h,scale,func,curved},
-    h=If[physical===True,OptionValue[cosmology,"h"],1];
-    scale=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
-	func=buildFunction[1/Hratio[cosmology][#1]&,zmax,pointsPerDecade];
-    curved=curvatureFunction[OptionValue[cosmology,"\[CapitalOmega]k"]];
-    Function[z,scale curved[func[z]]]
-]]
-Options[angularDiameterDistanceFunction]=Options[comovingDistanceFunction];
+Clear[angularDiameterDistanceFunction]
+angularDiameterDistanceFunction[cosmology_,zmax_,options___]:=
+With[{transform=curvatureFunction[OptionValue[cosmology,"\[CapitalOmega]k"]]},
+    comovingDistanceFunction[cosmology,zmax,"transform"->transform,options]
+]
 
 
 ageOfUniverse[cosmology_]:=
@@ -228,26 +239,27 @@ Module[{scale},
 ]
 
 
-lookbackTimeFunction[cosmology_,zmax_,options:OptionsPattern[]]:=
-With[{physical=OptionValue["physical"],pointsPerDecade=OptionValue["pointsPerDecade"]},
+Clear[lookbackTimeFunction]
+lookbackTimeFunction[cosmology_,zmax_,options:OptionsPattern[{lookbackTimeFunction,buildFunction}]]:=
+With[{physical=OptionValue["physical"]},
 Module[{h,scale},
     h=If[physical===True,OptionValue[cosmology,"h"],1];
     scale=hubbleScale[1,h,Units`Giga Units`Year];
-	buildFunction[scale/(1+#1)/Hratio[cosmology][#1]&,zmax,pointsPerDecade]
+	buildFunction[1/(1+#1)/Hratio[cosmology][#1]&,zmax,"scale"->scale,FilterRules[{options},Options[buildFunction]]]
 ]]
-Options[lookbackTimeFunction]={"physical"->True,"pointsPerDecade"->20};
+Options[lookbackTimeFunction]={"physical"->True};
 
 
-conformalTimeFunction[cosmology_,zmax_,options:OptionsPattern[]]:=
-With[{physical=OptionValue["physical"],pointsPerDecade=OptionValue["pointsPerDecade"]},
-Module[{h,scale,eta0,func},
+Clear[conformalTimeFunction]
+conformalTimeFunction[cosmology_,zmax_,options:OptionsPattern[{conformalTimeFunction,buildFunction}]]:=
+With[{physical=OptionValue["physical"]},
+Module[{h,scale,eta0},
     h=If[physical===True,OptionValue[cosmology,"h"],1];
     scale=hubbleScale[1,h,Units`Giga Units`Year];
-    eta0=scale NIntegrate[1/Hratio[cosmology][Exp[s]-1]Exp[s],{s,0,Infinity}];
-    func=buildFunction[scale/Hratio[cosmology][#1]&,zmax,pointsPerDecade];
-    Function[z,eta0-func[z]]
+    eta0=NIntegrate[1/Hratio[cosmology][Exp[s]-1]Exp[s],{s,0,Infinity}];
+    buildFunction[1/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->((eta0-#1)&),FilterRules[{options},Options[buildFunction]]]
 ]]
-Options[conformalTimeFunction]=Options[lookbackTimeFunction];
+Options[conformalTimeFunction]={"physical"->True};
 
 
 (*soundHorizonFunction[hubble_,zmax_,options:OptionsPattern[]]:=
