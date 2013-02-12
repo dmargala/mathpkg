@@ -83,6 +83,10 @@ Hratio::usage=
 "Hratio[name][z] returns H(z)/H0."
 
 
+hubbleDistance::usage=
+"hubbleDistance[name] returns the Hubble distance c/H0 in Mpc."
+
+
 betas::usage=
 "betas[name][z] returns the sound speed in the bayron-photon fluid relative to the speed of light."
 
@@ -164,6 +168,11 @@ With[{b1=0.313 \[CapitalOmega]mh2^(-0.419)(1+0.607 \[CapitalOmega]mh2^(0.674)),b
 ]
 
 
+(* Returns numerator/H0 in the specified units *)
+hubbleScale[numerator_,hValue_,units_]:=
+Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec))/units,1]
+
+
 createCosmology[name_,OptionsPattern[]]:=
 With[{
     h=OptionValue["h"],
@@ -179,7 +188,9 @@ With[{
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu]/criticalDensityToday[h](1+z)^4]]];
     name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda] Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
     name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[(1-\[CapitalOmega]de[name][0]-\[CapitalOmega]rad[name][0]-\[CapitalOmega]k)(1+z)^3]]];
+    name/: H0[name]=100 h;
     name/: Hratio[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]]]]];
+    name/: hubbleDistance[name]=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
     With[{\[CapitalOmega]mh2=\[CapitalOmega]mat[name][0]h^2},
         name/: zstar[name]=zstar[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
         name/: zeq[name]=zeq[\[CapitalOmega]mh2,Tcmb];
@@ -221,11 +232,6 @@ Module[{npts,ds,sval,partials,tabulated,interpolator},
     ]
 ]]
 Options[buildFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->Identity,"inverted"->False};
-
-
-(* Returns numerator/H0 in the specified units *)
-hubbleScale[numerator_,hValue_,units_]:=
-Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec))/units,1]
 
 
 Clear[comovingDistanceFunction]
