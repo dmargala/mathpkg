@@ -44,12 +44,14 @@ createCosmology::usage=
  - \[CapitalOmega]mat[name][z]
  - H0[name]
  - Hratio[name][z]
+ - curvatureTransform[name][x]
  - zstar[name]
  - zeq[name]
  - zdrag[name]
  - betas[name][z]
 Separate help is available for each of these definitions, e.g., ?\[CapitalOmega]rad.
-Use the following options to customize the cosmology that is created:
+Use the following options (defaults in parentheses) to customize the
+created cosmology:
  - h (0.7) H0/(100 km/s/Mpc).
  - \[CapitalOmega]\[Phi] (0.73) present-day fraction of dark energy.
  - \[CapitalOmega]bh2 (0.0227) present-day physical baryon fraction.
@@ -58,9 +60,10 @@ Use the following options to customize the cosmology that is created:
  - \[CapitalOmega]k (0) present-day curvature fraction.
  - Tcmb (2.725) present-day CMB temperature in Kelvin.
  - Nnu (3.046) effective number of massless neutrinos.
-Use OptionValue[name,opt] to get option values associated with a cosmology.
-To clear a previously defined cosmology, use Clear[name]. Use the name provided
-here to identify the created cosmology in functions like comovingDistanceFunction."
+Use OptionValue[name,opt] to get option values associated with a named
+cosmology. To clear a previously defined cosmology, use Clear[name]. Use
+the name provided here to identify the created cosmology in functions
+like comovingDistanceFunction."
 
 
 \[CapitalOmega]rad::usage=
@@ -84,7 +87,12 @@ Hratio::usage=
 
 
 hubbleDistance::usage=
-"hubbleDistance[name] returns the Hubble distance c/H0 in Mpc."
+"hubbleDistance[name] returns the Hubble distance c/H0 in Mpc (not Mpc/h)."
+
+
+curvatureTransform::usage=
+"curvatureTransform[name][x] returns the comoving transverse distance DM corresponding to the
+scaled comoving line-of-sight distance x = DC/(c/H0)."
 
 
 betas::usage=
@@ -93,7 +101,7 @@ betas::usage=
 
 comovingDistanceFunction::usage=
 "comovingDistanceFunction[cosmology,zmax] returns a function that evaluates the comoving distance
-to a redshift z <= zmax for the named cosmology. Possible options are:
+along the line of sight to a redshift z <= zmax for the named cosmology. Possible options are:
  - physical (False) units are Mpc (True) or Mpc/h (False).
  - pointsPerDecade (20) number of interpolation points to use per decade.
  - inverted (False) return inverse function z(Dc) instead of Dc(z) when True."
@@ -129,7 +137,7 @@ redshift z <= zmax for the named cosmology. Options are the same as for comoving
 
 
 rsdrag::usage=
-"rsdrag[cosmology] returns the sound horizon in Mpc at zdrag for the named cosmology.
+"rsdrag[cosmology] returns the sound horizon in Mpc (not Mpc/h) at zdrag for the named cosmology.
 The result is cached after the first evaluation."
 
 
@@ -191,6 +199,8 @@ With[{
     name/: H0[name]=100 h;
     name/: Hratio[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]]]]];
     name/: hubbleDistance[name]=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
+    name/: curvatureTransform[name]=Function[x,Evaluate[Simplify[Which[
+        \[CapitalOmega]k>0,Sinh[Sqrt[\[CapitalOmega]k]x]/Sqrt[\[CapitalOmega]k],\[CapitalOmega]k<0,Sin[Sqrt[-\[CapitalOmega]k]x]/Sqrt[-\[CapitalOmega]k],True,x]]]];
     With[{\[CapitalOmega]mh2=\[CapitalOmega]mat[name][0]h^2},
         name/: zstar[name]=zstar[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
         name/: zeq[name]=zeq[\[CapitalOmega]mh2,Tcmb];
