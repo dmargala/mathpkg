@@ -38,7 +38,11 @@ temperatureMap::usage=
 
 
 drawEllipse::usage=
-"Draws an ellipse centered at (x,y) whose bounding box dimensions are 2(dx,dy), with tangents at (dx,rho dy) and (rho dx,dy). Use dx = \!\(\*SubscriptBox[\(n\[Sigma]\), \(x\)]\), dy = \!\(\*SubscriptBox[\(n\[Sigma]\), \(y\)]\) to draw the n-sigma contour of a likelihood. For a Gaussian likelihood, use n = 1.51517 for 68% CL and n = 2.44775 for 95% CL."
+"drawEllipse[x,y,dx,dy,rho] draws an ellipse centered at (x,y) whose bounding box
+dimensions are 2(dx,dy), with tangents at (dx, rho dy) and (rho dx, dy).
+Use dx = n \[Sigma]x, dy = n \[Sigma]y to draw the n-sigma contour of a likelihood.
+For a Gaussian likelihood, use n = 1.51517 for 68% CL and n = 2.44775 for 95% CL.
+Add options fillStyle and edgeStyle to customize the appearance."
 
 
 rasterize::usage=
@@ -162,7 +166,9 @@ b=Clip[3-4z,{0,1}]
 
 
 (* See http://pdg.lbl.gov/2012/reviews/rpp2012-rev-statistics.pdf and http://users.tkk.fi/mvermeer/uncertainty.pdf *)
-drawEllipse[x_,y_,dx_,dy_,rho_,fillStyle_:{Opacity[0.3]},edgeStyle_:{}]:=
+Clear[drawEllipse]
+drawEllipse[x_,y_,dx_,dy_,rho_,OptionsPattern[]]:=
+With[{fillStyle=OptionValue["fillStyle"],edgeStyle=OptionValue["edgeStyle"]},
 Module[{avg,dlam,dab,\[Lambda]1,\[Lambda]2,\[Phi]},
     avg=(dx^2+dy^2)/2;
     dab=rho dx dy;
@@ -171,7 +177,8 @@ Module[{avg,dlam,dab,\[Lambda]1,\[Lambda]2,\[Phi]},
     \[Lambda]2=avg-dlam;
     \[Phi]=ArcTan[(dx^2-dy^2),2 dab]/2;
     Graphics[{Directive[fillStyle],EdgeForm[edgeStyle],Rotate[Disk[{x,y},{Sqrt[\[Lambda]1],Sqrt[\[Lambda]2]}],\[Phi],{x,y}]}]
-]
+]]
+Options[drawEllipse]={"fillStyle"->{Opacity[0.5]},"edgeStyle"->{Thick}};
 
 
 rasterize[graphics_,options:OptionsPattern[]]:=
