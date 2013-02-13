@@ -244,28 +244,32 @@ Module[{npts,ds,sval,partials,tabulated,interpolator},
 Options[buildFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"inverted"->False};
 
 
-Clear[comovingDistanceFunction]
-comovingDistanceFunction[cosmology_,zmax_,options:OptionsPattern[{comovingDistanceFunction,buildFunction}]]:=
-With[{physical=OptionValue["physical"]},
-Module[{h,scale},
+(* Builds a distance function using options physical (Mpc vs Mpc/h), transverse (apply curvatureTransform), and
+multiplying result by (1+z)^zpower *)
+Clear[buildDistanceFunction]
+buildDistanceFunction[cosmology_,zmax_,options:OptionsPattern[{buildDistanceFunction,buildFunction}]]:=
+With[{physical=OptionValue["physical"],transverse=OptionValue["transverse"],zpower=OptionValue["zpower"]},
+Module[{h,scale,transform},
     h=If[physical===True,OptionValue[cosmology,"h"],1];
     scale=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
-	buildFunction[1/Hratio[cosmology][#1]&,zmax,"scale"->scale,FilterRules[{options},Options[buildFunction]]]
+    transform=If[transverse===True,curvatureTransform[cosmology][#2](1+#1)^zpower,#2 (1+#1)^zpower]&;
+	buildFunction[1/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->transform,
+        FilterRules[{options},Options[buildFunction]]
+    ]
 ]]
-Options[comovingDistanceFunction]={"physical"->False};
+Options[buildDistanceFunction]={"physical"->False,"transverse"->False,"zpower"->0};
 
 
-curvatureFunction[\[CapitalOmega]k_]:=Which[
-\[CapitalOmega]k>0,Function[Dc,Sinh[Sqrt[\[CapitalOmega]k]Dc]/Sqrt[\[CapitalOmega]k]],
-\[CapitalOmega]k<0,Function[Dc,Sin[Sqrt[-\[CapitalOmega]k]Dc]/Sqrt[-\[CapitalOmega]k]],
-True,Function[Dc,Dc]]
+Clear[comovingDistanceFunction]
+comovingDistanceFunction[cosmology_,zmax_,options:OptionsPattern[]]:=
+buildDistanceFunction[cosmology,zmax,"transverse"->False,"zpower"->0,FilterRules[{options},Options[buildFunction]]]
+Options[comovingDistanceFunction]={"physical"->False,"inverted"->False,"pointsPerDecade"->20};
 
 
 Clear[angularDiameterDistanceFunction]
-angularDiameterDistanceFunction[cosmology_,zmax_,options___]:=
-With[{transform=curvatureFunction[OptionValue[cosmology,"\[CapitalOmega]k"]][#2]&},
-    comovingDistanceFunction[cosmology,zmax,"transform"->transform,options]
-]
+angularDiameterDistanceFunction[cosmology_,zmax_,options:OptionsPattern[]]:=
+buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->0,FilterRules[{options},Options[buildFunction]]]
+Options[angularDiameterDistanceFunction]={"physical"->False,"inverted"->False,"pointsPerDecade"->20};
 
 
 Clear[ageOfUniverse]
