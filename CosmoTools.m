@@ -101,15 +101,28 @@ betas::usage=
 
 comovingDistanceFunction::usage=
 "comovingDistanceFunction[cosmology,zmax] returns a function that evaluates the comoving distance
-along the line of sight to a redshift z <= zmax for the named cosmology. Possible options are:
+along the line of sight to a redshift z <= zmax for the named cosmology. Possible options (with
+defaults in parentheses) are:
  - physical (False) units are Mpc (True) or Mpc/h (False).
- - pointsPerDecade (20) number of interpolation points to use per decade.
- - inverted (False) return inverse function z(Dc) instead of Dc(z) when True."
+ - inverted (False) return inverse function z(Dc) instead of Dc(z) when True.
+ - pointsPerDecade (20) number of interpolation points to use per decade."
+
+
+transverseDistanceFunction::usage
+"transverseDistanceFunction[cosmology,zmax] returns a function that evaluates the comoving distance
+transverse to the line of sight at a redshift z <= zmax for the named cosmology. Options are the same
+as for comovingDistanceFunction."
 
 
 angularDiameterDistanceFunction::usage
-"angularDiameterDistanceFunction[cosmology,zmax] returns a function that evaluates the comoving
+"angularDiameterDistanceFunction[cosmology,zmax] returns a function that evaluates the
 angular diameter distance to a redshift z <= zmax for the named cosmology. Options are the same
+as for comovingDistanceFunction."
+
+
+luminosityDistanceFunction::usage
+"angularDiameterDistanceFunction[cosmology,zmax] returns a function that evaluates the
+luminosity distance to a redshift z <= zmax for the named cosmology. Options are the same
 as for comovingDistanceFunction."
 
 
@@ -266,10 +279,19 @@ buildDistanceFunction[cosmology,zmax,"transverse"->False,"zpower"->0,FilterRules
 Options[comovingDistanceFunction]={"physical"->False,"inverted"->False,"pointsPerDecade"->20};
 
 
-Clear[angularDiameterDistanceFunction]
-angularDiameterDistanceFunction[cosmology_,zmax_,options:OptionsPattern[]]:=
+Clear[transverseDistanceFunction]
+transverseDistanceFunction[cosmology_,zmax_,options:OptionsPattern[comovingDistanceFunction]]:=
 buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->0,FilterRules[{options},Options[buildFunction]]]
-Options[angularDiameterDistanceFunction]={"physical"->False,"inverted"->False,"pointsPerDecade"->20};
+
+
+Clear[angularDiameterDistanceFunction]
+angularDiameterDistanceFunction[cosmology_,zmax_,options:OptionsPattern[comovingDistanceFunction]]:=
+buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->-1,FilterRules[{options},Options[buildFunction]]]
+
+
+Clear[luminosityDistanceFunction]
+luminosityDistanceFunction[cosmology_,zmax_,options:OptionsPattern[comovingDistanceFunction]]:=
+buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->+1,FilterRules[{options},Options[buildFunction]]]
 
 
 Clear[ageOfUniverse]
