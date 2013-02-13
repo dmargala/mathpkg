@@ -216,8 +216,8 @@ Options[createCosmology]={
 };
 
 
-(* Builds a function that evaluates f[z]=scale*transform[Integral[integrand[zz],{zz,0,z}]] using interpolation
-in log(1+z) with the specified number of points per decade. The default scale=1 and transform[f]=f.
+(* Builds a function that evaluates f[z]=scale*transform[z,Integral[integrand[zz],{zz,0,z}]] using interpolation
+in log(1+z) with the specified number of points per decade. The default scale=1 and transform[z,f]=f.
 With inverted\[Rule]True, evaluates z[f] instead of f[z]. *)
 Clear[buildFunction]
 buildFunction[integrand_,zmax_,OptionsPattern[]]:=
@@ -229,10 +229,10 @@ Module[{npts,ds,sval,partials,tabulated,interpolator},
     ds=Log[1+zmax]/(npts-1);
 	sval=Table[n ds,{n,0,npts-1}];
 	partials=Table[NIntegrate[integrand[Exp[s]-1]Exp[s],{s,sval[[n]],sval[[n+1]]}],{n,1,npts-1}];
-    (* Add the boundary condition that the integral is zero at z = 0 *)
+    (* Accumulate the partials and add the boundary condition that the integral is zero at z = 0 *)
 	tabulated=Prepend[Accumulate[partials],0];
-    (* Apply the scale and transform to the cummulative integrals *)
-    tabulated=scale Map[transform,tabulated];
+    (* Apply the scale and transform[z,f] to the cummulative integrals *)
+    tabulated=scale Apply[transform,Transpose[{Exp[sval]-1,tabulated}],1];
     (* Create the requested interpolation f(z) or z(f) *)
     If[inverted===True,
         interpolator=Interpolation[Transpose[{tabulated,sval}]];
@@ -241,7 +241,7 @@ Module[{npts,ds,sval,partials,tabulated,interpolator},
             Function[z,interpolator[Log[1+z]]]
     ]
 ]]
-Options[buildFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->Identity,"inverted"->False};
+Options[buildFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"inverted"->False};
 
 
 Clear[comovingDistanceFunction]
@@ -263,7 +263,7 @@ True,Function[Dc,Dc]]
 
 Clear[angularDiameterDistanceFunction]
 angularDiameterDistanceFunction[cosmology_,zmax_,options___]:=
-With[{transform=curvatureFunction[OptionValue[cosmology,"\[CapitalOmega]k"]]},
+With[{transform=curvatureFunction[OptionValue[cosmology,"\[CapitalOmega]k"]][#2]&},
     comovingDistanceFunction[cosmology,zmax,"transform"->transform,options]
 ]
 
@@ -294,7 +294,7 @@ Module[{h,scale,eta0},
     h=If[physical===True,OptionValue[cosmology,"h"],1];
     scale=hubbleScale[1,h,Units`Giga Units`Year];
     eta0=NIntegrate[1/Hratio[cosmology][Exp[s]-1]Exp[s],{s,0,Infinity}];
-    buildFunction[1/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->((eta0-#1)&),FilterRules[{options},Options[buildFunction]]]
+    buildFunction[1/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->((eta0-#2)&),FilterRules[{options},Options[buildFunction]]]
 ]]
 Options[conformalTimeFunction]={"physical"->True};
 
@@ -306,7 +306,7 @@ Module[{h,scale,r0},
     h=If[physical===True,OptionValue[cosmology,"h"],1];
     scale=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
     r0=NIntegrate[betas[cosmology][Exp[s]-1]/Hratio[cosmology][Exp[s]-1]Exp[s],{s,0,Infinity}];
-    buildFunction[betas[cosmology][#1]/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->((r0-#1)&),FilterRules[{options},Options[buildFunction]]]
+    buildFunction[betas[cosmology][#1]/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->((r0-#2)&),FilterRules[{options},Options[buildFunction]]]
 ]]
 Options[soundHorizonFunction]={"physical"->False};
 
