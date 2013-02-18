@@ -60,6 +60,9 @@ created cosmology:
  - \[CapitalOmega]k (0) present-day curvature fraction.
  - Tcmb (2.725) present-day CMB temperature in Kelvin.
  - Nnu (3.046) effective number of massless neutrinos.
+ - ns (0.972) scalar primordial power spectral index.
+ - amps (2.41e-9) scalar primordial power amplitude.
+ - kpivot (0.002/Mpc) pivot wavenumber used to define primordial scalar power.
 Use OptionValue[name,opt] to get option values associated with a named
 cosmology. To clear a previously defined cosmology, use Clear[name]. Use
 the name provided here to identify the created cosmology in functions
@@ -93,6 +96,10 @@ hubbleDistance::usage=
 curvatureTransform::usage=
 "curvatureTransform[name][x] returns the comoving transverse distance DM corresponding to the
 scaled comoving line-of-sight distance x = DC/(c/H0)."
+
+
+primordialPower::usage=
+"primordialPower[name][k] returns the primordial power P(k) in 1/Mpc for k in 1/Mpc."
 
 
 betas::usage=
@@ -204,9 +211,13 @@ With[{
     wa=OptionValue["wa"],
     \[CapitalOmega]k=OptionValue["\[CapitalOmega]k"],
     Tcmb=OptionValue["Tcmb"],
-    Nnu=OptionValue["Nnu"]
+    Nnu=OptionValue["Nnu"],
+    ns=OptionValue["ns"],
+    amps=OptionValue["amps"],
+    kpivot=OptionValue["kpivot"]
 },
-    name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,"Tcmb"->Tcmb,"Nnu"->Nnu };
+    name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
+        "Tcmb"->Tcmb,"Nnu"->Nnu,"ns"->ns,"amps"->amps,"kpivot"->kpivot };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu]/criticalDensityToday[h](1+z)^4]]];
     name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda] Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
     name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[(1-\[CapitalOmega]de[name][0]-\[CapitalOmega]rad[name][0]-\[CapitalOmega]k)(1+z)^3]]];
@@ -215,6 +226,7 @@ With[{
     name/: hubbleDistance[name]=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
     name/: curvatureTransform[name]=Function[x,Evaluate[Simplify[Which[
         \[CapitalOmega]k>0,Sinh[Sqrt[\[CapitalOmega]k]x]/Sqrt[\[CapitalOmega]k],\[CapitalOmega]k<0,Sin[Sqrt[-\[CapitalOmega]k]x]/Sqrt[-\[CapitalOmega]k],True,x]]]];
+    name/: primordialPower[name]=Function[k,Evaluate[Simplify[amps (k/kpivot)^(ns-1)k]]];
     With[{\[CapitalOmega]mh2=\[CapitalOmega]mat[name][0]h^2},
         name/: zstar[name]=zstar[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
         name/: zeq[name]=zeq[\[CapitalOmega]mh2,Tcmb];
@@ -226,7 +238,8 @@ With[{
 ]
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
-    "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"\[CapitalOmega]bh2"->0.0227,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,"Tcmb"->2.72548,"Nnu"->3.03761
+    "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"\[CapitalOmega]bh2"->0.0227,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
+    "Tcmb"->2.72548,"Nnu"->3.03761,"ns"->0.972,"amps"->(2.41*10^-9),"kpivot"->0.002
 };
 
 
