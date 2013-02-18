@@ -226,7 +226,7 @@ With[{
 ]
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
-    "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"\[CapitalOmega]bh2"->0.0227,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,"Tcmb"->2.72548,"Nnu"->3.03762
+    "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"\[CapitalOmega]bh2"->0.0227,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,"Tcmb"->2.72548,"Nnu"->3.03761
 };
 
 
