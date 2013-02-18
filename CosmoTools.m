@@ -63,10 +63,16 @@ created cosmology:
  - ns (0.972) scalar primordial power spectral index.
  - amps (2.41e-9) scalar primordial power amplitude.
  - kpivot (0.002/Mpc) pivot wavenumber used to define primordial scalar power.
+ - retau (0.089) optical depth to reionization.
 Use OptionValue[name,opt] to get option values associated with a named
 cosmology. To clear a previously defined cosmology, use Clear[name]. Use
 the name provided here to identify the created cosmology in functions
 like comovingDistanceFunction."
+
+
+exportToCamb::usage=
+"exportToCamb[filename,name] writes the parameters of the named cosmology to the
+specified filename in CAMB input format."
 
 
 \[CapitalOmega]rad::usage=
@@ -214,10 +220,11 @@ With[{
     Nnu=OptionValue["Nnu"],
     ns=OptionValue["ns"],
     amps=OptionValue["amps"],
-    kpivot=OptionValue["kpivot"]
+    kpivot=OptionValue["kpivot"],
+    retau=OptionValue["retau"]
 },
     name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
-        "Tcmb"->Tcmb,"Nnu"->Nnu,"ns"->ns,"amps"->amps,"kpivot"->kpivot };
+        "Tcmb"->Tcmb,"Nnu"->Nnu,"ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu]/criticalDensityToday[h](1+z)^4]]];
     name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda] Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
     name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[(1-\[CapitalOmega]de[name][0]-\[CapitalOmega]rad[name][0]-\[CapitalOmega]k)(1+z)^3]]];
@@ -239,8 +246,35 @@ With[{
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
     "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"\[CapitalOmega]bh2"->0.0227,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
-    "Tcmb"->2.72548,"Nnu"->3.03761,"ns"->0.972,"amps"->(2.41*10^-9),"kpivot"->0.002
+    "Tcmb"->2.72548,"Nnu"->3.03761,"ns"->0.972,"amps"->(2.41*10^-9),"kpivot"->0.002,
+    "retau"->0.089
 };
+
+
+Clear[exportToCamb]
+exportToCamb[filename_,cosmology_,form_:CForm]:=With[{
+    h=OptionValue[cosmology,"h"],
+    \[CapitalOmega]m=\[CapitalOmega]mat[cosmology][0],
+    \[CapitalOmega]bh2=OptionValue[cosmology,"\[CapitalOmega]bh2"]
+},
+Assert[OptionValue[cosmology,"wa"]==0];
+Export[filename,{
+"use_physical = T",
+"hubble = "<>ToString[H0[cosmology],form],
+"ombh2 = "<>ToString[\[CapitalOmega]bh2,form],
+"omch2 = "<>ToString[\[CapitalOmega]m h^2 - \[CapitalOmega]bh2,form],
+"omnuh2 = 0",
+"omk = "<>ToString[OptionValue[cosmology,"\[CapitalOmega]k"],form],
+"w = "<>ToString[OptionValue[cosmology,"w0"],form],
+"temp_cmb = "<>ToString[OptionValue[cosmology,"Tcmb"],form],
+"massless_neutrinos = "<>ToString[OptionValue[cosmology,"Nnu"],form],
+"massive_neutrinos  = 0",
+"scalar_amp(1) = "<>ToString[OptionValue[cosmology,"amps"],form],
+"scalar_spectral_index(1) = "<>ToString[OptionValue[cosmology,"ns"],form],
+"pivot_scalar = "<>ToString[OptionValue[cosmology,"kpivot"],form],
+"re_optical_depth = "<>ToString[OptionValue[cosmology,"retau"],form],
+""
+},"Table"]]
 
 
 (* Builds a function that evaluates f[z]=scale*transform[z,Integral[integrand[zz],{zz,0,z}]] using interpolation
