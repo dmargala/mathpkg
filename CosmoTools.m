@@ -252,7 +252,7 @@ Options[createCosmology]={
 
 
 Clear[exportToCamb]
-exportToCamb[filename_,cosmology_,form_:CForm]:=With[{
+exportToCamb[filename_,outroot_,cosmology_,form_:CForm]:=With[{
     h=OptionValue[cosmology,"h"],
     \[CapitalOmega]m=\[CapitalOmega]mat[cosmology][0],
     \[CapitalOmega]bh2=OptionValue[cosmology,"\[CapitalOmega]bh2"]
@@ -273,6 +273,7 @@ Export[filename,{
 "scalar_spectral_index(1) = "<>ToString[OptionValue[cosmology,"ns"],form],
 "pivot_scalar = "<>ToString[OptionValue[cosmology,"kpivot"],form],
 "re_optical_depth = "<>ToString[OptionValue[cosmology,"retau"],form],
+"output_root = "<>outroot,
 ""
 },"Table"]]
 
