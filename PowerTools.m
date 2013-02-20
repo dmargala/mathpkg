@@ -18,6 +18,34 @@ are supported:
   extrapolateAbove (True) - set False to print a message if extrapolation above kmax is attempted."
 
 
+createDistortionModel::usage=
+"createDistortionModel[name] associates the following definitions with the symbol name:
+ - redshiftSpaceDistortion[name][k,mu]
+ - nonlinearDistortion[name][k,mu]
+ - transformedCoordinates[name][kp,mup]
+Separate help is available for each of these definitions. Use the following options
+(defaults in parentheses) to customize the created distortion model:
+ - bias (1) tracer bias
+ - beta (0) redshift-space linear distortion parameter
+ - sigL (0) longitudinal component of non-linear broadening sigma
+ - sigT (0) transverse component of non-linear broadening sigma
+ - sigS (0) fingers of god sigma
+Use OptionValue[name,opt] to get option values associated with a named distortion model.
+To clear a previously defined model, use Clear[name]."
+
+
+redshiftSpaceDistortion::usage=
+"redshiftSpaceDistortion[model][k,mu] calculates the redshift-space distortion factor."
+
+
+nonlinearDistortion::usage=
+"nonlinearDistortion[model][k,mu] calculates the non-linear distortion factor."
+
+
+transformedCoordinates::usage=
+"transformedCoordinates[name][k,mu] returns the transformed coordinates {k',mu'}."
+
+
 sbTransform::usage=
 "sbTransform[plfunc,rmin,rmax,ell,veps] calculates the spherical Bessel transform
 of the specified function for multipole ell. Returns an interpolating function
@@ -58,6 +86,30 @@ Module[{interpolator,kmin,kmax,plo,phi},
 ]]
 Options[makePower]={"verbose"->False,"extrapolateBelow"->True,"extrapolateAbove"->True};
 makePower::ExtrapolationDisabled="k = `1` is `2` `3`.";
+
+
+Clear[createDistortionModel]
+createDistortionModel[name_,OptionsPattern[]]:=
+With[{
+    bias=OptionValue["bias"],
+    beta=OptionValue["beta"],
+    sigL=OptionValue["sigL"],
+    sigT=OptionValue["sigT"],
+    sigS=OptionValue["sigS"],
+    \[Alpha]L=OptionValue["\[Alpha]L"],
+    \[Alpha]T=OptionValue["\[Alpha]T"]
+},
+    Options[name]^={ "bias"->bias,"beta"->beta,"sigL"->sigL,"sigT"->sigT,"sigS"->sigS,"\[Alpha]L"->\[Alpha]L,"\[Alpha]T"->\[Alpha]T };
+    redshiftSpaceDistortion[name]^=Function[{k,mu},Evaluate[Simplify[bias^2(1+beta mu^2)^2]]];
+    nonlinearDistortion[name]^=Function[{k,mu},Evaluate[Simplify[
+        Exp[-(mu^2 sigL^2+(1-mu^2)sigT^2)k^2/2]/(1+(mu sigS k)^2)^2]]];
+    transformedCoordinates[name]^=Function[{k,mu},Evaluate[PowerExpand[Simplify[
+        With[{\[Alpha]=Sqrt[\[Alpha]L^2 mu^2 + \[Alpha]T^2 (1-mu^2)]},{\[Alpha] k,\[Alpha]L/\[Alpha] mu}]]]]];
+]
+SetAttributes[createDistortionModel,HoldFirst]
+Options[createDistortionModel]={
+    "bias"->1,"beta"->0,"sigL"->0,"sigT"->0,"sigS"->0,"\[Alpha]L"->1,"\[Alpha]T"->1
+};
 
 
 epsApprox[veps_,ell_]:=
