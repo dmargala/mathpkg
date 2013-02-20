@@ -10,8 +10,12 @@ PowerTools::usage=
 
 
 makePower::usage=
-"Converted tabulated values of {k,P(k)} into a function that interpolates
-in log(k) and P(k) and extrapolates using power laws in k."
+"makePower[data] uses a list of tabulated values {k,P(k)} in data to create a function that
+interpolates in log(k) and P(k) and extrapolates using power laws in k. The following options
+are supported:
+  verbose (False) - set True to print out kmin, kmax, and the number of points being used.
+  extrapolateBelow (True) - set False to print a message if extrapolation below kmin is attempted.
+  extrapolateAbove (True) - set False to print a message if extrapolation above kmax is attempted."
 
 
 sbTransform::usage=
@@ -34,13 +38,16 @@ Module[{a,c},
 ]
 
 
-makePower[tabulated_]:=
+Clear[makePower]
+makePower[tabulated_,OptionsPattern[]]:=
+With[{verbose=OptionValue["verbose"],extrapolateBelow=OptionValue["extrapolateBelow"],extrapolateAbove=OptionValue["extrapolateAbove"]},
 Module[{interpolator,kmin,kmax,plo,phi},
 	interpolator=Interpolation[tabulated/.{k_,Pk_}:>{Log[k],Pk}];
 	kmin=tabulated[[1,1]];
 	kmax=tabulated[[-1,1]];
-	plo=powerLaw[tabulated[[;;2]]];
-	phi=powerLaw[tabulated[[-2;;]]];
+    If[verbose===True,Print["makePower using ",Length[tabulated]," points covering ",kmin," <= k <= ",kmax]];
+	plo=If[extrapolateBelow===True,powerLaw[tabulated[[;;2]]],Message[makePower::ExtrapolationDisabled,#1,"<",kmin]&];
+	phi=If[extrapolateAbove===True,powerLaw[tabulated[[-2;;]]],Message[makePower::ExtrapolationDisabled,#1,">",kmax]&];
 	Function[k,
 		Which[
 			k<=kmin,plo[k],
@@ -48,7 +55,9 @@ Module[{interpolator,kmin,kmax,plo,phi},
 			True,interpolator[Log[k]]
 		]
 	]
-]
+]]
+Options[makePower]={"verbose"->False,"extrapolateBelow"->True,"extrapolateAbove"->True};
+makePower::ExtrapolationDisabled="k = `1` is `2` `3`.";
 
 
 epsApprox[veps_,ell_]:=
