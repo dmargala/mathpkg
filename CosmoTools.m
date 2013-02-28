@@ -329,23 +329,23 @@ Options[buildDistanceFunction]={"physical"->False,"transverse"->False,"zpower"->
 
 Clear[comovingDistanceFunction]
 comovingDistanceFunction[cosmology_,zmax_,options:OptionsPattern[]]:=
-buildDistanceFunction[cosmology,zmax,"transverse"->False,"zpower"->0,FilterRules[{options},Options[buildDistanceFunction]]]
+buildDistanceFunction[cosmology,zmax,"transverse"->False,"zpower"->0,options]
 Options[comovingDistanceFunction]={"physical"->False,"inverted"->False,"pointsPerDecade"->20};
 
 
 Clear[transverseDistanceFunction]
 transverseDistanceFunction[cosmology_,zmax_,options:OptionsPattern[comovingDistanceFunction]]:=
-buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->0,FilterRules[{options},Options[buildDistanceFunction]]]
+buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->0,options]
 
 
 Clear[angularDiameterDistanceFunction]
 angularDiameterDistanceFunction[cosmology_,zmax_,options:OptionsPattern[comovingDistanceFunction]]:=
-buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->-1,FilterRules[{options},Options[buildDistanceFunction]]]
+buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->-1,options]
 
 
 Clear[luminosityDistanceFunction]
 luminosityDistanceFunction[cosmology_,zmax_,options:OptionsPattern[comovingDistanceFunction]]:=
-buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->+1,FilterRules[{options},Options[buildDistanceFunction]]]
+buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->+1,options]
 
 
 Clear[ageOfUniverse]
