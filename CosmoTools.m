@@ -208,10 +208,12 @@ Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`M
 
 
 Clear[createCosmology]
+createCosmology::overconstrained = "Parameters are overconstrained: \[CapitalOmega]\[CapitalLambda]=`1`, \[CapitalOmega]m=`2`, \[CapitalOmega]rad=`3`, \[CapitalOmega]k=`4`.";
 createCosmology[name_,OptionsPattern[]]:=
 With[{
     h=OptionValue["h"],
     \[CapitalOmega]\[CapitalLambda]=OptionValue["\[CapitalOmega]\[CapitalLambda]"],
+    \[CapitalOmega]m=OptionValue["\[CapitalOmega]m"],
     \[CapitalOmega]bh2=OptionValue["\[CapitalOmega]bh2"],
     w0=OptionValue["w0"],
     wa=OptionValue["wa"],
@@ -223,11 +225,18 @@ With[{
     kpivot=OptionValue["kpivot"],
     retau=OptionValue["retau"]
 },
+Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
         "Tcmb"->Tcmb,"Nnu"->Nnu,"ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu]/criticalDensityToday[h](1+z)^4]]];
-    name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda] Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
-    name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[(1-\[CapitalOmega]de[name][0]-\[CapitalOmega]rad[name][0]-\[CapitalOmega]k)(1+z)^3]]];
+    \[CapitalOmega]mval=If[\[CapitalOmega]m===Automatic,1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]m];
+    \[CapitalOmega]\[CapitalLambda]val=If[\[CapitalOmega]\[CapitalLambda]===Automatic,1-\[CapitalOmega]m-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]\[CapitalLambda]];
+    If[\[CapitalOmega]m+\[CapitalOmega]\[CapitalLambda]+\[CapitalOmega]k+\[CapitalOmega]rad[name][0]!=1,
+        Message[createCosmology::overconstrained,\[CapitalOmega]\[CapitalLambda],\[CapitalOmega]m,\[CapitalOmega]rad[name][0],\[CapitalOmega]k];
+        Return[$Failed]
+    ];
+    name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda]val Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
+    name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]mval (1+z)^3]]];
     name/: H0[name]=100 h;
     name/: Hratio[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]]]]];
     name/: hubbleDistance[name]=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
@@ -236,16 +245,16 @@ With[{
     name/: primordialPower[name]=Function[k,Evaluate[Simplify[amps (k/kpivot)^(ns-1)k]]];
     With[{\[CapitalOmega]mh2=\[CapitalOmega]mat[name][0]h^2},
         name/: zstar[name]=zstar[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
-        name/: zeq[name]=zeq[\[CapitalOmega]mh2,Tcmb];
+        name/: zeq[name]=If[Tcmb>0,zeq[\[CapitalOmega]mh2,Tcmb],Indeterminate];
         name/: zdrag[name]=zdrag[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
     ];
     With[{\[CapitalOmega]\[Gamma]=radiationDensity[Tcmb,0]/criticalDensityToday[h],\[CapitalOmega]b=\[CapitalOmega]bh2/h^2},
-        name/: betas[name]=Function[z,Evaluate[Simplify[1/Sqrt[3(1+(3\[CapitalOmega]b)/(4\[CapitalOmega]\[Gamma])/(1+z))]]]];
+        name/: betas[name]=If[\[CapitalOmega]\[Gamma]>0,Function[z,Evaluate[Simplify[1/Sqrt[3(1+(3\[CapitalOmega]b)/(4\[CapitalOmega]\[Gamma])/(1+z))]]]],Indeterminate];
     ]
-]
+]]
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
-    "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"\[CapitalOmega]bh2"->0.0227,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
+    "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"\[CapitalOmega]m"->Automatic,"\[CapitalOmega]bh2"->0.0227,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
     "Tcmb"->2.72548,"Nnu"->3.03761,"ns"->0.972,"amps"->(2.41*10^-9),"kpivot"->0.002,
     "retau"->0.089
 };
