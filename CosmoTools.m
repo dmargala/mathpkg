@@ -53,7 +53,7 @@ Separate help is available for each of these definitions, e.g., ?\[CapitalOmega]
 Use the following options (defaults in parentheses) to customize the
 created cosmology:
  - h (0.7) H0/(100 km/s/Mpc).
- - \[CapitalOmega]\[Phi] (0.73) present-day fraction of dark energy.
+ - \[CapitalOmega]\[CapitalLambda] (0.73) present-day fraction of dark energy.
  - \[CapitalOmega]bh2 (0.0227) present-day physical baryon fraction.
  - w0 (-1) dark-energy equation parameter state present-day value.
  - wa (0) dark-energy equation of state parameter derivative wrt scale a.
@@ -121,19 +121,19 @@ defaults in parentheses) are:
  - pointsPerDecade (20) number of interpolation points to use per decade."
 
 
-transverseDistanceFunction::usage
+transverseDistanceFunction::usage=
 "transverseDistanceFunction[cosmology,zmax] returns a function that evaluates the comoving distance
 transverse to the line of sight at a redshift z <= zmax for the named cosmology. Options are the same
 as for comovingDistanceFunction."
 
 
-angularDiameterDistanceFunction::usage
+angularDiameterDistanceFunction::usage=
 "angularDiameterDistanceFunction[cosmology,zmax] returns a function that evaluates the
 angular diameter distance to a redshift z <= zmax for the named cosmology. Options are the same
 as for comovingDistanceFunction."
 
 
-luminosityDistanceFunction::usage
+luminosityDistanceFunction::usage=
 "angularDiameterDistanceFunction[cosmology,zmax] returns a function that evaluates the
 luminosity distance to a redshift z <= zmax for the named cosmology. Options are the same
 as for comovingDistanceFunction."
