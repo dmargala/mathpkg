@@ -60,6 +60,16 @@ over the ranges (x1,x2) and (y1,y2) using a cell size (dx,dy) for kernel density
 supported are coverageFractions, which specifies the contour levels to draw, and any options of ContourPlot."
 
 
+dataRange::usage=
+"dataRange[dataset] returns a range {lo,hi} for the specified dataset. The default range
+includes all elements but the following options can be use:
+  - clipLoFraction: clip the lo limit at the specified quantile in the flattened dataset.
+  - clipHiFraction: clip the hi limit at the specified quantile in the flattened dataset.
+  - clipLoValue: set the lo limit to the specified value (overrides clipLoFraction).
+  - clipHiValue: set the hi limit to the specified value (overrides clipHiFraction).
+  - centerValue: expands the range, if necessary, to be symmetric about this value."
+
+
 Begin["Private`"]
 
 
@@ -213,6 +223,31 @@ Module[{kde,xmin,xmax,ymin,ymax,hist,sorted,cummulative,contourLevels},
     ]
 ]]
 Options[coverageContourPlot]={"coverageFractions"->{0.6827,0.9545}};
+
+
+dataRange[data_,OptionsPattern[]]:=
+With[{
+    clipLoFraction=OptionValue["clipLoFraction"],
+    clipHiFraction=OptionValue["clipHiFraction"],
+    clipLoValue=OptionValue["clipLoValue"],
+    clipHiValue=OptionValue["clipHiValue"],
+    centerValue=OptionValue["centerValue"]
+},
+Module[{lo,hi,size},
+    {lo,hi}=If[clipLoFraction>0||clipHiFraction<1,
+        Quantile[Flatten[data],{clipLoFraction,clipHiFraction}],
+        {Min[data],Max[data]}
+    ];
+    If[!(clipLoValue===Automatic),lo=clipLoValue];
+    If[!(clipHiValue===Automatic),hi=clipHiValue];
+    If[!(centerValue===Automatic),
+        size=Max[hi-centerValue,centerValue-lo];
+        hi=centerValue+size;
+        lo=centerValue-size;
+    ];
+    {lo,hi}
+]]
+Options[dataRange]={"clipLoValue"->Automatic,"clipHiValue"->Automatic,"clipLoFraction"->0,"clipHiFraction"->1, "centerValue"->Automatic};
 
 
 End[]
