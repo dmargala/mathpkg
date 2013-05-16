@@ -9,18 +9,28 @@ BaoFitTools::usage=
 "A collection of utilities for analyzing and displaying baofit outputs."
 
 
-loadResiduals::usage=
+loadFitResiduals::usage=
 "loadResiduals[tag,prefix] loads the residuals output file for the specified
 output prefix and associates the results with the specified tag. The following
 options are supported:
-    - path: directory containing the residuals file (default is .)"
+    - path: directory containing the residuals file (default is '.')
+Use the following keys to access the loaded residuals:
+  tag[\"INDEX\"] = global bin index
+  tag[\"USER\"] = bin center in the user-defined binning variables
+  tag[\"RMUZ\"] = bin center in (r,mu,z)
+  tag[\"PRED\"] = model prediction for this bin
+  tag[\"DATA\"] = data for this bin
+  tag[\"ERROR\"] = diagonal error for this bin
+  tag[\"GRADS\"] = gradients of the model prediction in this bin
+  tag[\"ZVEC\"] = sorted list of redshifts with data
+"
 
 
 Begin["Private`"]
 
 
-Clear[loadResiduals]
-loadResiduals[tag_,prefix_,OptionsPattern[loadResiduals]]:=
+Clear[loadFitResiduals]
+loadFitResiduals[tag_,prefix_,OptionsPattern[loadFitResiduals]]:=
 With[{
     path=OptionValue["path"]
 },
@@ -35,15 +45,16 @@ Module[{raw,ncols,nbins,ngrads},
     ngrads=ncols-11;
     (* associate each of the filled arrays with the tag using a string key *)
     tag["INDEX"]=IntegerPart[raw[[1]]];
-    tag["BIN"]=Transpose[raw[[2;;4]]];
-    tag["COORDS"]=Transpose[raw[[5;;7]]];
+    tag["USER"]=Transpose[raw[[2;;4]]];
+    tag["RMUZ"]=Transpose[raw[[5;;7]]];
     tag["PRED"]=raw[[8]];
     tag["DATA"]=raw[[9]];
     tag["ERROR"]=raw[[10]];
     tag["GRADS"]=If[ngrads>0,Transpose[raw[[11;;]]],None];
+    tag["ZVEC"]=Union[raw[[7]]];
 ]]
-SetAttributes[loadResiduals,HoldFirst]
-Options[loadResiduals]={
+SetAttributes[loadFitResiduals,HoldFirst]
+Options[loadFitResiduals]={
     "path"->"."
 };
 
