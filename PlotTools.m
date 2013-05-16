@@ -70,6 +70,19 @@ includes all elements but the following options can be use:
   - centerValue: expands the range, if necessary, to be symmetric about this value."
 
 
+pixelImage::usage=
+"Draws an image of pixel data stored in a 2D rectangular list {{row1},{row2},...}
+using ArrayPlot. The first row of data is drawn at the bottom of the image unless,
+but this can be overridden with DataReversed->False. All options of ArrayPlot and
+dataRange are supported, in addition to:
+  - map: function that maps array values to display values (default is Identity).
+The default color map is grayscale with white representing the maximum value. Use
+the ColorFunction option to change this. When using dataRange options to clip some
+data, the ClippingStyle->{loStyle,hiStyle} option can be used to control how
+clipped pixels are displayed. The default image size matches the dimensions of the
+pixel data, but can be changed with the ImageSize option."
+
+
 Begin["Private`"]
 
 
@@ -248,6 +261,20 @@ Module[{lo,hi,size},
     {lo,hi}
 ]]
 Options[dataRange]={"clipLoValue"->Automatic,"clipHiValue"->Automatic,"clipLoFraction"->0,"clipHiFraction"->1, "centerValue"->Automatic};
+
+
+pixelImage[data_,options:OptionsPattern[{ArrayPlot,dataRange,pixelImage}]]:=
+With[{
+    map=OptionValue["map"]
+},
+Module[{range},
+    range=Map[map,dataRange[data,FilterRules[{options},Options[dataRange]]]];
+    ArrayPlot[Map[map,data,{2}],FilterRules[{options},Options[ArrayPlot]],
+        DataReversed->True,ColorFunction->(GrayLevel[1-#]&),ImageSize->Dimensions[data],
+        Frame->True,PlotRangePadding->0,PlotRange->range,ClippingStyle->{None,None}
+    ]
+]]
+Options[pixelImage]={"map"->Identity};
 
 
 End[]
