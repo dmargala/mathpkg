@@ -22,7 +22,7 @@ are supported:
     - sparse : should result be returned as a SparseArray? (Automatic,True,False)
       (default is Automatic, which decides based on the space saving)
     - sparseThreshold : prefers sparse matrix if sparseSize < threshold * denseSize
-      (default is 1)"
+      (default is 1)";
 
 
 loadFitResiduals::usage=
@@ -38,7 +38,12 @@ Use the following keys to access the loaded residuals:
   tag[\"DATA\"] = data for this bin
   tag[\"ERROR\"] = diagonal error for this bin
   tag[\"GRADS\"] = gradients of the model prediction in this bin
-  tag[\"ZVEC\"] = sorted list of redshifts with data"
+  tag[\"ZVEC\"] = sorted list of redshifts with data";
+
+
+fitDensityPlot::usage=
+"fitDensityPlot[tag] uses ListDensityPlot to plot quantities related to fit residuals
+previously loaded and associated with the specified tag.";
 
 
 Begin["Private`"]
@@ -102,6 +107,87 @@ Module[{raw,size,sparse,packed},
     ];
 ]]
 Options[loadFitMatrix]={ "path"->".", "size"->Automatic, "sparse"->Automatic, "sparseThreshold"->1 };
+
+
+(* Returns a tuple { rT, rP, r^rpow value} given a value and an offset to use into tag[COORDS] *)
+Clear[rxyTuple]
+rxyTuple[offset_,value_,tag_,rpow_:0]:=
+With[{r=tag["RMUZ"][[offset,1]],mu=tag["RMUZ"][[offset,2]]},
+    {r Sqrt[1-mu^2],r mu,r^rpow value}
+]
+
+
+(* Returns a list of offsets corresponding to the specified values of the specified bin
+coordinates, with _ representing a wildcard in the pattern *)
+Clear[binSlice]
+binSlice[tag_,pattern_,key_:"RMUZ"]:=Flatten[Position[tag[key],pattern]]
+
+
+(* Returns sorted lists of the user coordinate values used for the first two axes at the specified
+value of the third redshift axis, suitable for use with the Mesh plotting option *)
+userGrid[tag_,zval_]:=With[{bins=tag["USER"][[binSlice[tag,{_,_,zval},"USER"]]]},
+{Union[bins[[;;,1]]],Union[bins[[;;,2]]]}
+]
+
+
+Clear[fitDensityPlot]
+fitDensityPlot::badtag="Invalid tag `1`.";
+fitDensityPlot::badkey="Invalid key `1`.";
+fitDensityPlot::badvec="Invalid vector for plotting.";
+fitDensitPlot::badgrid="Invalid grid option, should be None, Automatic, \"cartesian\" or \"polar\".";
+fitDensityPlot[tag_,options:OptionsPattern[{fitDensityPlot,ListDensityPlot}]]:=
+With[{
+    rpow=OptionValue["rpow"],
+    zindex=OptionValue["zindex"],
+    key=OptionValue["key"],
+    vector=OptionValue["vector"],
+    grid=OptionValue["grid"],
+    rmin=OptionValue["rmin"],
+    rmax=OptionValue["rmax"]
+},
+Module[{vec,zval,points,rTmax,rPmax,gridOptions,regionFunction},
+    If[!ValueQ[tag["ZVEC"]],
+        Message[fitDensityPlot::badtag,ToString[tag]];
+        Return[$Failed]
+    ];
+    vec=If[vector===None,tag[key],vector];
+    If[vector===None&&!ValueQ[tag[key]],
+        Message[fitDensityPlot::badkey,key];
+        Return[$Failed]
+    ];
+    If[Length[vec]<Length[tag["INDEX"]],
+        Message[fitDensityPlot::badvec];
+        Return[$Failed]
+    ];
+    zval=tag["ZVEC"][[zindex]];
+    points=Table[rxyTuple[k,vec[[k]],tag,rpow],{k,binSlice[tag,{_,_,zval},"RMUZ"]}];
+    rTmax=Max[points[[;;,1]]];
+    rPmax=Max[points[[;;,2]]];
+    gridOptions=Which[
+        grid===None,{},
+        grid===Automatic,{MeshStyle->Opacity[0.25],Mesh->All},
+        grid==="cartesian",{
+            MeshStyle->Opacity[0.25],Mesh->userGrid[tag,zval],MeshFunctions->{#1&,#2&}
+        },
+        grid==="polar",{
+            MeshStyle->Opacity[0.25],Mesh->userGrid[tag,zval],MeshFunctions->{Sqrt[#1^2+#2^2]&,#2/Sqrt[#1^2+#2^2]&}
+        },
+        True,Message[fitDensityPlot::badgrid];Return[$Failed]
+    ];
+    regionFunction=Which[
+        NumberQ[rmin]&&NumberQ[rmax]&&rmin>0&&rmax>rmin,{RegionFunction->(rmin^2<=#1^2+#2^2<=rmax^2&)},
+        NumberQ[rmax]&&rmax>0,{RegionFunction->(#1^2+#2^2<=rmax^2&)},
+        NumberQ[rmin]&&rmin>0,{RegionFunction->(#1^2+#2^2>=rmin^2&)},
+        True,{}
+    ];
+    ListDensityPlot[points,FilterRules[{options},Options[ListDensityPlot]],
+        gridOptions,regionFunction,
+        InterpolationOrder->0,PlotRange->{{0,rTmax},{0,rPmax},All},
+        LabelStyle->Medium,ColorFunction->temperatureMap,
+        FrameLabel->{"\!\(\*SubscriptBox[\(r\), \(\[Perpendicular]\)]\)(Mpc/h)","\!\(\*SubscriptBox[\(r\), \(||\)]\)(Mpc/h)"}
+    ]
+]]
+Options[fitDensityPlot]={"rpow"->0,"zindex"->1,"key"->"PRED","vector"->None,"grid"->Automatic,"rmin"->None,"rmax"->None};
 
 
 End[]
