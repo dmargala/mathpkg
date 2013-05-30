@@ -89,9 +89,9 @@ With[{
     sparseThresholdOption=OptionValue["sparseThreshold"]
 },
 Module[{raw,size,sparse,packed},
-    raw=ReadList[pathOption<>$PathnameSeparator<>filename,{Number,Number,Real}];
+    raw=ReadList[pathOption<>$PathnameSeparator<>filename,{Number,Number,Number}];
     size=If[sizeOption===Automatic,Max[raw[[;;,1]]]+1,sizeOption];
-    With[{values=raw[[;;,3]]},
+    With[{values=N[raw[[;;,3]]]},
         sparse=N[SparseArray[{
             1+raw[[;;,{1,2}]]->values,
             1+raw[[;;,{2,1}]]->values,
@@ -100,7 +100,7 @@ Module[{raw,size,sparse,packed},
     ];
     If[sparseOption===True,Return[sparse]];
     (* Convert the matrix to a dense packed array *)
-    packed=Developer`ToPackedArray[N[Normal[sparse]]];
+    packed=Developer`ToPackedArray[Normal[sparse]];
     If[sparseOption===Automatic&&ByteCount[sparse]<sparseThresholdOption ByteCount[packed],
         Return[sparse],
         Return[packed]
