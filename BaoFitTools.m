@@ -57,6 +57,10 @@ fitDensityPlot::usage=
 previously loaded and associated with the specified tag.";
 
 
+fitModePlot::usage=
+"fitModePlot[tag,mode] plots the per-bin weights (left) and per-bin chisq contributions (right) of the specified eigenmode.";
+
+
 Begin["Private`"]
 
 
@@ -113,7 +117,7 @@ Module[{raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
         tag["CHIJK"]=tag["EVEC"]Outer[Times,Sqrt[tag["EVAL"]],tag["DATA"]-tag["PRED"]];
         tag["CHIJ"]=Total/@tag["CHIJK"];
         If[verboseOption===True,
-            Print["chi^2/dof = ",Total[tag["CHIJ"]^2],"/",(nbins-ngrads)];
+            Print["chi^2/dof = ",Total[tag["CHIJ"]^2]," / (",nbins," - ",ngrads,")"];
             nlargest=Min[nbins,nlargestOption];
             largest=Ordering[tag["CHIJ"]^2,nlargest,Greater];
             Print[nlargest," modes with largest chi^2 contributions:"];
@@ -241,6 +245,20 @@ Module[{vec,zval,points,rTmax,rPmax,range,zmin,zmax,gridOptions,regionFunction},
     ]
 ]]
 Options[fitDensityPlot]={"rpow"->0,"zindex"->1,"key"->"PRED","vector"->None,"grid"->Automatic,"rmin"->None,"rmax"->None};
+
+
+Clear[fitModePlot]
+fitModePlot[tag_,mode_,options:OptionsPattern[{fitModePlot,fitDensityPlot,dataRange,ListDensityPlot}]]:=
+With[{
+  densityPlotOptions=FilterRules[{options},{Options[fitDensityPlot],Options[dataRange],Options[ListDensityPlot]}]
+},
+Print["Mode ",mode," of ",Length[tag["EVAL"]]," contributes ",tag["CHIJ"][[mode]]^2," to total chisq = ",Total[tag["CHIJ"]^2]];
+GraphicsRow[{
+    fitDensityPlot[tag,"vector"->tag["EVEC"][[mode]],densityPlotOptions,"centerValue"->0],
+    fitDensityPlot[tag,"vector"->tag["CHIJK"][[mode]],densityPlotOptions,"centerValue"->0]
+},Spacings->4]
+]
+Options[fitModePlot]={};
 
 
 End[]
