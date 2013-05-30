@@ -52,9 +52,13 @@ Begin["Private`"]
 Clear[loadFitResiduals]
 loadFitResiduals[tag_,prefix_,OptionsPattern[loadFitResiduals]]:=
 With[{
-    pathOption=OptionValue["path"]
+    verboseOption=OptionValue["verbose"],
+    pathOption=OptionValue["path"],
+    covOption=OptionValue["cov"],
+    icovOption=OptionValue["icov"],
+    nlargestOption=OptionValue["nlargest"]
 },
-Module[{raw,ncols,nbins,ngrads},
+Module[{raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
     Clear[tag];
     (* load the residuals file into memory *)
     raw=Transpose[Developer`ToPackedArray[
@@ -63,6 +67,13 @@ Module[{raw,ncols,nbins,ngrads},
     ]];
     {ncols,nbins}=Dimensions[raw];
     ngrads=ncols-11;
+    If[verboseOption===True,
+        Print["Read residuals for ",nbins," bins."];
+        If[ngrads>0,
+            Print["Found gradients for ",ngrads," parameters."],
+            Print["No gradients available."]
+        ]
+    ];
     (* associate each of the filled arrays with the tag using a string key *)
     tag["INDEX"]=IntegerPart[raw[[1]]];
     tag["USER"]=Transpose[raw[[2;;4]]];
@@ -72,10 +83,36 @@ Module[{raw,ncols,nbins,ngrads},
     tag["ERROR"]=raw[[10]];
     tag["GRADS"]=If[ngrads>0,Transpose[raw[[11;;]]],None];
     tag["ZVEC"]=Union[raw[[7]]];
+    (* Read cov or icov if available. If both are provided, cov takes precedence. *)
+    cov=None;
+    If[!(covOption===None),
+        cov=loadFitMatrix[covOption,"path"->pathOption,"verbose"->verboseOption];
+    ];
+    If[cov===None&&!(icovOption===None),
+        cov=Inverse[loadFitMatrix[icovOption,"path"->pathOption,"verbose"->verboseOption]];
+    ];
+    If[!(cov===None),
+        (* Prune the covariance to the bins used in the fit *)
+        keep=1+tag["INDEX"];
+        (* Save the corresponding inverse covariance *)
+        tag["ICOV"]=Inverse[cov[[keep,keep]]];
+        (* Calculate and save the eigenvalues and eigenvectors *)
+        {tag["EVAL"],tag["EVEC"]}=Eigensystem[tag["ICOV"]];
+        (* Calculate and save the matrix of chisq contributions to this fit *)
+        tag["CHIJK"]=tag["EVEC"]Outer[Times,Sqrt[tag["EVAL"]],tag["DATA"]-tag["PRED"]];
+        If[verboseOption===True,
+            chij=(Total/@tag["CHIJK"])^2;
+            Print["chi^2/dof = ",Total[chij],"/",(nbins-ngrads)];
+            nlargest=Min[nbins,nlargestOption];
+            largest=Ordering[chij,nlargest,Greater];
+            Print[nlargest," modes with largest chi^2 contributions:"];
+            Print[TableForm[{largest,chij[[largest]]}]];
+        ];
+    ];
 ]]
 SetAttributes[loadFitResiduals,HoldFirst]
 Options[loadFitResiduals]={
-    "path"->"."
+    "verbose"->True,"path"->".","cov"->None,"icov"->None,"nlargest"->10
 };
 
 
@@ -83,6 +120,7 @@ Options[loadFitResiduals]={
 Clear[loadFitMatrix]
 loadFitMatrix[filename_,OptionsPattern[loadFitMatrix]]:=
 With[{
+    verboseOption=OptionValue["verbose"],
     pathOption=OptionValue["path"],
     sizeOption=OptionValue["size"],
     sparseOption=OptionValue["sparse"],
@@ -91,6 +129,7 @@ With[{
 Module[{raw,size,sparse,packed},
     raw=ReadList[pathOption<>$PathnameSeparator<>filename,{Number,Number,Number}];
     size=If[sizeOption===Automatic,Max[raw[[;;,1]]]+1,sizeOption];
+    If[verboseOption===True,Print["Read matrix with size = ",size,"."]];
     With[{values=N[raw[[;;,3]]]},
         sparse=N[SparseArray[{
             1+raw[[;;,{1,2}]]->values,
@@ -102,11 +141,11 @@ Module[{raw,size,sparse,packed},
     (* Convert the matrix to a dense packed array *)
     packed=Developer`ToPackedArray[Normal[sparse]];
     If[sparseOption===Automatic&&ByteCount[sparse]<sparseThresholdOption ByteCount[packed],
-        Return[sparse],
-        Return[packed]
+        If[verboseOption===True,Print["Automatically selected sparse matrix format."]]; Return[sparse],
+        If[verboseOption===True,Print["Automatically selected packed matrix format."]]; Return[packed]
     ];
 ]]
-Options[loadFitMatrix]={ "path"->".", "size"->Automatic, "sparse"->Automatic, "sparseThreshold"->1 };
+Options[loadFitMatrix]={ "verbose"->False,"path"->".", "size"->Automatic, "sparse"->Automatic, "sparseThreshold"->1 };
 
 
 (* Returns a tuple { rT, rP, r^rpow value} given a value and an offset to use into tag[COORDS] *)
