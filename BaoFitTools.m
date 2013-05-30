@@ -29,7 +29,11 @@ loadFitResiduals::usage=
 "loadResiduals[tag,prefix] loads the residuals output file for the specified
 output prefix and associates the results with the specified tag. The following
 options are supported:
+    - verbose: be verbose about what we are doing (default is True)
     - path: directory containing the residuals file (default is '.')
+    - cov: load fit input covariance matrix from this file under path (default is None)
+    - icov: load fit input inverse covariance matrix from this file under path (default is None)
+    - nlargest: if cov or icov is specified, prints this number of modes with largest contribution to chisq (default 10)
 Use the following keys to access the loaded residuals:
   tag[\"INDEX\"] = global bin index
   tag[\"USER\"] = bin center in the user-defined binning variables
@@ -38,7 +42,11 @@ Use the following keys to access the loaded residuals:
   tag[\"DATA\"] = data for this bin
   tag[\"ERROR\"] = diagonal error for this bin
   tag[\"GRADS\"] = gradients of the model prediction in this bin
-  tag[\"ZVEC\"] = sorted list of redshifts with data";
+  tag[\"ZVEC\"] = sorted list of redshifts with data
+If the cov or icov options are provided, the following extra keys are available:
+  tag[\"EVAL\"] = eigenvalues of the inverse covariance (pruned to bins used in the fit) in descending order.
+  tag[\"EVEC\"] = corresponding matrix of eigenvectors, with vectors stored in successive rows.
+  tag[\"CHIJK\"] = matrix of chisq contributions by mode and bin.";
 
 
 fitDensityPlot::usage=
