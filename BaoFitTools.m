@@ -135,7 +135,7 @@ fitDensityPlot::badtag="Invalid tag `1`.";
 fitDensityPlot::badkey="Invalid key `1`.";
 fitDensityPlot::badvec="Invalid vector for plotting.";
 fitDensitPlot::badgrid="Invalid grid option, should be None, Automatic, \"cartesian\" or \"polar\".";
-fitDensityPlot[tag_,options:OptionsPattern[{fitDensityPlot,ListDensityPlot}]]:=
+fitDensityPlot[tag_,options:OptionsPattern[{fitDensityPlot,dataRange,ListDensityPlot}]]:=
 With[{
     rpow=OptionValue["rpow"],
     zindex=OptionValue["zindex"],
@@ -145,7 +145,7 @@ With[{
     rmin=OptionValue["rmin"],
     rmax=OptionValue["rmax"]
 },
-Module[{vec,zval,points,rTmax,rPmax,gridOptions,regionFunction},
+Module[{vec,zval,points,rTmax,rPmax,range,gridOptions,regionFunction},
     If[!ValueQ[tag["ZVEC"]],
         Message[fitDensityPlot::badtag,ToString[tag]];
         Return[$Failed]
@@ -163,6 +163,7 @@ Module[{vec,zval,points,rTmax,rPmax,gridOptions,regionFunction},
     points=Table[rxyTuple[k,vec[[k]],tag,rpow],{k,binSlice[tag,{_,_,zval},"RMUZ"]}];
     rTmax=Max[points[[;;,1]]];
     rPmax=Max[points[[;;,2]]];
+    range=dataRange[points[[;;,3]],FilterRules[{options},Options[dataRange]]];
     gridOptions=Which[
         grid===None,{},
         grid===Automatic,{MeshStyle->Opacity[0.25],Mesh->All},
@@ -182,7 +183,7 @@ Module[{vec,zval,points,rTmax,rPmax,gridOptions,regionFunction},
     ];
     ListDensityPlot[points,FilterRules[{options},Options[ListDensityPlot]],
         gridOptions,regionFunction,
-        InterpolationOrder->0,PlotRange->{{0,rTmax},{0,rPmax},All},
+        InterpolationOrder->0,PlotRange->{{0,rTmax},{0,rPmax},range},
         LabelStyle->Medium,ColorFunction->temperatureMap,
         FrameLabel->{"\!\(\*SubscriptBox[\(r\), \(\[Perpendicular]\)]\)(Mpc/h)","\!\(\*SubscriptBox[\(r\), \(||\)]\)(Mpc/h)"}
     ]
