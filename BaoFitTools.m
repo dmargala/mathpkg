@@ -33,7 +33,8 @@ options are supported:
     - path: directory containing the residuals file (default is '.')
     - cov: load fit input covariance matrix from this file under path (default is None)
     - icov: load fit input inverse covariance matrix from this file under path (default is None)
-    - nlargest: if cov or icov is specified, prints this number of modes with largest contribution to chisq (default 10)
+    - nlargest: if cov or icov is specified and verbose is True, prints this number of modes
+      with largest contribution to chisq (default 10)
 Use the following keys to access the loaded residuals:
   tag[\"INDEX\"] = global bin index
   tag[\"USER\"] = bin center in the user-defined binning variables
@@ -44,9 +45,11 @@ Use the following keys to access the loaded residuals:
   tag[\"GRADS\"] = gradients of the model prediction in this bin
   tag[\"ZVEC\"] = sorted list of redshifts with data
 If the cov or icov options are provided, the following extra keys are available:
-  tag[\"EVAL\"] = eigenvalues of the inverse covariance (pruned to bins used in the fit) in descending order.
+  tag[\"ICOV\"] = inverse covariance pruned to the bins used in the fit.
+  tag[\"EVAL\"] = eigenvalues of the pruned inverse covariance in descending order.
   tag[\"EVEC\"] = corresponding matrix of eigenvectors, with vectors stored in successive rows.
-  tag[\"CHIJK\"] = matrix of chisq contributions by mode and bin.";
+  tag[\"CHIJK\"] = matrix of chisq contributions by mode and bin.
+  tag[\"CHIJ\"] = vector of chisq contributions by mode.";
 
 
 fitDensityPlot::usage=
@@ -108,13 +111,13 @@ Module[{raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
         {tag["EVAL"],tag["EVEC"]}=Eigensystem[tag["ICOV"]];
         (* Calculate and save the matrix of chisq contributions to this fit *)
         tag["CHIJK"]=tag["EVEC"]Outer[Times,Sqrt[tag["EVAL"]],tag["DATA"]-tag["PRED"]];
+        tag["CHIJ"]=Total/@tag["CHIJK"];
         If[verboseOption===True,
-            chij=(Total/@tag["CHIJK"])^2;
-            Print["chi^2/dof = ",Total[chij],"/",(nbins-ngrads)];
+            Print["chi^2/dof = ",Total[tag["CHIJ"]^2],"/",(nbins-ngrads)];
             nlargest=Min[nbins,nlargestOption];
-            largest=Ordering[chij,nlargest,Greater];
+            largest=Ordering[tag["CHIJ"]^2,nlargest,Greater];
             Print[nlargest," modes with largest chi^2 contributions:"];
-            Print[TableForm[{largest,chij[[largest]]}]];
+            Print[TableForm[{largest,(tag["CHIJ"]^2)[[largest]]}]];
         ];
     ];
 ]]
