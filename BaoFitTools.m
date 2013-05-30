@@ -145,7 +145,7 @@ With[{
     rmin=OptionValue["rmin"],
     rmax=OptionValue["rmax"]
 },
-Module[{vec,zval,points,rTmax,rPmax,range,gridOptions,regionFunction},
+Module[{vec,zval,points,rTmax,rPmax,range,zmin,zmax,gridOptions,regionFunction},
     If[!ValueQ[tag["ZVEC"]],
         Message[fitDensityPlot::badtag,ToString[tag]];
         Return[$Failed]
@@ -164,6 +164,7 @@ Module[{vec,zval,points,rTmax,rPmax,range,gridOptions,regionFunction},
     rTmax=Max[points[[;;,1]]];
     rPmax=Max[points[[;;,2]]];
     range=dataRange[points[[;;,3]],FilterRules[{options},Options[dataRange]]];
+    {zmin,zmax}=range;
     gridOptions=Which[
         grid===None,{},
         grid===Automatic,{MeshStyle->Opacity[0.25],Mesh->All},
@@ -184,7 +185,8 @@ Module[{vec,zval,points,rTmax,rPmax,range,gridOptions,regionFunction},
     ListDensityPlot[points,FilterRules[{options},Options[ListDensityPlot]],
         gridOptions,regionFunction,
         InterpolationOrder->0,PlotRange->{{0,rTmax},{0,rPmax},range},
-        LabelStyle->Medium,ColorFunction->temperatureMap,
+        LabelStyle->Medium,ColorFunctionScaling->False,
+        ColorFunction->(temperatureMap[(##-zmin)/(zmax-zmin)]&),
         FrameLabel->{"\!\(\*SubscriptBox[\(r\), \(\[Perpendicular]\)]\)(Mpc/h)","\!\(\*SubscriptBox[\(r\), \(||\)]\)(Mpc/h)"}
     ]
 ]]
