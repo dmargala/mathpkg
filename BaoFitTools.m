@@ -16,7 +16,7 @@ from zero. Because of the assumed symmetry, only one of (i,j) and (j,i) are need
 the file, but redundant entries are harmless. Missing diagonal elements are assumed to
 be one and missing off-diagonal elements are assumed to be zero. The following options
 are supported:
-    - path : directory containing the file to read (default is '.')
+    - path : directory to prepend to filename (default is None)
     - size : size of the matrix to return (Automatic or integer value)
       (default is Automatic, which uses the largest index found)
     - sparse : should result be returned as a SparseArray? (Automatic,True,False)
@@ -30,7 +30,7 @@ loadFitResiduals::usage=
 output prefix and associates the results with the specified tag. The following
 options are supported:
     - verbose: be verbose about what we are doing (default is True)
-    - path: directory containing the residuals file (default is '.')
+    - path: directory containing the residuals file (default is None)
     - cov: load fit input covariance matrix from this file under path (default is None)
     - icov: load fit input inverse covariance matrix from this file under path (default is None)
     - nlargest: if cov or icov is specified and verbose is True, prints this number of modes
@@ -64,6 +64,26 @@ fitModePlot::usage=
 Begin["Private`"]
 
 
+makePath::nosuchpath="No such path \"`1`\".";
+makePath::filenotfound="File not found \"`1`\".";
+makePath[filename_,pathOption_]:=
+Module[{path},
+    path=If[!(pathOption===None)&&StringLength[ToString[pathOption]]>0,
+        If[!DirectoryQ[ToString[pathOption]],
+            Message[makePath::nosuchpath,pathOption];
+            Return[$Failed]
+        ];
+        FileNameJoin[{pathOption,filename}],
+        filename
+    ];
+    If[!FileExistsQ[path],
+        Message[makePath::filenotfound,path];
+        Return[$Failed]
+    ];
+    path
+]
+
+
 Clear[loadFitResiduals]
 loadFitResiduals[tag_,prefix_,OptionsPattern[loadFitResiduals]]:=
 With[{
@@ -73,13 +93,11 @@ With[{
     icovOption=OptionValue["icov"],
     nlargestOption=OptionValue["nlargest"]
 },
-Module[{raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
+Module[{path,raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
     Clear[tag];
     (* load the residuals file into memory *)
-    raw=Transpose[Developer`ToPackedArray[
-        ReadList[pathOption<>$PathnameSeparator<>prefix<>"residuals.dat",
-            Real,RecordLists->True]
-    ]];
+    path=makePath[prefix<>"residuals.dat",pathOption];
+    raw=Transpose[Developer`ToPackedArray[ReadList[path,Real,RecordLists->True]]];
     {ncols,nbins}=Dimensions[raw];
     ngrads=ncols-11;
     If[verboseOption===True,
@@ -127,7 +145,7 @@ Module[{raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
 ]]
 SetAttributes[loadFitResiduals,HoldFirst]
 Options[loadFitResiduals]={
-    "verbose"->True,"path"->".","cov"->None,"icov"->None,"nlargest"->10
+    "verbose"->True,"path"->None,"cov"->None,"icov"->None,"nlargest"->10
 };
 
 
@@ -141,8 +159,9 @@ With[{
     sparseOption=OptionValue["sparse"],
     sparseThresholdOption=OptionValue["sparseThreshold"]
 },
-Module[{raw,size,sparse,packed},
-    raw=ReadList[pathOption<>$PathnameSeparator<>filename,{Number,Number,Number}];
+Module[{path,raw,size,sparse,packed},
+    path=makePath[filename,pathOption];
+    raw=ReadList[path,{Number,Number,Number}];
     size=If[sizeOption===Automatic,Max[raw[[;;,1]]]+1,sizeOption];
     If[verboseOption===True,Print["Read matrix with size = ",size,"."]];
     With[{values=N[raw[[;;,3]]]},
@@ -160,7 +179,7 @@ Module[{raw,size,sparse,packed},
         If[verboseOption===True,Print["Automatically selected packed matrix format."]]; Return[packed]
     ];
 ]]
-Options[loadFitMatrix]={ "verbose"->False,"path"->".", "size"->Automatic, "sparse"->Automatic, "sparseThreshold"->1 };
+Options[loadFitMatrix]={ "verbose"->False,"path"->None, "size"->Automatic, "sparse"->Automatic, "sparseThreshold"->1 };
 
 
 (* Returns a tuple { rT, rP, r^rpow value} given a value and an offset to use into tag[COORDS] *)
