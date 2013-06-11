@@ -22,6 +22,7 @@ Begin["Private`"]
 
 
 chiSquareProbability[chisq_,dof_]:=N[GammaRegularized[dof/2,0,chisq/2]]
+SetAttributes[chiSquareProbability,Listable]
 
 
 gaussianChiSquareContourLevel[coverage_,ndim_]:=
