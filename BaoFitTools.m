@@ -197,7 +197,7 @@ Module[{chisq,pvec,chisq0,getter},
     Function[sfit,Append[pvec[sfit],chisq[sfit]-chisq0]],
     Function[sfit,pvec[sfit]]
   ];
-  Map[getter,tag["SAMPLE"][[;;,fitIndexOption]]]
+  Developer`ToPackedArray[Map[getter,tag["SAMPLE"][[;;,fitIndexOption]]]]
 ]]
 Options[fitAnalysisSamples]={ "parameters"->{7,8},"appendChiSq"->True,"fitIndex"->1 };
 
