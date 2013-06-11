@@ -336,7 +336,7 @@ With[{
     rmin=OptionValue["rmin"],
     rmax=OptionValue["rmax"]
 },
-Module[{vec,zval,points,rTmax,rPmax,range,zmin,zmax,gridOptions,regionFunction},
+Module[{vec,zval,points,rTmax,rPmax,rPmin,range,zmin,zmax,gridOptions,regionFunction},
     If[!ValueQ[tag["ZVEC"]],
         Message[fitDensityPlot::badtag,ToString[tag]];
         Return[$Failed]
@@ -354,6 +354,7 @@ Module[{vec,zval,points,rTmax,rPmax,range,zmin,zmax,gridOptions,regionFunction},
     points=Table[rxyTuple[k,vec[[k]],tag,rpow],{k,binSlice[tag,{_,_,zval},"RMUZ"]}];
     rTmax=Max[points[[;;,1]]];
     rPmax=Max[points[[;;,2]]];
+    rPmin=Min[points[[;;,2]]];
     range=dataRange[points[[;;,3]],FilterRules[{options},Options[dataRange]]];
     {zmin,zmax}=range;
     gridOptions=Which[
@@ -375,7 +376,7 @@ Module[{vec,zval,points,rTmax,rPmax,range,zmin,zmax,gridOptions,regionFunction},
     ];
     ListDensityPlot[points,FilterRules[{options},Options[ListDensityPlot]],
         gridOptions,regionFunction,
-        InterpolationOrder->0,PlotRange->{{0,rTmax},{0,rPmax},range},
+        InterpolationOrder->0,PlotRange->{{0,rTmax},{Min[0,rPmin],rPmax},range},
         LabelStyle->Medium,ColorFunctionScaling->False,
         ColorFunction->(temperatureMap[(##-zmin)/(zmax-zmin)]&),
         FrameLabel->{"\!\(\*SubscriptBox[\(r\), \(\[Perpendicular]\)]\)(Mpc/h)","\!\(\*SubscriptBox[\(r\), \(||\)]\)(Mpc/h)"}
