@@ -54,7 +54,19 @@ If the cov or icov options are provided, the following extra keys are available:
 
 loadFitAnalysis::usage=
 "loadFitAnalysis[tag,name] loads the analysis output file for the specified analysis
-name.";
+name and associates the results with the specified tag:
+  tag[\"NPAR\"] = number of fixed+floating parameters
+  tag[\"NDUMP\"] = number of r values dumped for each multipole and fit
+  tag[\"NFIT\"] = number of fits for each sample
+  tag[\"FITERR\"] = diagonal errors from baseline fit (zero for fixed parameters)
+  tag[\"BASELINE\"] = baseline fit
+  tag[\"NSAMPLE\"] = number of samples
+  tag[\"SAMPLE\"] = table of fits to each sample
+Fit results in s = tag[\"BASELINE\"] and s = tag[\"SAMPLE\"][[k]] with 1 <= k <= nsample
+have the same format:
+  s[[fit,1]] = chisq of 1 <= fit <= nfit
+  s[[fit,2,p]] = fitted or fixed value of param[p] with 1 <= p <= npar
+  s[[fit,3,ell,ir]] = multipole ell=1,2,3 calculated at the i-th r value (i >= 1)";
 
 
 fitDensityPlot::usage=
