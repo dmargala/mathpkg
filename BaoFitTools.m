@@ -70,13 +70,24 @@ have the same format:
   s[[fit,3,ell,ir]] = multipole ell=1,2,3 calculated at the i-th r value (i >= 1)";
 
 
+fitAnalysisSamples::usage=
+"fitAnalysisSamples[tag] returns a list of {p1,p2,p3,...,chisq-chisq(min)} tuples for the
+fit analysis associated with the specified tag. The following options are supported:
+    - parameters: Indices of parameters to include in the tuple. Default is {7,8}.
+    - appendChiSq: Should the value of chisq-chisq(min) be append to each tuple?
+      Default is True.
+    - fitIndex: index of analysis fit to use, must be >= 1 and <= tag[\"NFIT\"].
+      Default is 1.";
+
+
 fitDensityPlot::usage=
 "fitDensityPlot[tag] uses ListDensityPlot to plot quantities related to fit residuals
 previously loaded and associated with the specified tag.";
 
 
 fitModePlot::usage=
-"fitModePlot[tag,mode] plots the per-bin weights (left) and per-bin chisq contributions (right) of the specified eigenmode.";
+"fitModePlot[tag,mode] plots the per-bin weights (left) and per-bin chisq contributions
+(right) of the specified eigenmode.";
 
 
 Begin["Private`"]
@@ -169,6 +180,26 @@ SetAttributes[loadFitAnalysis,HoldFirst]
 Options[loadFitAnalysis]={
     "verbose"->True,"path"->None
 };
+
+
+Clear[fitAnalysisSamples]
+fitAnalysisSamples[tag_,OptionsPattern[fitAnalysisSamples]]:=
+With[{
+  parametersOption=OptionValue["parameters"],
+  appendChiSqOption=OptionValue["appendChiSq"],
+  fitIndexOption=OptionValue["fitIndex"]
+},
+Module[{chisq,pvec,chisq0,getter},
+  chisq=Function[sfit,sfit[[1]]];
+  chisq0=chisq[tag["BASELINE"][[fitIndexOption]]];
+  pvec=Function[sfit,sfit[[2,parametersOption]]];
+  getter=If[appendChiSqOption===True,
+    Function[sfit,Append[pvec[sfit],chisq[sfit]-chisq0]],
+    Function[sfit,pvec[sfit]]
+  ];
+  Map[getter,tag["SAMPLE"][[;;,fitIndexOption]]]
+]]
+Options[fitAnalysisSamples]={ "parameters"->{7,8},"appendChiSq"->True,"fitIndex"->1 };
 
 
 Clear[loadFitResiduals]
