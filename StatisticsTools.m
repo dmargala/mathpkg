@@ -13,10 +13,20 @@ chiSquareProbability::usage=
 than the specified value for the specified number of degrees of freedom.";
 
 
+gaussianChiSquareContourLevel::usage=
+"gaussianChiSquareContourLevel[coverage,ndim] returns the change in chisq that
+encloses the specified coverage fraction for a Gaussian in ndim dimensions.";
+
+
 Begin["Private`"]
 
 
 chiSquareProbability[chisq_,dof_]:=N[GammaRegularized[dof/2,0,chisq/2]]
+
+
+gaussianChiSquareContourLevel[coverage_,ndim_]:=
+gaussianChiSquareContourLevel[coverage,ndim]=
+Module[{dchisq},dchisq/.FindRoot[chiSquareProbability[dchisq,ndim]==coverage,{dchisq,1}]]
 
 
 End[]
