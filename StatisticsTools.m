@@ -27,6 +27,7 @@ chiSquareProbability[chisq_,dof_]:=N[GammaRegularized[dof/2,0,chisq/2]]
 gaussianChiSquareContourLevel[coverage_,ndim_]:=
 gaussianChiSquareContourLevel[coverage,ndim]=
 Module[{dchisq},dchisq/.FindRoot[chiSquareProbability[dchisq,ndim]==coverage,{dchisq,1}]]
+SetAttributes[gaussianChiSquareContourLevel,Listable]
 
 
 End[]
