@@ -58,7 +58,8 @@ name and associates the results with the specified tag:
   tag[\"NPAR\"] = number of fixed+floating parameters
   tag[\"NDUMP\"] = number of r values dumped for each multipole and fit
   tag[\"NFIT\"] = number of fits for each sample
-  tag[\"FITERR\"] = diagonal errors from baseline fit (zero for fixed parameters)
+  tag[\"FITERR\"] = diagonal errors from baseline fits (zero for fixed parameters)
+  tag[\"NFLOAT\"] = number of floating parameters in each fit config
   tag[\"BASELINE\"] = baseline fit
   tag[\"NSAMPLE\"] = number of samples
   tag[\"SAMPLE\"] = table of fits to each sample
@@ -144,6 +145,7 @@ Module[{path,raw,npar,ndump,nfit,nrow,ncol},
     Return[$Failed]
   ];
   tag["FITERR"]=Table[raw[[2,(fit-1)npar+par]],{fit,1,nfit},{par,1,npar}];
+  tag["NFLOAT"]=Map[Count[##,err_/;err>0]&,tag["FITERR"]];
   (* parse the sample data *)
   If[Length[Dimensions[raw[[3;;]]]]!=2,
     Message[loadFitAnalysis::badshape];
@@ -159,7 +161,8 @@ Module[{path,raw,npar,ndump,nfit,nrow,ncol},
   tag["SAMPLE"]=Map[makeSample[##,npar,ndump,nfit]&,raw[[4;;]]];
   (* all done *)
   If[verboseOption===True,
-    Print["Loaded ",nrow-1," samples with npar = ",npar,", ndump = ",ndump,", nfit = ",nfit]
+    Print["Loaded ",nrow-1," samples with npar = ",npar,", ndump = ",ndump,", nfit = ",
+      nfit,", nfloating = ",tag["NFLOAT"],"."]
   ];
 ]]
 SetAttributes[loadFitAnalysis,HoldFirst]
