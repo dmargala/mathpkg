@@ -26,7 +26,7 @@ are supported:
 
 
 loadFitResiduals::usage=
-"loadResiduals[tag,prefix] loads the residuals output file for the specified
+"loadFitResiduals[tag,prefix] loads the residuals output file for the specified
 output prefix and associates the results with the specified tag. The following
 options are supported:
     - verbose: be verbose about what we are doing (default is True)
@@ -50,6 +50,11 @@ If the cov or icov options are provided, the following extra keys are available:
   tag[\"EVEC\"] = corresponding matrix of eigenvectors, with vectors stored in successive rows.
   tag[\"CHIJK\"] = matrix of chisq contributions by mode and bin.
   tag[\"CHIJ\"] = vector of chisq contributions by mode.";
+
+
+loadFitAnalysis::usage=
+"loadFitAnalysis[tag,name] loads the analysis output file for the specified analysis
+name.";
 
 
 fitDensityPlot::usage=
@@ -82,6 +87,73 @@ Module[{path},
     ];
     path
 ]
+
+
+makeSample[line_,npar_,ndump_,nfit_]:=
+With[{size=npar+1},
+Table[{
+  (* fit chisq *)
+  line[[size(fit-1)+npar+1]],
+  (* fit parameter values *)
+  Table[line[[size(fit-1)+par]],{par,1,npar}],
+  (* multipole dumps *)
+  Table[line[[nfit size+3ndump(fit-1)+ndump(ell-1)+dump]],{ell,1,3},{dump,1,ndump}]
+},{fit,1,nfit}
+]]
+
+
+Clear[loadFitAnalysis]
+loadFitAnalysis::badheader1="Analysis output file has badly formatted header line 1.";
+loadFitAnalysis::badheader2="Analysis output file has badly formatted header line 2.";
+loadFitAnalysis::badshape="Analysis output file has badly shaped samples.";
+loadFitAnalysis::badncol="Analysis output file has wrong number of sample columns.";
+loadFitAnalysis[tag_,name_,OptionsPattern[loadFitAnalysis]]:=
+With[{
+    verboseOption=OptionValue["verbose"],
+    pathOption=OptionValue["path"]
+},
+Module[{path,raw,npar,ndump,nfit,nrow,ncol},
+  Clear[tag];
+  (* load the analysis file into memory *)
+  path=makePath[name<>".dat",pathOption];
+  raw=ReadList[path,Number,RecordLists->True];
+  (* parse the first header line *)
+  If[Length[raw[[1]]]!=3,
+    Message[loadFitAnalysis::badheader1];
+    Return[$Failed]
+  ];
+  {npar,ndump,nfit}=raw[[1]];
+  tag["NPAR"]=npar;
+  tag["NDUMP"]=ndump;
+  tag["NFIT"]=nfit;
+  (* parse the second header line *)
+  If[Length[raw[[2]]]!=nfit npar,
+    Message[loadFitAnalysis::badheader2];
+    Return[$Failed]
+  ];
+  tag["FITERR"]=Table[raw[[2,(fit-1)npar+par]],{fit,1,nfit},{par,1,npar}];
+  (* parse the sample data *)
+  If[Length[Dimensions[raw[[3;;]]]]!=2,
+    Message[loadFitAnalysis::badshape];
+    Return[$Failed]
+  ];
+  {nrow,ncol}=Dimensions[raw[[3;;]]];
+  If[ncol!=nfit(1+npar+3ndump),
+    Message[loadFitAnalysis::badncol];
+    Return[$Failed]
+  ];
+  tag["NSAMPLE"]=nrow-1;
+  tag["BASELINE"]=makeSample[raw[[3]],npar,ndump,nfit];
+  tag["SAMPLE"]=Map[makeSample[##,npar,ndump,nfit]&,raw[[4;;]]];
+  (* all done *)
+  If[verboseOption===True,
+    Print["Loaded ",nrow-1," samples with npar = ",npar,", ndump = ",ndump,", nfit = ",nfit]
+  ];
+]]
+SetAttributes[loadFitAnalysis,HoldFirst]
+Options[loadFitAnalysis]={
+    "verbose"->True,"path"->None
+};
 
 
 Clear[loadFitResiduals]
