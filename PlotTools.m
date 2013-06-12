@@ -67,7 +67,8 @@ includes all elements but the following options can be use:
   - clipHiFraction: clip the hi limit at the specified quantile in the flattened dataset.
   - clipLoValue: set the lo limit to the specified value (overrides clipLoFraction).
   - clipHiValue: set the hi limit to the specified value (overrides clipHiFraction).
-  - centerValue: expands the range, if necessary, to be symmetric about this value."
+  - centerValue: expands the range, if necessary, to be symmetric about this value.
+  - printRange: prints the returned range if True (default is False)."
 
 
 pixelImage::usage=
@@ -244,7 +245,8 @@ With[{
     clipHiFraction=OptionValue["clipHiFraction"],
     clipLoValue=OptionValue["clipLoValue"],
     clipHiValue=OptionValue["clipHiValue"],
-    centerValue=OptionValue["centerValue"]
+    centerValue=OptionValue["centerValue"],
+    printRange=OptionValue["printRange"]
 },
 Module[{lo,hi,size},
     {lo,hi}=If[clipLoFraction>0||clipHiFraction<1,
@@ -258,9 +260,14 @@ Module[{lo,hi,size},
         hi=centerValue+size;
         lo=centerValue-size;
     ];
+    If[printRange===True,Print["dataRange: ",{lo,hi}]];
     {lo,hi}
 ]]
-Options[dataRange]={"clipLoValue"->Automatic,"clipHiValue"->Automatic,"clipLoFraction"->0,"clipHiFraction"->1, "centerValue"->Automatic};
+Options[dataRange]={
+  "clipLoValue"->Automatic,"clipHiValue"->Automatic,
+  "clipLoFraction"->0,"clipHiFraction"->1,
+  "centerValue"->Automatic,"printRange"->False
+};
 
 
 pixelImage[data_,options:OptionsPattern[{ArrayPlot,dataRange,pixelImage}]]:=
