@@ -18,6 +18,12 @@ gaussianChiSquareContourLevel::usage=
 encloses the specified coverage fraction for a Gaussian in ndim dimensions.";
 
 
+generateGaussianSamples::usage=
+"generateGaussianSamples[cov,n] generates a list of n random samples of a
+multidimensional with the specified covariance. The following options are supported:
+  - mean : mean vector to use, with same dimension as cov (default is zero vector).";
+
+
 Begin["Private`"]
 
 
@@ -29,6 +35,26 @@ gaussianChiSquareContourLevel[coverage_,ndim_]:=
 gaussianChiSquareContourLevel[coverage,ndim]=
 Module[{dchisq},dchisq/.FindRoot[chiSquareProbability[dchisq,ndim]==coverage,{dchisq,1}]]
 SetAttributes[gaussianChiSquareContourLevel,Listable]
+
+
+Clear[generateGaussianSamples]
+generateGaussianSamples::badmean="Mean vector and covariance have different dimensions.";
+generateGaussianSamples[cov_,n_,OptionsPattern[]]:=
+With[{
+  m=Length[cov],
+  gauss=NormalDistribution[0,1],
+  meanOption=OptionValue["mean"]
+},
+Module[{mean,cholesky},
+  mean=If[meanOption===None,ConstantArray[0,m],meanOption];
+  If[Length[mean]!=m,
+    Message[generateGaussianSamples::badmean];
+    Return[$Failed]
+  ];
+  cholesky=Transpose[CholeskyDecomposition[cov]];
+  Thread[mean + cholesky.RandomVariate[gauss,{m,n}]]
+]]
+Options[generateGaussianSamples]={"mean"->None};
 
 
 End[]
