@@ -62,9 +62,14 @@ Module[{mean,cholesky},
 Options[generateGaussianSamples]={"mean"->None};
 
 
+correlationMatrix::notsymm="Covariance matrix is not symmetric.";
 correlationMatrix::notposdef="Covariance matrix is not positive definite.";
 correlationMatrix[cov_]:=
 Module[{sigvec,sigmat},
+  If[!SymmetricMatrixQ[cov],
+    Message[correlationMatrix::notsymm];
+    Return[$Failed]
+  ];
   If[!PositiveDefiniteMatrixQ[cov],
     Message[correlationMatrix::notposdef];
     Return[$Failed]
