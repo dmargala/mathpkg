@@ -27,7 +27,15 @@ are supported:
 
 saveFitMatrix::usage=
 "saveFitMatrix[matrix,filename] saves the specified symmetric matrix in the format
-expected by loadFitMatrix. The following options are supported:
+expected by baofit (and read by loadFitMatrix). The following options are supported:
+    - path : directory to prepend to filename (default is None)
+    - indices : a vector of indices to use, of the same dimension as matrix
+      (default is Automatic, which corresponds to 0,1,...,dim-1)";
+
+
+saveFitData::usage=
+"saveFitData{vector,filename] saves the specified data vector in the format expected
+by baofit. The following options are supported:
     - path : directory to prepend to filename (default is None)
     - indices : a vector of indices to use, of the same dimension as matrix
       (default is Automatic, which corresponds to 0,1,...,dim-1)";
@@ -338,6 +346,27 @@ Module[{path,indices,save},
   Export[path,AppendTo[save,{}],"Table"]
 ]]
 Options[saveFitMatrix]={"path"->None,indices->Automatic};
+
+
+Clear[saveFitData]
+saveFitData::badsize="Indices and data vector have different sizes.";
+saveFitData[vector_,filename_,OptionsPattern[saveFitData]]:=
+With[{
+  n=Length[vector],
+  pathOption=OptionValue["path"],
+  indicesOption=OptionValue["indices"]
+},
+Module[{path,indices,save},
+  path=makePath[filename,pathOption,False];
+  indices=If[indicesOption===Automatic,Range[0,n-1],indicesOption];
+  If[Length[indices]!=n,
+    Message[saveFitData::badsize];
+    Return[$Failed]
+  ];
+  save=Transpose[{indices,vector}];
+  Export[path,AppendTo[save,{}],"Table"]
+]]
+Options[saveFitData]={"path"->None,indices->Automatic};
 
 
 (* Returns a tuple { rT, rP, r^rpow value} given a value and an offset to use into tag[COORDS] *)
