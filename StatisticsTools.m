@@ -24,6 +24,12 @@ multidimensional with the specified covariance. The following options are suppor
   - mean : mean vector to use, with same dimension as cov (default is zero vector).";
 
 
+correlationMatrix::usage=
+"correlationMatrix[cov] returns the symmetric matrix of correlation coefficients
+cov(i,j)/sqrt(cov(i)cov(j)), whose diagonal elements are all one and whose
+off-diagonal elements are all between -1 and +1.";
+
+
 Begin["Private`"]
 
 
@@ -37,7 +43,6 @@ Module[{dchisq},dchisq/.FindRoot[chiSquareProbability[dchisq,ndim]==coverage,{dc
 SetAttributes[gaussianChiSquareContourLevel,Listable]
 
 
-Clear[generateGaussianSamples]
 generateGaussianSamples::badmean="Mean vector and covariance have different dimensions.";
 generateGaussianSamples[cov_,n_,OptionsPattern[]]:=
 With[{
@@ -55,6 +60,19 @@ Module[{mean,cholesky},
   Thread[mean + cholesky.RandomVariate[gauss,{m,n}]]
 ]]
 Options[generateGaussianSamples]={"mean"->None};
+
+
+correlationMatrix::notposdef="Covariance matrix is not positive definite.";
+correlationMatrix[cov_]:=
+Module[{sigvec,sigmat},
+  If[!PositiveDefiniteMatrixQ[cov],
+    Message[correlationMatrix::notposdef];
+    Return[$Failed]
+  ];
+  sigvec=N[Sqrt[Diagonal[cov]]];
+  sigmat=ConstantArray[sigvec,Length[sigvec]];
+  cov/(sigmat Transpose[sigmat])
+]
 
 
 End[]
