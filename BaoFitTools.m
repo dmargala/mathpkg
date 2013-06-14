@@ -97,8 +97,16 @@ fit analysis associated with the specified tag. The following options are suppor
 
 
 fitDensityPlot::usage=
-"fitDensityPlot[tag] uses ListDensityPlot to plot quantities related to fit residuals
-previously loaded and associated with the specified tag.";
+"fitDensityPlot[tag] uses ListDensityPlot to plot the best-fit prediction for the first
+redshift bin stored in the fit residuals previously loaded and associated with the specified tag.
+The following options are supported:
+    - key: name of vector associated with tag to plot (default is \"PRED\").
+    - zindex: which redshift bin to plot (default is 1).
+    - rpow: power of the radius to use for weighting each plot point (default is 0).
+    - vector: list of values to plot instead of tag[key], must have correct size (default is None).
+    - grid: type of grid to display (choices are None,Automatic,\"cartesian\",\"polar\" and default is Automatic).
+    - rmin: plot range will be clipped at r > rmin (default is None).
+    - rmax: plot range will be clipped at r < rmax (default is None).";
 
 
 fitModePlot::usage=
@@ -345,7 +353,7 @@ Module[{path,indices,save},
   save=Select[save,Last[##]!=0&];
   Export[path,AppendTo[save,{}],"Table"]
 ]]
-Options[saveFitMatrix]={"path"->None,indices->Automatic};
+Options[saveFitMatrix]={"path"->None,"indices"->Automatic};
 
 
 Clear[saveFitData]
@@ -366,7 +374,7 @@ Module[{path,indices,save},
   save=Transpose[{indices,vector}];
   Export[path,AppendTo[save,{}],"Table"]
 ]]
-Options[saveFitData]={"path"->None,indices->Automatic};
+Options[saveFitData]={"path"->None,"indices"->Automatic};
 
 
 (* Returns a tuple { rT, rP, r^rpow value} given a value and an offset to use into tag[COORDS] *)
@@ -394,7 +402,7 @@ Clear[fitDensityPlot]
 fitDensityPlot::badtag="Invalid tag `1`.";
 fitDensityPlot::badkey="Invalid key `1`.";
 fitDensityPlot::badvec="Invalid vector for plotting.";
-fitDensitPlot::badgrid="Invalid grid option, should be None, Automatic, \"cartesian\" or \"polar\".";
+fitDensityPlot::badgrid="Invalid grid option, should be None, Automatic, \"cartesian\" or \"polar\".";
 fitDensityPlot[tag_,options:OptionsPattern[{fitDensityPlot,dataRange,ListDensityPlot}]]:=
 With[{
     rpow=OptionValue["rpow"],
