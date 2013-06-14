@@ -25,6 +25,14 @@ are supported:
       (default is 1)";
 
 
+saveFitMatrix::usage=
+"saveFitMatrix[matrix,filename] saves the specified symmetric matrix in the format
+expected by loadFitMatrix. The following options are supported:
+    - path : directory to prepend to filename (default is None)
+    - indices : a vector of indices to use, of the same dimension as matrix
+      (default is Automatic, which corresponds to 0,1,...,dim-1)";
+
+
 loadFitResiduals::usage=
 "loadFitResiduals[tag,prefix] loads the residuals output file for the specified
 output prefix and associates the results with the specified tag. The following
@@ -95,7 +103,7 @@ Begin["Private`"]
 
 makePath::nosuchpath="No such path \"`1`\".";
 makePath::filenotfound="File not found \"`1`\".";
-makePath[filename_,pathOption_]:=
+makePath[filename_,pathOption_,exists_:True]:=
 Module[{path},
     path=If[!(pathOption===None)&&StringLength[ToString[pathOption]]>0,
         If[!DirectoryQ[ToString[pathOption]],
@@ -105,7 +113,7 @@ Module[{path},
         FileNameJoin[{pathOption,filename}],
         filename
     ];
-    If[!FileExistsQ[path],
+    If[exists && !FileExistsQ[path],
         Message[makePath::filenotfound,path];
         Return[$Failed]
     ];
@@ -298,6 +306,38 @@ Module[{path,raw,size,sparse,packed},
     ];
 ]]
 Options[loadFitMatrix]={ "verbose"->False,"path"->None, "size"->Automatic, "sparse"->Automatic, "sparseThreshold"->1 };
+
+
+Clear[saveFitMatrix]
+saveFitMatrix::notsymm="Cannot save non-symmetric matrix.";
+saveFitMatrix::badsize="Indices and matrix have different sizes.";
+saveFitMatrix[matrix_,filename_,OptionsPattern[saveFitMatrix]]:=
+With[{
+  n=Length[matrix],
+  pathOption=OptionValue["path"],
+  indicesOption=OptionValue["indices"]
+},
+Module[{path,indices,save},
+  If[!(SymmetricMatrixQ[matrix]===True),
+    Message[saveFitMatrix::notsymm];
+    Return[$Failed]
+  ];
+  path=makePath[filename,pathOption,False];
+  indices=If[indicesOption===Automatic,Range[0,n-1],indicesOption];
+  If[Length[indices]!=n,
+    Message[saveFitMatrix::badsize];
+    Return[$Failed]
+  ];
+  save=Flatten[
+    Table[
+      {indices[[row]],indices[[col]],matrix[[row,col]]},
+      {row,1,n},{col,1,row}
+    ],1];
+  (* Do not write zero elements *)
+  save=Select[save,Last[##]!=0&];
+  Export[path,AppendTo[save,{}],"Table"]
+]]
+Options[saveFitMatrix]={"path"->None,indices->Automatic};
 
 
 (* Returns a tuple { rT, rP, r^rpow value} given a value and an offset to use into tag[COORDS] *)
