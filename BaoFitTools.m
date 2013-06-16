@@ -41,6 +41,10 @@ by baofit. The following options are supported:
       (default is Automatic, which corresponds to 0,1,...,dim-1)";
 
 
+loadFitDump::usage=
+"loadFitDump[filename] loads the best-fit multipoles from the specified filename.";
+
+
 loadFitResiduals::usage=
 "loadFitResiduals[tag,prefix] loads the residuals output file for the specified
 output prefix and associates the results with the specified tag. The following
@@ -156,6 +160,29 @@ Table[{
   Table[line[[nfit size+3ndump(fit-1)+ndump(ell-1)+dump]],{ell,1,3},{dump,1,ndump}]
 },{fit,1,nfit}
 ]]
+
+
+Clear[loadFitDump]
+loadFitDump::badell="Invalid value for ell: `1` (valid choices are 0,2,4).";
+loadFitDump[filename_,OptionsPattern[loadFitDump]]:=
+With[{
+  pathOption=OptionValue["path"],
+  ellOption=OptionValue["ell"]
+},
+Module[{path,raw},
+  path=makePath[filename,pathOption];
+  raw=ReadList[path,Real,RecordLists->True];
+  Which[
+    ellOption===0,raw[[;;,{1,2}]],
+    ellOption===2,raw[[;;,{1,3}]],
+    ellOption===4,raw[[;;,{1,4}]],
+    ellOption===All,raw,
+    True,
+      Message[loadFitDump::badell,ellOption];
+      $Failed
+  ]
+]]
+Options[loadFitDump]={"path"->None,"ell"->All};
 
 
 Clear[loadFitAnalysis]
@@ -511,6 +538,7 @@ Options[fitResidualsMultipole]={"ell"->0,"zindex"->1,"key"->"DATA"};
 
 
 Clear[fitMultipolePlot]
+fitMultipolePlot::badcurves="curves has invalid dimensions `1`.";
 fitMultipolePlot::badpoints="pointsWithErrors has invalid dimensions `1`.";
 fitMultipolePlot::badpointstyles="pointStyles has wrong length (expected `1`).";
 fitMultipolePlot[options:OptionsPattern[{fitMultipolePlot,dataRange,ListPlot}]]:=
@@ -519,14 +547,22 @@ With[{
   rminOption=OptionValue["rmin"],
   rmaxOption=OptionValue["rmax"],
   rpowOption=OptionValue["rpow"],
+  curvesOption=OptionValue["curves"],
+  curvesStyleOption=OptionValue["curvesStyle"],
   pointsWithErrorsOption=OptionValue["pointsWithErrors"],
   pointStylesOption=OptionValue["pointStyles"],
   pointSizeOption=OptionValue["pointSize"],
   pointTicksOption=OptionValue["pointTicks"]
 },
-Module[{points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
-  (* Wrap pointsWithErrors in a List if there is only one dataset *)
+Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
+  (* Wrap curves and pointsWithErrors in a List if there is only one dataset *)
+  curves=If[Depth[curvesOption]==3,{curvesOption},curvesOption];
   points=If[Depth[pointsWithErrorsOption]==3,{pointsWithErrorsOption},pointsWithErrorsOption];
+  (* Check that curves has the expected shape *)
+  If[Cases[Map[Dimensions,curves],Except[{_,2}]]!={},
+    Message[fitMultipolePlot::badcurves,Map[Dimensions,curves]];
+    Return[$Failed]
+  ];
   (* Check that pointsWithErrors has expected shape *)
   If[Cases[Map[Dimensions,points],Except[{_,3}]]!={},
     Message[fitMultipolePlot::badpoints,Map[Dimensions,points]];
@@ -546,14 +582,21 @@ Module[{points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
     rmax=If[rmaxOption===Automatic,Max[rvec]+rpad,rmaxOption];
   ];
   (* Apply rpow weighting *)
-  wgt=points[[;;,;;,1]]^rpowOption;
-  points[[;;,;;,2]] *=wgt;
-  points[[;;,;;,3]] *=wgt;
-  (* Determine the vertical range to use *)
-  range=dataRange[
-	{points[[;;,;;,2]]-points[[;;,;;,3]],points[[;;,;;,2]]+points[[;;,;;,3]]},
-    "padFraction"->0.05,FilterRules[{options},Options[dataRange]]
+  yvec={};
+  If[!(points===None),
+    wgt=points[[;;,;;,1]]^rpowOption;
+    points[[;;,;;,2]] *=wgt;
+    points[[;;,;;,3]] *=wgt;
+    AppendTo[yvec,points[[;;,;;,2]]-points[[;;,;;,3]]];
+    AppendTo[yvec,points[[;;,;;,2]]+points[[;;,;;,3]]];
   ];
+  If[!(curves===None),
+    wgt=curves[[;;,;;,1]]^rpowOption;
+    curves[[;;,;;,2]] *=wgt;
+    AppendTo[yvec,curves[[;;,;;,2]]];
+  ];
+  (* Determine the vertical range to use *)
+  range=dataRange[yvec,"padFraction"->0.05,FilterRules[{options},Options[dataRange]]];
   (* Create the default frame labels *)
   labels={
     "Comoving separation r (Mpc/h)",
@@ -565,18 +608,22 @@ Module[{points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
     createFrame[Plot,{rmin,rmax},range,
       FrameLabel->labels,Axes->{True,False},AxesOrigin->{0,0},
       FilterRules[{options},Options[ListPlot]]],
-    Graphics[Table[
+    (* plot each curve *)
+    If[curves===None,{},ListPlot[curves,Joined->True,PlotStyle->curvesStyleOption]],
+    (* plot points for each set of data *)
+    Graphics[If[points===None,{},Table[
       pointWithError[
         points[[set,pt,{1,2}]],points[[set,pt,3]],
         size->pointSizeOption,yTicks->pointTicksOption,
         style->If[pstyles===None,{},pstyles[[set]]]
       ],
       {set,1,Length[points]},{pt,1,Length[points[[set]]]}
-    ]]
+    ]]]
   }]
 ]]
 Options[fitMultipolePlot]={
   "ell"->0, "rmin"->Automatic, "rmax"->Automatic, "rpow"->2,
+  "curves"->None,"curvesStyle"->{},
   "pointsWithErrors"->None, "pointStyles"->None, "pointSize"->0.016,"pointTicks"->True
 };
 
