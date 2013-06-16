@@ -552,9 +552,10 @@ With[{
   pointsWithErrorsOption=OptionValue["pointsWithErrors"],
   pointStylesOption=OptionValue["pointStyles"],
   pointSizeOption=OptionValue["pointSize"],
-  pointTicksOption=OptionValue["pointTicks"]
+  pointTicksOption=OptionValue["pointTicks"],
+  pointSpreadOption=OptionValue["pointSpread"]
 },
-Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
+Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,spread,labels},
   (* Wrap curves and pointsWithErrors in a List if there is only one dataset *)
   curves=If[Depth[curvesOption]==3,{curvesOption},curvesOption];
   points=If[Depth[pointsWithErrorsOption]==3,{pointsWithErrorsOption},pointsWithErrorsOption];
@@ -597,6 +598,16 @@ Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
   ];
   (* Determine the vertical range to use *)
   range=dataRange[yvec,"padFraction"->0.05,FilterRules[{options},Options[dataRange]]];
+  (* Apply horizontal point spreading *)
+  If[NumericQ[pointSpreadOption],
+    rvec=points[[;;,;;,1]];
+    spread=Range[-pointSpreadOption/2,+pointSpreadOption/2,
+      pointSpreadOption/(Length[points]-1)];
+    points[[;;,;;,1]]+=Table[
+      ConstantArray[spread[[set]],Length[points[[set]]]],
+      {set,1,Length[points]}
+    ];
+  ];
   (* Create the default frame labels *)
   labels={
     "Comoving separation r (Mpc/h)",
@@ -624,7 +635,8 @@ Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
 Options[fitMultipolePlot]={
   "ell"->0, "rmin"->Automatic, "rmax"->Automatic, "rpow"->2,
   "curves"->None,"curvesStyle"->{},
-  "pointsWithErrors"->None, "pointStyles"->None, "pointSize"->0.016,"pointTicks"->True
+  "pointsWithErrors"->None, "pointStyles"->None, "pointSize"->0.016,
+  "pointTicks"->True,"pointSpread"->None
 };
 
 
