@@ -520,7 +520,9 @@ With[{
   rmaxOption=OptionValue["rmax"],
   rpowOption=OptionValue["rpow"],
   pointsWithErrorsOption=OptionValue["pointsWithErrors"],
-  pointStylesOption=OptionValue["pointStyles"]
+  pointStylesOption=OptionValue["pointStyles"],
+  pointSizeOption=OptionValue["pointSize"],
+  pointTicksOption=OptionValue["pointTicks"]
 },
 Module[{points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
   (* Wrap pointsWithErrors in a List if there is only one dataset *)
@@ -550,7 +552,7 @@ Module[{points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
   (* Determine the vertical range to use *)
   range=dataRange[
 	{points[[;;,;;,2]]-points[[;;,;;,3]],points[[;;,;;,2]]+points[[;;,;;,3]]},
-    FilterRules[{options},Options[dataRange]]
+    "padFraction"->0.05,FilterRules[{options},Options[dataRange]]
   ];
   (* Create the default frame labels *)
   labels={
@@ -563,16 +565,19 @@ Module[{points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
     createFrame[Plot,{rmin,rmax},range,
       FrameLabel->labels,Axes->{True,False},AxesOrigin->{0,0},
       FilterRules[{options},Options[ListPlot]]],
-    (* Draw each set of data points *)
-    Table[Graphics[{
-      PointSize[Large],
-      Join[If[pstyles===None,{},pstyles[[k]]],Map[Point,points[[k,;;,{1,2}]]]]
-    }],{k,1,Length[points]}]
+    Graphics[Table[
+      pointWithError[
+        points[[set,pt,{1,2}]],points[[set,pt,3]],
+        size->pointSizeOption,yTicks->pointTicksOption,
+        style->If[pstyles===None,{},pstyles[[set]]]
+      ],
+      {set,1,Length[points]},{pt,1,Length[points[[set]]]}
+    ]]
   }]
 ]]
 Options[fitMultipolePlot]={
   "ell"->0, "rmin"->Automatic, "rmax"->Automatic, "rpow"->2,
-  "pointsWithErrors"->None, "pointStyles"->None
+  "pointsWithErrors"->None, "pointStyles"->None, "pointSize"->0.016,"pointTicks"->True
 };
 
 
