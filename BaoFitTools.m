@@ -114,6 +114,14 @@ fitModePlot::usage=
 (right) of the specified eigenmode.";
 
 
+fitResidualsMultipole::usage=
+"fitResidualsMultipole[tag] returns a multipole...";
+
+
+fitMultipolePlot::usage=
+"fitMultipolePlot[tag] plots a multipole...";
+
+
 Begin["Private`"]
 
 
@@ -474,6 +482,98 @@ GraphicsRow[{
 },Spacings->4]
 ]
 Options[fitModePlot]={};
+
+
+Clear[fitResidualsMultipole]
+fitResidualsMultipole::badtag="Invalid tag `1`.";
+fitResidualsMultipole[tag_,OptionsPattern[fitResidualsMultipole]]:=
+With[{
+  ell=OptionValue["ell"],
+  zindex=OptionValue["zindex"],
+  keyOption=OptionValue["key"]
+},
+Module[{zval,indices,rvec,xivec,sigvec},
+  (* Check for a valid residuals tag *)
+  If[!ValueQ[tag["ZVEC"]||!ValueQ[tag["USER"]]||!ValueQ[tag[keyOption]]],
+    Message[fitResidualsMultipole::badtag,ToString[tag]];
+    Return[$Failed]
+  ];
+  (* Lookup the dataset indices for the specified ell,z *)
+  zval=tag["ZVEC"][[zindex]];
+  indices=binSlice[tag,{_,N[ell],zval},"USER"];
+  (* Return the corresponding vector of (r,xi,sigma) tuples *)
+  rvec=tag["USER"][[;;,1]][[indices]];
+  xivec=tag[keyOption][[indices]];
+  sigvec=If[keyOption==="DATA",tag["ERROR"][[indices]],ConstantArray[0.,Length[rvec]]];
+  Transpose[{rvec,xivec,sigvec}]
+]]
+Options[fitResidualsMultipole]={"ell"->0,"zindex"->1,"key"->"DATA"};
+
+
+Clear[fitMultipolePlot]
+fitMultipolePlot::badpoints="pointsWithErrors has invalid dimensions `1`.";
+fitMultipolePlot::badpointstyles="pointStyles has wrong length (expected `1`).";
+fitMultipolePlot[options:OptionsPattern[{fitMultipolePlot,dataRange,ListPlot}]]:=
+With[{
+  ellOption=OptionValue["ell"],
+  rminOption=OptionValue["rmin"],
+  rmaxOption=OptionValue["rmax"],
+  rpowOption=OptionValue["rpow"],
+  pointsWithErrorsOption=OptionValue["pointsWithErrors"],
+  pointStylesOption=OptionValue["pointStyles"]
+},
+Module[{points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,labels},
+  (* Wrap pointsWithErrors in a List if there is only one dataset *)
+  points=If[Depth[pointsWithErrorsOption]==3,{pointsWithErrorsOption},pointsWithErrorsOption];
+  (* Check that pointsWithErrors has expected shape *)
+  If[Cases[Map[Dimensions,points],Except[{_,3}]]!={},
+    Message[fitMultipolePlot::badpoints,Map[Dimensions,points]];
+    Return[$Failed]
+  ];
+  (* Check that pointStyles have expected length *)
+  pstyles=If[Depth[pointStylesOption]==2,{pointStylesOption},pointStylesOption];
+  If[!(pointStylesOption===None)&&Length[pstyles]!=Length[points],
+    Message[fitMultipolePlot::badpointstyles,Length[points]];
+    Return[$Failed]
+  ];
+  (* Use the min,max r values used in points unless rmin,rmax provided as options *)
+  If[rminOption===Automatic || rmaxOption===Automatic,
+    rvec=Union[Flatten[points[[;;,;;,1]]]];
+    rpad=0.02(Max[rvec]-Min[rvec]);
+    rmin=If[rminOption===Automatic,Min[rvec]-rpad,rminOption];
+    rmax=If[rmaxOption===Automatic,Max[rvec]+rpad,rmaxOption];
+  ];
+  (* Apply rpow weighting *)
+  wgt=points[[;;,;;,1]]^rpowOption;
+  points[[;;,;;,2]] *=wgt;
+  points[[;;,;;,3]] *=wgt;
+  (* Determine the vertical range to use *)
+  range=dataRange[
+	{points[[;;,;;,2]]-points[[;;,;;,3]],points[[;;,;;,2]]+points[[;;,;;,3]]},
+    FilterRules[{options},Options[dataRange]]
+  ];
+  (* Create the default frame labels *)
+  labels={
+    "Comoving separation r (Mpc/h)",
+    "Correlation Multipole "<>
+      If[rpowOption!=0,"\*SuperscriptBox[r,"<>ToString[rpowOption]<>"]",""]<>
+      "\*SubscriptBox[\[Xi],"<>ToString[ellOption]<>"](r)"
+  };
+  Show[{
+    createFrame[Plot,{rmin,rmax},range,
+      FrameLabel->labels,Axes->{True,False},AxesOrigin->{0,0},
+      FilterRules[{options},Options[ListPlot]]],
+    (* Draw each set of data points *)
+    Table[Graphics[{
+      PointSize[Large],
+      Join[If[pstyles===None,{},pstyles[[k]]],Map[Point,points[[k,;;,{1,2}]]]]
+    }],{k,1,Length[points]}]
+  }]
+]]
+Options[fitMultipolePlot]={
+  "ell"->0, "rmin"->Automatic, "rmax"->Automatic, "rpow"->2,
+  "pointsWithErrors"->None, "pointStyles"->None
+};
 
 
 End[]
