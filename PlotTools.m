@@ -68,6 +68,7 @@ includes all elements but the following options can be use:
   - clipLoValue: set the lo limit to the specified value (overrides clipLoFraction).
   - clipHiValue: set the hi limit to the specified value (overrides clipHiFraction).
   - centerValue: expands the range, if necessary, to be symmetric about this value.
+  - padFraction: expands the range by this fraction on both sides (default is zero).
   - printRange: prints the returned range if True (default is False)."
 
 
@@ -246,6 +247,7 @@ With[{
     clipLoValue=OptionValue["clipLoValue"],
     clipHiValue=OptionValue["clipHiValue"],
     centerValue=OptionValue["centerValue"],
+    padFraction=OptionValue["padFraction"],
     printRange=OptionValue["printRange"]
 },
 Module[{lo,hi,size},
@@ -260,13 +262,18 @@ Module[{lo,hi,size},
         hi=centerValue+size;
         lo=centerValue-size;
     ];
+    If[padFraction>0,
+        size=padFraction*(hi-lo);
+        lo -= size;
+        hi += size;
+    ];
     If[printRange===True,Print["dataRange: ",{lo,hi}]];
     {lo,hi}
 ]]
 Options[dataRange]={
   "clipLoValue"->Automatic,"clipHiValue"->Automatic,
   "clipLoFraction"->0,"clipHiFraction"->1,
-  "centerValue"->Automatic,"printRange"->False
+  "centerValue"->Automatic,"padFraction"->0,"printRange"->False
 };
 
 
