@@ -549,13 +549,14 @@ With[{
   rpowOption=OptionValue["rpow"],
   curvesOption=OptionValue["curves"],
   curvesStyleOption=OptionValue["curvesStyle"],
+  fitCurvesOption=OptionValue["fitCurves"],
   pointsWithErrorsOption=OptionValue["pointsWithErrors"],
   pointStylesOption=OptionValue["pointStyles"],
   pointSizeOption=OptionValue["pointSize"],
   pointTicksOption=OptionValue["pointTicks"],
   pointSpreadOption=OptionValue["pointSpread"]
 },
-Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,spread,labels},
+Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,usepos,range,spread,labels},
   (* Wrap curves and pointsWithErrors in a List if there is only one dataset *)
   curves=If[Depth[curvesOption]==3,{curvesOption},curvesOption];
   points=If[Depth[pointsWithErrorsOption]==3,{pointsWithErrorsOption},pointsWithErrorsOption];
@@ -571,7 +572,7 @@ Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,spread,labels},
   ];
   (* Check that pointStyles have expected length *)
   pstyles=If[Depth[pointStylesOption]==2,{pointStylesOption},pointStylesOption];
-  If[!(pointStylesOption===None)&&Length[pstyles]!=Length[points],
+  If[!(pointStylesOption===None||points===None)&&Length[pstyles]!=Length[points],
     Message[fitMultipolePlot::badpointstyles,Length[points]];
     Return[$Failed]
   ];
@@ -594,7 +595,11 @@ Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,spread,labels},
   If[!(curves===None),
     wgt=curves[[;;,;;,1]]^rpowOption;
     curves[[;;,;;,2]] *=wgt;
-    AppendTo[yvec,curves[[;;,;;,2]]];
+    If[fitCurvesOption===True,
+      (* Only use curve points in [rmin,rmax] to set the range *)
+      usepos=Flatten[Position[Flatten[curves[[;;,;;,1]]],r_/;rmin<=r<=rmax]];
+      AppendTo[yvec,Flatten[curves[[;;,;;,2]]][[usepos]]];
+    ];
   ];
   (* Determine the vertical range to use *)
   range=dataRange[yvec,"padFraction"->0.05,FilterRules[{options},Options[dataRange]]];
@@ -634,7 +639,7 @@ Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,range,spread,labels},
 ]]
 Options[fitMultipolePlot]={
   "ell"->0, "rmin"->Automatic, "rmax"->Automatic, "rpow"->2,
-  "curves"->None,"curvesStyle"->{},
+  "curves"->None,"curvesStyle"->{}, "fitCurves"->True,
   "pointsWithErrors"->None, "pointStyles"->None, "pointSize"->0.016,
   "pointTicks"->True,"pointSpread"->None
 };
