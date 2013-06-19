@@ -19,6 +19,7 @@ are supported:
     - path : directory to prepend to filename (default is None)
     - size : size of the matrix to return (Automatic or integer value)
       (default is Automatic, which uses the largest index found)
+    - invert : return the inverse of the loaded matrix (default is False)
     - sparse : should result be returned as a SparseArray? (Automatic,True,False)
       (default is Automatic, which decides based on the space saving)
     - sparseThreshold : prefers sparse matrix if sparseSize < threshold * denseSize
@@ -333,6 +334,7 @@ With[{
     verboseOption=OptionValue["verbose"],
     pathOption=OptionValue["path"],
     sizeOption=OptionValue["size"],
+    invertOption=OptionValue["invert"],
     sparseOption=OptionValue["sparse"],
     sparseThresholdOption=OptionValue["sparseThreshold"]
 },
@@ -348,6 +350,11 @@ Module[{path,raw,size,sparse,packed},
             {i_,i_}->1
         },{size,size}]];
     ];
+    If[invertOption===True,
+        sparse=Inverse[sparse];
+        (* Force the inverse to be symmetric, to eliminate any rounding errors *)
+        sparse=(sparse+Transpose[sparse])/2;
+    ];
     If[sparseOption===True,Return[sparse]];
     (* Convert the matrix to a dense packed array *)
     packed=Developer`ToPackedArray[Normal[sparse]];
@@ -356,7 +363,7 @@ Module[{path,raw,size,sparse,packed},
         If[verboseOption===True,Print["Automatically selected packed matrix format."]]; Return[packed]
     ];
 ]]
-Options[loadFitMatrix]={ "verbose"->False,"path"->None, "size"->Automatic, "sparse"->Automatic, "sparseThreshold"->1 };
+Options[loadFitMatrix]={ "verbose"->False,"path"->None, "size"->Automatic, "invert"->False, "sparse"->Automatic, "sparseThreshold"->1 };
 
 
 Clear[saveFitMatrix]
