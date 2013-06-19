@@ -300,7 +300,7 @@ Module[{path,raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
         cov=loadFitMatrix[covOption,"path"->pathOption,"verbose"->verboseOption];
     ];
     If[cov===None&&!(icovOption===None),
-        cov=Inverse[loadFitMatrix[icovOption,"path"->pathOption,"verbose"->verboseOption]];
+        cov=loadFitMatrix[icovOption,"invert"->True,"path"->pathOption,"verbose"->verboseOption];
     ];
     If[!(cov===None),
         (* Prune the covariance to the bins used in the fit *)
