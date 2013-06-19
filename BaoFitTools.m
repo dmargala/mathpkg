@@ -520,28 +520,53 @@ Options[fitModePlot]={};
 
 Clear[fitResidualsMultipole]
 fitResidualsMultipole::badtag="Invalid tag `1`.";
+fitResidualsMultipole::noeigen="Cannot project modes without eigendecomposition.";
+fitResidualsMultipole::notdata="Can only project modes for key -> \"DATA\".";
 fitResidualsMultipole[tag_,OptionsPattern[fitResidualsMultipole]]:=
 With[{
   ell=OptionValue["ell"],
   zindex=OptionValue["zindex"],
-  keyOption=OptionValue["key"]
+  keyOption=OptionValue["key"],
+  projectOutModesOption=OptionValue["projectOutModes"]
 },
-Module[{zval,indices,rvec,xivec,sigvec},
+Module[{zval,indices,rvec,xivec,cov,cov2,sigvec},
   (* Check for a valid residuals tag *)
   If[!ValueQ[tag["ZVEC"]||!ValueQ[tag["USER"]]||!ValueQ[tag[keyOption]]],
     Message[fitResidualsMultipole::badtag,ToString[tag]];
     Return[$Failed]
   ];
+  (* Check that we can project *)
+  If[!(projectOutModesOption===None),
+    If[!ValueQ[tag["EVEC"]],
+      Message[fitResidualsMultipole::noeigen];
+      Return[$Failed]
+    ];
+    If[!(keyOption==="DATA"),
+      Message[fitResidualsMultipole::notdata];
+      Return[$Failed]
+    ];
+  ];
   (* Lookup the dataset indices for the specified ell,z *)
   zval=tag["ZVEC"][[zindex]];
   indices=binSlice[tag,{_,N[ell],zval},"USER"];
-  (* Return the corresponding vector of (r,xi,sigma) tuples *)
   rvec=tag["USER"][[;;,1]][[indices]];
-  xivec=tag[keyOption][[indices]];
-  sigvec=If[keyOption==="DATA",tag["ERROR"][[indices]],ConstantArray[0.,Length[rvec]]];
+  If[projectOutModesOption===None,
+    xivec=tag[keyOption][[indices]];
+    sigvec=If[keyOption==="DATA",tag["ERROR"][[indices]],ConstantArray[0.,Length[rvec]]],
+    (* Get the full data vector to project *)
+    xivec=tag[keyOption];
+    (* Project out the specified modes *)
+    xivec -= Sum[With[{mode=tag["EVEC"][[k]]},(xivec.mode)mode],{k,projectOutModesOption}];
+    xivec=xivec[[indices]];
+    cov=Transpose[tag["EVEC"]].DiagonalMatrix[1/tag["EVAL"]].tag["EVEC"];
+    cov -= Sum[With[{mode=tag["EVEC"][[k]],\[Lambda]=1/tag["EVAL"][[k]]},\[Lambda] Outer[Times,mode,mode]],{k,projectOutModesOption}];
+    cov=cov[[indices,indices]];
+    sigvec=Sqrt[Diagonal[cov]];
+  ];
+  (* Return the corresponding vector of (r,xi,sigma) tuples *)
   Transpose[{rvec,xivec,sigvec}]
 ]]
-Options[fitResidualsMultipole]={"ell"->0,"zindex"->1,"key"->"DATA"};
+Options[fitResidualsMultipole]={"ell"->0,"zindex"->1,"key"->"DATA","projectOutModes"->None};
 
 
 Clear[fitMultipolePlot]
