@@ -119,6 +119,15 @@ fitModePlot::usage=
 (right) of the specified eigenmode.";
 
 
+fitProjectedData::usage=
+"fitProjectedData[tag,modeIndices] returns tag[\"DATA\"] with the covariance eigenmodes for the specified indices projected out.";
+
+
+fitProjectedCovariance::usage=
+"fitProjectedCovariance[tag,modeIndices] returns Inverse[tag[\"ICOV\"] with the errors associated with specified covariance
+eigenmodes zeroed out.";
+
+
 fitResidualsMultipole::usage=
 "fitResidualsMultipole[tag] returns a multipole...";
 
@@ -518,6 +527,31 @@ GraphicsRow[{
 Options[fitModePlot]={};
 
 
+fitProjectedData[tag_,modeIndices_]:=
+With[{data=tag["DATA"]},
+  data - Sum[
+    With[{mode=tag["EVEC"][[index]]},
+      (data.mode)mode
+    ],
+    {index,modeIndices}
+  ]
+]
+
+
+fitProjectedCovariance[tag_,modeIndices_]:=
+Module[{cov},
+  cov=Transpose[tag["EVEC"]].DiagonalMatrix[1/tag["EVAL"]].tag["EVEC"];
+  cov -= Sum[
+    With[{mode=tag["EVEC"][[index]],\[Lambda]=1/tag["EVAL"][[index]]},
+      \[Lambda] Outer[Times,mode,mode]
+    ],
+    {index,modeIndices}
+  ];
+  (* Symmetrize the result to eliminate rounding errors *)
+  (cov+Transpose[cov])/2
+]
+
+
 Clear[fitResidualsMultipole]
 fitResidualsMultipole::badtag="Invalid tag `1`.";
 fitResidualsMultipole::noeigen="Cannot project modes without eigendecomposition.";
@@ -529,7 +563,7 @@ With[{
   keyOption=OptionValue["key"],
   projectOutModesOption=OptionValue["projectOutModes"]
 },
-Module[{zval,indices,rvec,xivec,cov,cov2,sigvec},
+Module[{zval,indices,rvec,xivec,cov,sigvec},
   (* Check for a valid residuals tag *)
   If[!ValueQ[tag["ZVEC"]||!ValueQ[tag["USER"]]||!ValueQ[tag[keyOption]]],
     Message[fitResidualsMultipole::badtag,ToString[tag]];
@@ -551,16 +585,15 @@ Module[{zval,indices,rvec,xivec,cov,cov2,sigvec},
   indices=binSlice[tag,{_,N[ell],zval},"USER"];
   rvec=tag["USER"][[;;,1]][[indices]];
   If[projectOutModesOption===None,
+    (* Get the data vector for this slice *)
     xivec=tag[keyOption][[indices]];
+    (* Assign the errors for this slice *)
     sigvec=If[keyOption==="DATA",tag["ERROR"][[indices]],ConstantArray[0.,Length[rvec]]],
-    (* Get the full data vector to project *)
-    xivec=tag[keyOption];
-    (* Project out the specified modes *)
-    xivec -= Sum[With[{mode=tag["EVEC"][[k]]},(xivec.mode)mode],{k,projectOutModesOption}];
-    xivec=xivec[[indices]];
-    cov=Transpose[tag["EVEC"]].DiagonalMatrix[1/tag["EVAL"]].tag["EVEC"];
-    cov -= Sum[With[{mode=tag["EVEC"][[k]],\[Lambda]=1/tag["EVAL"][[k]]},\[Lambda] Outer[Times,mode,mode]],{k,projectOutModesOption}];
-    cov=cov[[indices,indices]];
+    (* Project out the data for this slice *)
+    xivec=fitProjectedData[tag,projectOutModesOption][[indices]];
+    (* Project out the covariance for this slice *)
+    cov=fitProjectedCovariance[tag,projectOutModesOption][[indices,indices]];
+    (* Calculate the projected diagonal errors *)
     sigvec=Sqrt[Diagonal[cov]];
   ];
   (* Return the corresponding vector of (r,xi,sigma) tuples *)
