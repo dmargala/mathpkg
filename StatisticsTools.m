@@ -9,7 +9,7 @@ StatisticsTools::usage="A collection of statistical utilities.";
 
 
 chiSquareProbability::usage=
-"chiSquareProbability[chisq,dof] returns the probability of obtaining a chisq less
+"chiSquareProbability[chisq,dof] returns the probability of obtaining a chisq greater
 than the specified value for the specified number of degrees of freedom.";
 
 
@@ -33,13 +33,13 @@ off-diagonal elements are all between -1 and +1.";
 Begin["Private`"]
 
 
-chiSquareProbability[chisq_,dof_]:=N[GammaRegularized[dof/2,0,chisq/2]]
+chiSquareProbability[chisq_,dof_]:=N[1-GammaRegularized[dof/2,0,chisq/2]]
 SetAttributes[chiSquareProbability,Listable]
 
 
 gaussianChiSquareContourLevel[coverage_,ndim_]:=
 gaussianChiSquareContourLevel[coverage,ndim]=
-Module[{dchisq},dchisq/.FindRoot[chiSquareProbability[dchisq,ndim]==coverage,{dchisq,1}]]
+Module[{dchisq},dchisq/.FindRoot[chiSquareProbability[dchisq,ndim]==1-coverage,{dchisq,1}]]
 SetAttributes[gaussianChiSquareContourLevel,Listable]
 
 
