@@ -690,7 +690,10 @@ Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,usepos,range,spread,l
     rvec=Union[Flatten[points[[;;,;;,1]]]];
     rpad=0.02(Max[rvec]-Min[rvec]);
     rmin=If[rminOption===Automatic,Min[rvec]-rpad,rminOption];
-    rmax=If[rmaxOption===Automatic,Max[rvec]+rpad,rmaxOption];
+    rmax=If[rmaxOption===Automatic,Max[rvec]+rpad,rmaxOption],
+    (* Both limits have been explicitly specified *)
+    rmin=rminOption;
+    rmax=rmaxOption;
   ];
   (* Apply rpow weighting *)
   yvec={};
