@@ -154,7 +154,7 @@ of the 3D binned data associated with the specified tag. The following options a
       redshift of first data point).
     - gammaBias: exponent of (1+z)/(1+zref) used to adjust data at z (default is 3.8).
     - verbose: print verbose output.
-Returns the tuple {pvec,pcov,chisq} where pvec is the vector of multipole parameters xi(ell,r(k))
+Returns {pvec,pcov,chisq,ndof,prob} where pvec is the vector of multipole parameters xi(ell,r(k))
 with the ell index increasing fastest, then r(k) in rgrid, and pcov is the corresponding
 covariance matrix. chisq is the chisq value corresponding to the best fit of tag[\"DATA\"]
 represented by pvec, assuming data inverse covariance tag[\"ICOV\"].";
@@ -770,7 +770,7 @@ With[{
 Module[
   {
     zref,rmin,rmax,ndata,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,coefMatrix,
-    pWgt,pCov,pVec,delta,chisq
+    pWgt,pCov,pVec,delta,chisq,ndof,prob
   },
   (* Check for a valid tag *)
   If[!ValueQ[tag["RMUZ"]]||!ValueQ[tag["DATA"]]||!ValueQ[tag["ICOV"]],
@@ -840,11 +840,13 @@ Module[
   (* Calculate the minimum chisq of the best fit *)
   delta=tag["DATA"]-coefMatrix.pVec;
   chisq=delta.tag["ICOV"].delta;
+  ndof=ndata-nrcut-npar;
+  prob=chiSquareProbability[chisq,ndof];
   If[verboseOption==True,
     Print["chi^2(min)/dof = ",chisq,"/(",ndata-nrcut,"-",npar,") prob = ",
-      chiSquareProbability[chisq,ndata-nrcut-npar]]
+      prob]
   ];
-  {pVec,pCov,chisq}
+  {pVec,pCov,chisq,ndof,prob}
 ]]
 Options[fitResidualsInterpolatedMultipoles] = {
   "verbose"->True, "lmax"->4, "gammaBias"->3.8, "zref"->Automatic, "rpow"->2
