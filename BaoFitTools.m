@@ -146,8 +146,18 @@ fitMultipolePlot::usage=
 
 
 fitResidualsInterpolatedMultipoles::usage=
-"fitResidualsInterpolatedMultipoles[tag] calculates the multipoles of the 3D binned
-data associated with the specified tag...";
+"fitResidualsInterpolatedMultipoles[tag,rgrid] calculates the ell=0,2,4 multipoles on rgrid
+of the 3D binned data associated with the specified tag. The following options are supported:
+    - lmax: maximum even multipole to include in the results.
+    - rpow: use linear interpolation in r^rpow xi(ell,r) for r between rgrid points.
+    - zref: redshift that results should be adjusted to (default is Automatic, which uses
+      redshift of first data point).
+    - gammaBias: exponent of (1+z)/(1+zref) used to adjust data at z (default is 3.8).
+    - verbose: print verbose output.
+Returns the tuple {pvec,pcov,chisq} where pvec is the vector of multipole parameters xi(ell,r(k))
+with the ell index increasing fastest, then r(k) in rgrid, and pcov is the corresponding
+covariance matrix. chisq is the chisq value corresponding to the best fit of tag[\"DATA\"]
+represented by pvec, assuming data inverse covariance tag[\"ICOV\"].";
 
 
 Begin["Private`"]
@@ -754,6 +764,7 @@ With[{
   lmaxOption=OptionValue["lmax"],
   gammaBiasOption=OptionValue["gammaBias"],
   zrefOption=OptionValue["zref"],
+  rpowOption=OptionValue["rpow"],
   verboseOption=OptionValue["verbose"]
 },
 Module[
@@ -810,9 +821,11 @@ Module[
       (* r value falls exactly on r(k) *)
       r==rk, 1,
       (* interpolate linearly in r between r(k-1) and r(k) *)
-      rindex>1 && rgrid[[rindex-1]] < r <= rk, (r-rgrid[[rindex-1]])/(rk-rgrid[[rindex-1]]),
+      rindex>1 && rgrid[[rindex-1]] < r <= rk,
+        (r-rgrid[[rindex-1]])/(rk-rgrid[[rindex-1]])(r/rk)^rpowOption,
       (* interpolate linearly in r between r(k) and r(k+1) *)
-      rindex<Length[rgrid] && rk < r <= rgrid[[rindex+1]],(rgrid[[rindex+1]]-r)/(rgrid[[rindex+1]]-rk),
+      rindex<Length[rgrid] && rk < r <= rgrid[[rindex+1]],
+        (rgrid[[rindex+1]]-r)/(rgrid[[rindex+1]]-rk)(r/rk)^rpowOption,
       (* r is within [rmin,rmax] but outside [r(k-1),r(k+1)] *)
       True, 0
     ];
@@ -834,7 +847,7 @@ Module[
   {pVec,pCov,chisq}
 ]]
 Options[fitResidualsInterpolatedMultipoles] = {
-  "verbose"->True, "lmax"->4, "gammaBias"->3.8, "zref"->Automatic
+  "verbose"->True, "lmax"->4, "gammaBias"->3.8, "zref"->Automatic, "rpow"->2
 };
 
 
