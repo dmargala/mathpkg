@@ -136,6 +136,11 @@ fitMultipolePlot::usage=
 "fitMultipolePlot[tag] plots a multipole...";
 
 
+fitResidualsInterpolatedMultipoles::usage=
+"fitResidualsInterpolatedMultipoles[tag] calculates the multipoles of the 3D binned
+data associated with the specified tag...";
+
+
 Begin["Private`"]
 
 
@@ -707,6 +712,77 @@ Options[fitMultipolePlot]={
   "curves"->None,"curvesStyle"->{}, "fitCurves"->True,
   "pointsWithErrors"->None, "pointStyles"->None, "pointSize"->0.016,
   "pointTicks"->True,"pointSpread"->None
+};
+
+
+fitResidualsInterpolatedMultipoles::badgrid="Grid values are not in increasing order.";
+fitResidualsInterpolatedMultipoles::nonneg="Negative grid values are not allowed.";
+fitResidualsInterpolatedMultipoles::rcut="`1` of `2` data points fall outside rgrid and will not be use.";
+fitResidualsInterpolatedMultipoles::under="Interpolation is underconstrained: npar = `1` > ndata = `2`-`3`.";
+fitResidualsInterpolatedMultipoles[tag_,rgrid_,OptionsPattern[fitResidualsInterpolatedMultipoles]]:=
+With[{
+  lmaxOption=OptionValue["lmax"],
+  gammaBiasOption=OptionValue["gammaBias"],
+  zrefOption=OptionValue["zref"],
+  verboseOption=OptionValue["verbose"]
+},
+Module[{zref,rmin,rmax,ndata,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,CM},
+  (* Determine the zref value to use *)
+  zref=If[zrefOption===Automatic,First[tag["RMUZ"]][[3]],zrefOption];
+  If[verboseOption===True,Print["Using zref = ",zref]];
+  (* Determine the grid limits *)
+  If[rgrid!=Union[rgrid],
+    Message[fitResidualsInterpolatedMultipoles::badgrid];
+    Return[$Failed]
+  ];
+  rmin=Min[rgrid];
+  rmax=Max[rgrid];
+  If[rmin<0,
+    Message[fitResidualsInterpolatedMultipoles::nonneg];
+    Return[$Failed]
+  ];
+  ndata=Length[tag["RMUZ"]];
+  nrcut=Length[Select[tag["RMUZ"][[;;,1]],!(rmin<=##<=rmax)&]];
+  If[nrcut>0,
+    Message[fitResidualsInterpolatedMultipoles::rcut,nrcut,ndata];
+  ];
+  (* Calculate our grid in ell *)
+  lgrid=Range[0,lmaxOption,2];
+  (* Calculate the size of our data and parameter vectors *)
+  npar=Length[rgrid]Length[lgrid];
+  If[npar > ndata-nrcut,
+    Message[fitResidualsInterpolatedMultipoles::under,npar,ndata,nrcut];
+    Return[$Failed]
+  ];
+  If[verboseOption===True,Print["ndata = ",ndata,", nrcut = ",nrcut,", npar = ",npar]];
+  (* Calculate the coefficient matrix CM that transform a vector of xi(ell,r(k)), with ell
+  increasing fastest, into a predicted data vector xi(r(i),mu(i),z(i)) *)
+  CM = Table[
+    (* Lookup the (ell,rk) corresponding to parameter vector element j *)
+    {rindex,lindex}=QuotientRemainder[j-1,Length[lgrid]]+{1,1};
+    ell=lgrid[[lindex]];
+    rk=rgrid[[rindex]];
+    (* Lookup the (r,mu,z) corresponding to data vector element i *)
+    {r,mu,z}=tag["RMUZ"][[i]];
+    (* Calculate the interpolation coefficient t of xi(ell,r(k)) for r on rgrid *)
+    t=Which[
+      (* bin center is outside interpolation range *)
+      r<rmin || r>rmax, 0,
+      (* r value falls exactly on r(k) *)
+      r==rk, 1,
+      (* interpolate linearly in r between r(k-1) and r(k) *)
+      rindex>1 && rgrid[[rindex-1]] < r <= rk, (r-rgrid[[rindex-1]])/(rk-rgrid[[rindex-1]]),
+      (* interpolate linearly in r between r(k) and r(k+1) *)
+      rindex<Length[rgrid] && rk < r <= rgrid[[rindex+1]],(rgrid[[rindex+1]]-r)/(rgrid[[rindex+1]]-rk),
+      (* r is within [rmin,rmax] but outside [r(k-1),r(k+1)] *)
+      True, 0
+    ];
+    If[t==0,0,t LegendreP[ell,mu] ((1+z)/(1+zref))^gammaBiasOption],
+    {i,ndata},{j,npar}
+  ]
+]]
+Options[fitResidualsInterpolatedMultipoles] = {
+  "verbose"->True, "lmax"->4, "gammaBias"->3.8, "zref"->Automatic
 };
 
 
