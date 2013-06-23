@@ -2,7 +2,7 @@
 
 (* Created 16-May-2013 by David Kirkby (University of California, Irvine) <dkirkby@uci.edu> *)
 
-BeginPackage["DeepZot`BaoFitTools`",{"DeepZot`PlotTools`"}]
+BeginPackage["DeepZot`BaoFitTools`",{"DeepZot`PlotTools`","DeepZot`StatisticsTools`"}]
 
 
 BaoFitTools::usage=
@@ -715,6 +715,7 @@ Options[fitMultipolePlot]={
 };
 
 
+fitResidualsInterpolatedMultipoles::badtag="Tag \"`1`\" does not have required keys RMUZ,DATA,ICOV.";
 fitResidualsInterpolatedMultipoles::badgrid="Grid values are not in increasing order.";
 fitResidualsInterpolatedMultipoles::nonneg="Negative grid values are not allowed.";
 fitResidualsInterpolatedMultipoles::rcut="`1` of `2` data points fall outside rgrid and will not be use.";
@@ -726,7 +727,16 @@ With[{
   zrefOption=OptionValue["zref"],
   verboseOption=OptionValue["verbose"]
 },
-Module[{zref,rmin,rmax,ndata,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,CM},
+Module[
+  {
+    zref,rmin,rmax,ndata,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,coefMatrix,
+    pWgt,pCov,pVec,delta,chisq
+  },
+  (* Check for a valid tag *)
+  If[!ValueQ[tag["RMUZ"]]||!ValueQ[tag["DATA"]]||!ValueQ[tag["ICOV"]],
+    Message[fitResidualsInterpolatedMultipoles::badtag,ToString[tag]];
+    Return[$Failed]
+  ];
   (* Determine the zref value to use *)
   zref=If[zrefOption===Automatic,First[tag["RMUZ"]][[3]],zrefOption];
   If[verboseOption===True,Print["Using zref = ",zref]];
@@ -757,7 +767,7 @@ Module[{zref,rmin,rmax,ndata,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,CM},
   If[verboseOption===True,Print["ndata = ",ndata,", nrcut = ",nrcut,", npar = ",npar]];
   (* Calculate the coefficient matrix CM that transform a vector of xi(ell,r(k)), with ell
   increasing fastest, into a predicted data vector xi(r(i),mu(i),z(i)) *)
-  CM = Table[
+  coefMatrix = Table[
     (* Lookup the (ell,rk) corresponding to parameter vector element j *)
     {rindex,lindex}=QuotientRemainder[j-1,Length[lgrid]]+{1,1};
     ell=lgrid[[lindex]];
@@ -779,7 +789,20 @@ Module[{zref,rmin,rmax,ndata,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,CM},
     ];
     If[t==0,0,t LegendreP[ell,mu] ((1+z)/(1+zref))^gammaBiasOption],
     {i,ndata},{j,npar}
-  ]
+  ];
+  (* Calculate the covariance of the parameter vector *)
+  pWgt=Transpose[coefMatrix].tag["ICOV"];
+  pCov=Inverse[pWgt.coefMatrix];
+  (* Calculate the best-fit parameter vector *)
+  pVec=pCov.pWgt.tag["DATA"];
+  (* Calculate the minimum chisq of the best fit *)
+  delta=tag["DATA"]-coefMatrix.pVec;
+  chisq=delta.tag["ICOV"].delta;
+  If[verboseOption==True,
+    Print["chi^2(min)/dof = ",chisq,"/(",ndata-nrcut,"-",npar,") prob = ",
+      chiSquareProbability[chisq,ndata-nrcut-npar]]
+  ];
+  {pVec,pCov,chisq}
 ]]
 Options[fitResidualsInterpolatedMultipoles] = {
   "verbose"->True, "lmax"->4, "gammaBias"->3.8, "zref"->Automatic
