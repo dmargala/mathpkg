@@ -34,8 +34,17 @@ expected by baofit (and read by loadFitMatrix). The following options are suppor
       (default is Automatic, which corresponds to 0,1,...,dim-1)";
 
 
-saveFitData::usage=
-"saveFitData{vector,filename] saves the specified data vector in the format expected
+loadFitVector::usage=
+"loadFitVector[filename] constructs and returns a vector from a sequence of lines read
+from the specified file of the form 'i vec(i)' where i is an index starting from zero.
+The following options are supported:
+    - path : directory to prepend to filename (default is None)
+    - size : size of the vector to return (Automatic or integer value)
+      (default is Automatic, which uses the largest index found).";
+
+
+saveFitVector::usage=
+"saveFitVector{vector,filename] saves the specified data vector in the format expected
 by baofit. The following options are supported:
     - path : directory to prepend to filename (default is None)
     - indices : a vector of indices to use, of the same dimension as matrix
@@ -412,9 +421,29 @@ Module[{path,indices,save},
 Options[saveFitMatrix]={"path"->None,"indices"->Automatic};
 
 
-Clear[saveFitData]
-saveFitData::badsize="Indices and data vector have different sizes.";
-saveFitData[vector_,filename_,OptionsPattern[saveFitData]]:=
+Clear[loadFitVector]
+loadFitVector[filename_,OptionsPattern[loadFitVector]]:=
+With[{
+  pathOption=OptionValue["path"],
+  sizeOption=OptionValue["size"],
+  verboseOption=OptionValue["verbose"]
+},
+Module[{path,raw,size,vector,setter},
+  path=makePath[filename,pathOption];
+  raw=ReadList[path,{Number,Number}];
+  size=If[sizeOption===Automatic,Max[raw[[;;,1]]]+1,sizeOption];
+  If[verboseOption===True,Print["Read vector with size = ",size,"."]];
+  vector=ConstantArray[None,size];
+  setter=Function[{index,value},Part[vector,index+1]=value];
+  Apply[setter,raw,1];
+  vector
+]]
+Options[loadFitVector]={"path"->None,"size"->Automatic,"verbose"->False};
+
+
+Clear[saveFitVector]
+saveFitVector::badsize="Indices and data vector have different sizes.";
+saveFitVector[vector_,filename_,OptionsPattern[saveFitVector]]:=
 With[{
   n=Length[vector],
   pathOption=OptionValue["path"],
@@ -424,13 +453,13 @@ Module[{path,indices,save},
   path=makePath[filename,pathOption,False];
   indices=If[indicesOption===Automatic,Range[0,n-1],indicesOption];
   If[Length[indices]!=n,
-    Message[saveFitData::badsize];
+    Message[saveFitVector::badsize];
     Return[$Failed]
   ];
   save=Transpose[{indices,vector}];
   Export[path,AppendTo[save,{}],"Table"]
 ]]
-Options[saveFitData]={"path"->None,"indices"->Automatic};
+Options[saveFitVector]={"path"->None,"indices"->Automatic};
 
 
 (* Returns a tuple { rT, rP, r^rpow value} given a value and an offset to use into tag[COORDS] *)
