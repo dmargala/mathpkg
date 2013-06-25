@@ -167,6 +167,11 @@ rsdrag::usage=
 The result is cached after the first evaluation."
 
 
+recombinationXe::usage=
+"recombinationXe[cosmology,zmin,zmax] returns a function that evalues the free electron fraction 
+(relative to Hydrogen nuclei) at redshift zmin <= z <= zmax for the named cosmology."
+
+
 Begin["Private`"]
 
 
@@ -407,6 +412,60 @@ Module[{scale,sdrag},
     sdrag=Log[1+zdrag[cosmology]];
     scale NIntegrate[betas[cosmology][Exp[s]-1]/Hratio[cosmology][Exp[s]-1]Exp[s],{s,sdrag,Infinity}]
 ]
+
+
+Clear[recombinationXe]
+(* NDSolve doesn't like to go all the way down below ~100 or past ~1800 *)
+recombinationXe[cosmology_,zmin_:100,zmax_:1800]:=
+With[{
+(* Case B recombination parameters *)
+a=4.309,b=-0.6166,c=0.6703,d=0.5300,F=1.14,
+T0=OptionValue[cosmology,"Tcmb"]Units`Kelvin (* CMB Temperature Today *),
+Arad=4 PhysicalConstants`StefanConstant/PhysicalConstants`SpeedOfLight (* Radiation Constant *),
+\[Sigma]T=PhysicalConstants`ThomsonCrossSection,
+kB=PhysicalConstants`BoltzmannConstant,
+hP=PhysicalConstants`PlanckConstant,
+me=PhysicalConstants`ElectronMass,
+mp=PhysicalConstants`ProtonMass,
+EionH2s=5.446605 10^-19 Units`Joule (* H 2s ionization energy *),
+E2s1sH=1.63403067 10^-18 Units`Joule (* H 2s energy from the ground state *),
+\[Lambda]\[Alpha]=1215.668 10^-10 Units`Meter (* Lyman Alpha wavelength *),
+\[CapitalLambda]2\[Gamma]=8.22458/Units`Second (* 2 photon decay rate *),
+YP=0.2477 (* Helium fraction *),
+\[CapitalOmega]b=OptionValue[cosmology,"\[CapitalOmega]bh2"]/OptionValue[cosmology,"h"]^2 (* Baryon Fraction Today *),
+\[Rho]crit=criticalDensityToday[OptionValue[cosmology,"h"]] Units`Joule/Units`Meter^3 (* Critical Density Today *)},
+Module[{z,H,Trad,Tmat,t,\[Rho]b,nb,ne,nH,nHe,xe,\[Alpha]B,\[Beta]B,K,C,TmatRHS},
+	(* Hubble Rate *)
+	H=H0[cosmology]Hratio[cosmology][z]Convert[(Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),1/Units`Second];
+	(* Radiation Temperature *)
+	Trad=T0(1+z);
+	(* t parameter for Case B recombination *)
+	t=Tmat[z]Kelvin/(10^4 Kelvin);
+	(* Case B recombination coefficient *)
+	\[Alpha]B=F 10^-19 (a t^b)/(1+c t^d) Units`Meter^3 /Units`Second;
+	(* Total Photoionization Rate *)
+	\[Beta]B=Units`Convert[\[Alpha]B*( (2\[Pi] me Tmat[z]Units`Kelvin kB)/hP^2)^(3/2)Exp[-EionH2s/(Tmat[z]Units`Kelvin kB)],1/Units`Second];
+	(* Baryon Density *)
+	\[Rho]b=\[Rho]crit (1+z)^3 \[CapitalOmega]b;
+	(* Number Density of Hydrogen Nuclei *)
+	nH=Units`Convert[(1-YP)\[Rho]b/(mp PhysicalConstants`SpeedOfLight^2),1/Units`Meter^3];
+	(* Number Density of Electrons *)
+	ne=Units`Convert[xe[z]*nH,1/Units`Meter^3];
+	(* Number Density of Helium Nuclei *)
+	nHe=Units`Convert[YP*\[Rho]b/(4*mp PhysicalConstants`SpeedOfLight^2),1/Units`Meter^3];
+	(* Cosmological Redshifting Rate *)
+	K=\[Lambda]\[Alpha]^3/(8 \[Pi] H);
+	(* Effect of 2 Photon Decay and Redshifting *)
+	C=Simplify[(1+K \[CapitalLambda]2\[Gamma] nH (1-xe[z]))/(1+K (\[CapitalLambda]2\[Gamma] +\[Beta]B )nH(1-xe[z]))];
+	{xe,Tmat}/.Flatten[NDSolve[{
+		(* Free electron equation *)
+		D[xe[z],z]==Units`Convert[C (xe[z]^2nH \[Alpha]B-\[Beta]B(1-xe[z])Exp[-E2s1sH/(kB Tmat[z] Units`Kelvin)])/((1+z)H),1],
+		(* Matter/Radiation Temperature Relation Eq 5 *)
+		D[Tmat[z],z]==Units`Convert[(8\[Sigma]T Arad Trad^4)/(3(1+z)H  me PhysicalConstants`SpeedOfLight),1]Simplify[ne/(ne+nH+nHe)]*(Tmat[z]-Trad/Units`Kelvin)+2Tmat[z]/(1+z),
+		(*Initial conditions *)
+		xe[zmax]==1,Tmat[zmax]==T0*(1+zmax)/Units`Kelvin
+	},{xe,Tmat},{z,zmin,zmax}]]
+]]
 
 
 End[]
