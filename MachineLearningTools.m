@@ -95,7 +95,6 @@ Module[{m,Theta1,Theta2,J,Theta1Grad,Theta2Grad,a1,z2,a2,z3,a3,newy,d3,d2,grad},
 
 nnLearn[costFunction_,initParams_,\[Alpha]_:1,maxIter_:500]:=Module[{cost,grad,params=initParams,p=0},
 	Print[ProgressIndicator[Dynamic[p]]];
-	Print[Dimensions[params]];
 	Do[
 		p=i/maxIter;
 		{cost,grad}=costFunction[params];
