@@ -148,12 +148,14 @@ fitMultipolePlot::usage=
 fitResidualsInterpolatedMultipoles::usage=
 "fitResidualsInterpolatedMultipoles[tag,rgrid] calculates the ell=0,2,4 multipoles on rgrid
 of the 3D binned data associated with the specified tag. The following options are supported:
-    - lmax: maximum even multipole to include in the results.
-    - rpow: use linear interpolation in r^rpow xi(ell,r) for r between rgrid points.
+    - lmax: maximum even multipole to include in the results (default is 4).
+    - lvec: list of multipoles to include in the results (lmax is ignored unless lvec is Automatic, which
+      is its default value).
+    - rpow: use linear interpolation in r^rpow xi(ell,r) for r between rgrid points (default is 2).
     - zref: redshift that results should be adjusted to (default is Automatic, which uses
       redshift of first data point).
     - gammaBias: exponent of (1+z)/(1+zref) used to adjust data at z (default is 3.8).
-    - verbose: print verbose output.
+    - verbose: print verbose output (default is True).
 Returns {pvec,pcov,chisq,ndof,prob} where pvec is the vector of multipole parameters xi(ell,r(k))
 with the ell index increasing fastest, then r(k) in rgrid, and pcov is the corresponding
 covariance matrix. chisq is the chisq value corresponding to the best fit of tag[\"DATA\"]
@@ -765,6 +767,7 @@ fitResidualsInterpolatedMultipoles::under="Interpolation is underconstrained: np
 fitResidualsInterpolatedMultipoles[tag_,rgrid_,OptionsPattern[fitResidualsInterpolatedMultipoles]]:=
 With[{
   lmaxOption=OptionValue["lmax"],
+  lvecOption=OptionValue["lvec"],
   gammaBiasOption=OptionValue["gammaBias"],
   zrefOption=OptionValue["zref"],
   rpowOption=OptionValue["rpow"],
@@ -801,7 +804,7 @@ Module[
     Message[fitResidualsInterpolatedMultipoles::rcut,nrcut,ndata];
   ];
   (* Calculate our grid in ell *)
-  lgrid=Range[0,lmaxOption,2];
+  lgrid=If[lvecOption===Automatic,Range[0,lmaxOption,2],lvecOption];
   (* Calculate the size of our data and parameter vectors *)
   npar=Length[rgrid]Length[lgrid];
   If[npar > ndata-nrcut,
@@ -858,7 +861,7 @@ Module[
   {pVec,pCov,chisq,ndof,prob}
 ]]
 Options[fitResidualsInterpolatedMultipoles] = {
-  "verbose"->True, "lmax"->4, "gammaBias"->3.8, "zref"->Automatic, "rpow"->2
+  "verbose"->True, "lmax"->4, "lvec"->Automatic, "gammaBias"->3.8, "zref"->Automatic, "rpow"->2
 };
 
 
