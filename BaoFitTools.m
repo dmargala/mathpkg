@@ -825,10 +825,10 @@ Module[
       r==rk, 1,
       (* interpolate linearly in r between r(k-1) and r(k) *)
       rindex>1 && rgrid[[rindex-1]] < r <= rk,
-        (r-rgrid[[rindex-1]])/(rk-rgrid[[rindex-1]])(r/rk)^rpowOption,
+        (r-rgrid[[rindex-1]])/(rk-rgrid[[rindex-1]])(rk/r)^rpowOption,
       (* interpolate linearly in r between r(k) and r(k+1) *)
       rindex<Length[rgrid] && rk < r <= rgrid[[rindex+1]],
-        (rgrid[[rindex+1]]-r)/(rgrid[[rindex+1]]-rk)(r/rk)^rpowOption,
+        (rgrid[[rindex+1]]-r)/(rgrid[[rindex+1]]-rk)(rk/r)^rpowOption,
       (* r is within [rmin,rmax] but outside [r(k-1),r(k+1)] *)
       True, 0
     ];
