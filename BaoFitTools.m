@@ -772,7 +772,7 @@ With[{
 },
 Module[
   {
-    zref,rmin,rmax,ndata,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,coefMatrix,
+    zref,rmin,rmax,ndata,keep,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,coefMatrix,cutData,cutICov,
     pWgt,pCov,pVec,delta,chisq,ndof,prob
   },
   (* Check for a valid tag *)
@@ -795,7 +795,8 @@ Module[
     Return[$Failed]
   ];
   ndata=Length[tag["RMUZ"]];
-  nrcut=Length[Select[tag["RMUZ"][[;;,1]],!(rmin<=##<=rmax)&]];
+  keep=Flatten[Position[tag["RMUZ"],{r_,mu_,z_}/;(rmin<=r<=rmax)]];
+  nrcut=ndata-Length[keep];
   If[nrcut>0,
     Message[fitResidualsInterpolatedMultipoles::rcut,nrcut,ndata];
   ];
@@ -835,14 +836,19 @@ Module[
     If[t==0,0,t LegendreP[ell,mu] ((1+z)/(1+zref))^gammaBiasOption],
     {i,ndata},{j,npar}
   ];
+  (* Prune the coefficient matrix and data to the bins within [rmin,rmax] *)
+  coefMatrix=coefMatrix[[keep,;;]];
+  cutData=tag["DATA"][[keep]];
+  cutICov=Inverse[Inverse[tag["ICOV"]][[keep,keep]]];
+  Print["cutICov ok"];
   (* Calculate the covariance of the parameter vector *)
-  pWgt=Transpose[coefMatrix].tag["ICOV"];
+  pWgt=Transpose[coefMatrix].cutICov;
   pCov=Inverse[pWgt.coefMatrix];
   (* Calculate the best-fit parameter vector *)
-  pVec=pCov.pWgt.tag["DATA"];
+  pVec=pCov.pWgt.cutData;
   (* Calculate the minimum chisq of the best fit *)
-  delta=tag["DATA"]-coefMatrix.pVec;
-  chisq=delta.tag["ICOV"].delta;
+  delta=cutData-coefMatrix.pVec;
+  chisq=delta.cutICov.delta;
   ndof=ndata-nrcut-npar;
   prob=chiSquareProbability[chisq,ndof];
   If[verboseOption==True,
