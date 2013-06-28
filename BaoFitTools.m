@@ -703,8 +703,9 @@ Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,usepos,range,spread,l
     wgt=points[[;;,;;,1]]^rpowOption;
     points[[;;,;;,2]] *=wgt;
     points[[;;,;;,3]] *=wgt;
-    AppendTo[yvec,points[[;;,;;,2]]-points[[;;,;;,3]]];
-    AppendTo[yvec,points[[;;,;;,2]]+points[[;;,;;,3]]];
+    usepos=Flatten[Position[Flatten[points[[;;,;;,1]]],r_/;rmin<=r<=rmax]];
+    AppendTo[yvec,Flatten[points[[;;,;;,2]]-points[[;;,;;,3]]][[usepos]]];
+    AppendTo[yvec,Flatten[points[[;;,;;,2]]+points[[;;,;;,3]]][[usepos]]];
   ];
   If[!(curves===None),
     wgt=curves[[;;,;;,1]]^rpowOption;
