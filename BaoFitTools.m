@@ -776,7 +776,7 @@ With[{
 Module[
   {
     zref,rmin,rmax,ndata,keep,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,coefMatrix,cutData,cutICov,
-    pWgt,pCov,pVec,delta,chisq,ndof,prob
+    pWgt,A,pVec,evec,eval,B,Y,pCov,delta,chisq,ndof,prob
   },
   (* Check for a valid tag *)
   If[!ValueQ[tag["RMUZ"]]||!ValueQ[tag["DATA"]]||!ValueQ[tag["ICOV"]],
@@ -843,12 +843,15 @@ Module[
   coefMatrix=coefMatrix[[keep,;;]];
   cutData=tag["DATA"][[keep]];
   cutICov=Inverse[Inverse[tag["ICOV"]][[keep,keep]]];
-  Print["cutICov ok"];
-  (* Calculate the covariance of the parameter vector *)
-  pWgt=Transpose[coefMatrix].cutICov;
-  pCov=Inverse[pWgt.coefMatrix];
   (* Calculate the best-fit parameter vector *)
-  pVec=pCov.pWgt.cutData;
+  pWgt=Transpose[coefMatrix].cutICov;
+  A=pWgt.coefMatrix;
+  pVec=LeastSquares[A,pWgt.cutData];
+  (* Calculate the covariance of the parameter vector *)
+  {eval,evec}=Eigensystem[cutICov];
+  B=evec.coefMatrix;
+  Y=Table[LeastSquares[A,B[[k]]],{k,1,Length[evec]}];
+  pCov=Transpose[Y].DiagonalMatrix[eval].Y;
   (* Calculate the minimum chisq of the best fit *)
   delta=cutData-coefMatrix.pVec;
   chisq=delta.cutICov.delta;
