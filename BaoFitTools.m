@@ -765,6 +765,7 @@ fitResidualsInterpolatedMultipoles::badgrid="Grid values are not in increasing o
 fitResidualsInterpolatedMultipoles::nonneg="Negative grid values are not allowed.";
 fitResidualsInterpolatedMultipoles::rcut="`1` of `2` data points fall outside rgrid and will not be use.";
 fitResidualsInterpolatedMultipoles::under="Interpolation is underconstrained: npar = `1` > ndata = `2`-`3`.";
+fitResidualsInterpolatedMultipoles::notposdef="Parameter covariance matrix is not positive definite.";
 fitResidualsInterpolatedMultipoles[tag_,rgrid_,OptionsPattern[fitResidualsInterpolatedMultipoles]]:=
 With[{
   lmaxOption=OptionValue["lmax"],
@@ -853,6 +854,11 @@ Module[
   B=evec.coefMatrix;
   Y=Table[LeastSquares[A,B[[k]]],{k,1,Length[evec]}];
   pCov=Transpose[Y].DiagonalMatrix[eval].Y;
+  (* Make sure pCov is symmetric *)
+  pCov=(pCov+Transpose[pCov])/2;
+  If[!PositiveDefiniteMatrixQ[pCov],
+    Message[fitResidualsInterpolatedMultipoles::notposdef]
+  ];
   (* Calculate the minimum chisq of the best fit *)
   delta=cutData-coefMatrix.pVec;
   chisq=delta.cutICov.delta;
