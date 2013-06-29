@@ -306,20 +306,13 @@ With[{
     icovOption=OptionValue["icov"],
     nlargestOption=OptionValue["nlargest"]
 },
-Module[{path,raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
+Module[{path,raw,ncols,nbins,ngrads,nfloat,cov,keep,chij,nlargest,largest},
     Clear[tag];
     (* load the residuals file into memory *)
     path=makePath[prefix<>"residuals.dat",pathOption];
     raw=Transpose[Developer`ToPackedArray[ReadList[path,Real,RecordLists->True]]];
     {ncols,nbins}=Dimensions[raw];
-    ngrads=ncols-11;
-    If[verboseOption===True,
-        Print["Read residuals for ",nbins," bins."];
-        If[ngrads>0,
-            Print["Found gradients for ",ngrads," parameters."],
-            Print["No gradients available."]
-        ]
-    ];
+    ngrads=ncols-10;
     (* associate each of the filled arrays with the tag using a string key *)
     tag["INDEX"]=IntegerPart[raw[[1]]];
     tag["USER"]=Transpose[raw[[2;;4]]];
@@ -329,6 +322,17 @@ Module[{path,raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
     tag["ERROR"]=raw[[10]];
     tag["GRADS"]=If[ngrads>0,Transpose[raw[[11;;]]],None];
     tag["ZVEC"]=Union[raw[[7]]];
+    (* look for non-zero gradients to count number of floating params *)
+    nfloat=If[ngrads==0,0,
+      Length[Cases[Transpose[tag["GRADS"]],Except[ConstantArray[0.,nbins]]]]
+    ];
+    If[verboseOption===True,
+        Print["Read residuals for ",nbins," bins."];
+        If[ngrads>0,
+            Print["Found gradients with ",nfloat," of ",ngrads," parameters floating."],
+            Print["No gradients available."]
+        ]
+    ];
     (* Read cov or icov if available. If both are provided, cov takes precedence. *)
     cov=None;
     If[!(covOption===None),
@@ -348,7 +352,8 @@ Module[{path,raw,ncols,nbins,ngrads,cov,keep,chij,nlargest,largest},
         tag["CHIJK"]=tag["EVEC"]Outer[Times,Sqrt[tag["EVAL"]],tag["DATA"]-tag["PRED"]];
         tag["CHIJ"]=Total/@tag["CHIJK"];
         If[verboseOption===True,
-            Print["chi^2/dof = ",Total[tag["CHIJ"]^2]," / (",nbins," - ",ngrads,")"];
+            Print["chi^2/dof = ",Total[tag["CHIJ"]^2]," / (",nbins," - ",nfloat,
+              ") with prob = ",chiSquareProbability[Total[tag["CHIJ"]^2],nbins-nfloat]];
             nlargest=Min[nbins,nlargestOption];
             largest=Ordering[tag["CHIJ"]^2,nlargest,Greater];
             Print[nlargest," modes with largest chi^2 contributions:"];
