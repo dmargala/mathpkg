@@ -390,7 +390,7 @@ Module[{nbins,nfloat,nlargest,largest,rms,dx,nhist},
       RootMeanSquare[tag["CHIJ"]]," (expected ",rms,")"];
   ];
   (* Calculate the number of bins to use *)
-  nhist=If[nbinsOption===Automatic,2 Floor[nbins/25],nbinsOption];
+  nhist=If[nbinsOption===Automatic,2 Max[10,Floor[nbins/25]],nbinsOption];
   (* Calculate the bin size *)
   dx=2 rangeOption/nhist;
   Show[{
