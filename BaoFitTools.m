@@ -868,7 +868,7 @@ Module[
     Print["chi^2(min)/dof = ",chisq,"/(",ndata-nrcut,"-",npar,") prob = ",
       prob]
   ];
-  {pVec,pCov,chisq,ndof,prob}
+  {pVec,pCov,chisq,ndof,prob,lgrid}
 ]]
 Options[fitResidualsInterpolatedMultipoles] = {
   "verbose"->True, "lmax"->4, "lvec"->Automatic, "gammaBias"->3.8, "zref"->Automatic, "rpow"->2
