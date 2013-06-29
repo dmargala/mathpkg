@@ -79,7 +79,9 @@ If the cov or icov options are provided, the following extra keys are available:
   tag[\"EVAL\"] = eigenvalues of the pruned inverse covariance in descending order.
   tag[\"EVEC\"] = corresponding matrix of eigenvectors, with vectors stored in successive rows.
   tag[\"CHIJK\"] = matrix of chisq contributions by mode and bin.
-  tag[\"CHIJ\"] = vector of chisq contributions by mode.";
+  tag[\"CHIJ\"] = vector of chisq contributions by mode.
+  tag[\"CHISQ\"] = minimum chisq value for best fit.
+  tag[\"NDOF\"] = number of fit degrees of freedom (or nbins if GRADS are missing).";
 
 
 loadFitAnalysis::usage=
@@ -121,6 +123,10 @@ The following options are supported:
     - grid: type of grid to display (choices are None,Automatic,\"cartesian\",\"polar\" and default is Automatic).
     - rmin: plot range will be clipped at r > rmin (default is None).
     - rmax: plot range will be clipped at r < rmax (default is None).";
+
+
+fitResidualsPlot::usage=
+"fitResidualsPlot[tag] plots the distribution of chisq residuals by eigenmode.";
 
 
 fitModePlot::usage=
@@ -303,8 +309,7 @@ With[{
     verboseOption=OptionValue["verbose"],
     pathOption=OptionValue["path"],
     covOption=OptionValue["cov"],
-    icovOption=OptionValue["icov"],
-    nlargestOption=OptionValue["nlargest"]
+    icovOption=OptionValue["icov"]
 },
 Module[{path,raw,ncols,nbins,ngrads,nfloat,cov,keep,chij,nlargest,largest},
     Clear[tag];
@@ -351,20 +356,53 @@ Module[{path,raw,ncols,nbins,ngrads,nfloat,cov,keep,chij,nlargest,largest},
         (* Calculate and save the matrix of chisq contributions to this fit *)
         tag["CHIJK"]=tag["EVEC"]Outer[Times,Sqrt[tag["EVAL"]],tag["DATA"]-tag["PRED"]];
         tag["CHIJ"]=Total/@tag["CHIJK"];
-        If[verboseOption===True,
-            Print["chi^2/dof = ",Total[tag["CHIJ"]^2]," / (",nbins," - ",nfloat,
-              ") with prob = ",chiSquareProbability[Total[tag["CHIJ"]^2],nbins-nfloat]];
-            nlargest=Min[nbins,nlargestOption];
-            largest=Ordering[tag["CHIJ"]^2,nlargest,Greater];
-            Print[nlargest," modes with largest chi^2 contributions:"];
-            Print[TableForm[{largest,(tag["CHIJ"]^2)[[largest]]}]];
-        ];
+        tag["CHISQ"]=Total[tag["CHIJ"]^2];
+        tag["NDOF"]=nbins-nfloat;
+        If[verboseOption===True,Print[fitResidualsPlot[tag,"verbose"->True]]];
     ];
 ]]
 SetAttributes[loadFitResiduals,HoldFirst]
 Options[loadFitResiduals]={
-    "verbose"->True,"path"->None,"cov"->None,"icov"->None,"nlargest"->10
+    "verbose"->True,"path"->None,"cov"->None,"icov"->None
 };
+
+
+fitResidualsPlot[tag_,options:OptionsPattern[{fitResidualsPlot,Histogram}]]:=
+With[{
+  verboseOption=OptionValue["verbose"],
+  nlargestOption=OptionValue["nlargest"],
+  rangeOption=OptionValue["range"],
+  nbinsOption=OptionValue["nbins"]
+},
+Module[{nbins,nfloat,nlargest,largest,rms,dx,nhist},
+  nbins=Length[tag["INDEX"]];
+  nfloat=nbins-tag["NDOF"];
+  (* Calculate the expected RMS *)
+  rms=N[tag["NDOF"]/nbins];
+  If[verboseOption===True,
+    Print["chi^2/dof = ",tag["CHISQ"]," / (",nbins," - ",nfloat,
+      ") with prob = ",chiSquareProbability[tag["CHISQ"],tag["NDOF"]]];
+    nlargest=Min[nbins,nlargestOption];
+    largest=Ordering[tag["CHIJ"]^2,nlargest,Greater];
+    Print[nlargest," modes with largest chi^2 contributions:"];
+    Print[TableForm[{largest,(tag["CHIJ"]^2)[[largest]]}]];
+    Print["Residuals mean = ",Mean[tag["CHIJ"]]," and RMS = ",
+      RootMeanSquare[tag["CHIJ"]]," (expected ",rms,")"];
+  ];
+  (* Calculate the number of bins to use *)
+  nhist=If[nbinsOption===Automatic,2 Floor[nbins/25],nbinsOption];
+  (* Calculate the bin size *)
+  dx=2 rangeOption/nhist;
+  Show[{
+    Histogram[tag["CHIJ"],{-rangeOption,+rangeOption,dx},
+      FilterRules[{options},Options[Histogram]],
+      Frame->True,AxesOrigin->{0,0},FrameLabel->{"Mode Residual","Modes"},
+      LabelStyle->Medium],
+    Plot[Length[tag["CHIJ"]]dx PDF[NormalDistribution[0,rms],x],
+      {x,-rangeOption,+rangeOption},PlotStyle->{Thick,Red}]
+  }]
+]]
+Options[fitResidualsPlot]={"verbose"->True,"nlargest"->10,"range"->5,"nbins"->Automatic};
 
 
 (* See http://mathematica.stackexchange.com/questions/7887/best-way-to-create-symmetric-matrices *)
