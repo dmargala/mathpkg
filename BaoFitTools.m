@@ -378,7 +378,7 @@ Module[{nbins,nfloat,nlargest,largest,rms,dx,nhist},
   nbins=Length[tag["INDEX"]];
   nfloat=nbins-tag["NDOF"];
   (* Calculate the expected RMS *)
-  rms=N[tag["NDOF"]/nbins];
+  rms=N[Sqrt[tag["NDOF"]/nbins]];
   If[verboseOption===True,
     Print["chi^2/dof = ",tag["CHISQ"]," / (",nbins," - ",nfloat,
       ") with prob = ",chiSquareProbability[tag["CHISQ"],tag["NDOF"]]];
