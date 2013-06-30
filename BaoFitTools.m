@@ -135,12 +135,14 @@ fitModePlot::usage=
 
 
 fitProjectedData::usage=
-"fitProjectedData[tag,modeIndices] returns tag[\"DATA\"] with the covariance eigenmodes for the specified indices projected out.";
+"fitProjectedData[tag,modeIndices] returns tag[\"DATA\"] with the covariance eigenmodes for the
+specified indices projected out.";
 
 
 fitProjectedCovariance::usage=
-"fitProjectedCovariance[tag,modeIndices] returns Inverse[tag[\"ICOV\"] with the errors associated with specified covariance
-eigenmodes zeroed out.";
+"fitProjectedCovariance[tag,modeIndices,fraction] returns Inverse[tag[\"ICOV\"] with the eigenvalues
+of the specified covariance eigenmodes rescaled by the specified fraction. Note that using a fraction
+of zero will return a non positive definite matrix.";
 
 
 fitResidualsMultipole::usage=
@@ -616,8 +618,27 @@ GraphicsRow[{
 Options[fitModePlot]={};
 
 
+Clear[checkModeIndices]
+checkModeIndices::baddepth="Mode indices has depth `1` but expected depth of 2 (flat list).";
+checkModeIndices::badelem="Mode indices has invalid elements `1` (should be integers 1-`2`).";
+checkModeIndices[modeIndices_,nmodes_]:=
+Module[{depth,invalid},
+  depth=Depth[modeIndices];
+  invalid=Select[modeIndices,!IntegerQ[##]||##<1||##>nmodes&];
+  Which[
+    depth!=2,
+      Message[checkModeIndices::baddepth,depth]; Return[False],
+    invalid!={},
+      Message[checkModeIndices::badelem,invalid,nmodes]; Return[False],
+    True,
+      Return[True]
+  ]
+]
+
+
 fitProjectedData[tag_,modeIndices_]:=
 With[{data=tag["DATA"]},
+  If[!checkModeIndices[modeIndices,Length[tag["EVEC"]]],Return[$Failed]];
   data - Sum[
     With[{mode=tag["EVEC"][[index]]},
       (data.mode)mode
@@ -627,18 +648,19 @@ With[{data=tag["DATA"]},
 ]
 
 
-fitProjectedCovariance[tag_,modeIndices_]:=
-Module[{cov},
-  cov=Transpose[tag["EVEC"]].DiagonalMatrix[1/tag["EVAL"]].tag["EVEC"];
-  cov -= Sum[
-    With[{mode=tag["EVEC"][[index]],\[Lambda]=1/tag["EVAL"][[index]]},
-      \[Lambda] Outer[Times,mode,mode]
-    ],
-    {index,modeIndices}
-  ];
+Clear[fitProjectedCovariance]
+fitProjectedCovariance[tag_,modeIndices_,fraction_]:=
+With[{
+  nmodes=Length[tag["EVAL"]],
+  nproj=Length[modeIndices]
+},
+Module[{diag,cov},
+  If[!checkModeIndices[modeIndices,nmodes],Return[$Failed]];
+  diag=SparseArray[{modeIndices->ConstantArray[fraction,nproj],{_}->1},{nmodes}]/tag["EVAL"];
+  cov=Transpose[tag["EVEC"]].DiagonalMatrix[diag].tag["EVEC"];
   (* Symmetrize the result to eliminate rounding errors *)
   (cov+Transpose[cov])/2
-]
+]]
 
 
 Clear[fitResidualsMultipole]
@@ -680,8 +702,8 @@ Module[{zval,indices,rvec,xivec,cov,sigvec},
     sigvec=If[keyOption==="DATA",tag["ERROR"][[indices]],ConstantArray[0.,Length[rvec]]],
     (* Project out the data for this slice *)
     xivec=fitProjectedData[tag,projectOutModesOption][[indices]];
-    (* Project out the covariance for this slice *)
-    cov=fitProjectedCovariance[tag,projectOutModesOption][[indices,indices]];
+    (* Project out the covariance for this slice, removing the modes completely *)
+    cov=fitProjectedCovariance[tag,projectOutModesOption,0.][[indices,indices]];
     (* Calculate the projected diagonal errors *)
     sigvec=Sqrt[Diagonal[cov]];
   ];
