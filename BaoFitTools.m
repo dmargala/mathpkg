@@ -784,7 +784,7 @@ Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,usepos,range,spread,l
   (* Determine the vertical range to use *)
   range=dataRange[yvec,FilterRules[{options},Options[dataRange]],"padFraction"->0.05];
   (* Apply horizontal point spreading *)
-  If[NumericQ[pointSpreadOption],
+  If[NumericQ[pointSpreadOption]&&Length[points]>1,
     rvec=points[[;;,;;,1]];
     spread=Range[-pointSpreadOption/2,+pointSpreadOption/2,
       pointSpreadOption/(Length[points]-1)];
