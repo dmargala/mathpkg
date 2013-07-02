@@ -392,7 +392,8 @@ With[{
   nlargestOption=OptionValue["nlargest"],
   rangeOption=OptionValue["range"],
   nbinsOption=OptionValue["nbins"],
-  theoryOption=OptionValue["theory"]
+  theoryOption=OptionValue["theory"],
+  icovScaleOption=OptionValue["icovScale"]
 },
 Module[{nbins,nfloat,rms,chij,chisq,nlargest,largest,dx,nhist},
   nbins=Length[tag["INDEX"]];
@@ -411,6 +412,9 @@ Module[{nbins,nfloat,rms,chij,chisq,nlargest,largest,dx,nhist},
     (* Recalculate using the theory provided *)
     Total/@(tag["EVEC"]Outer[Times,Sqrt[tag["EVAL"]],tag["DATA"]-theoryOption])
   ];
+  (* Apply the icov scale factor *)
+  chij=Sqrt[icovScaleOption] chij;
+  (* Calculate the total chisq *)
   chisq=Total[chij^2];
   If[verboseOption===True,
     Print["chi^2/dof = ",chisq," / (",nbins," - ",nfloat,
@@ -436,7 +440,8 @@ Module[{nbins,nfloat,rms,chij,chisq,nlargest,largest,dx,nhist},
   }]
 ]]
 Options[fitResidualsPlot]={
-  "verbose"->True,"nlargest"->10,"range"->5,"nbins"->Automatic,"theory"->Automatic
+  "verbose"->True,"nlargest"->10,"range"->5,"nbins"->Automatic,"theory"->Automatic,
+  "icovScale"->1
 };
 
 
