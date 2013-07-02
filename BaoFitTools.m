@@ -108,6 +108,7 @@ fit analysis associated with the specified tag. The following options are suppor
     - parameters: Indices of parameters to include in the tuple. Default is {7,8}.
     - appendChiSq: Should the value of chisq-chisq(min) be append to each tuple?
       Default is True.
+    - minChiSq: Value to use for chisq(min) or Automatic (default).
     - fitIndex: index of analysis fit to use, must be >= 1 and <= tag[\"NFIT\"].
       Default is 1.";
 
@@ -286,15 +287,28 @@ Options[loadFitAnalysis]={
 
 
 Clear[fitAnalysisSamples]
+fitAnalysisSamples::lower="Using min sample chisq = `1` < baseline chisq = `2`.";
 fitAnalysisSamples[tag_,OptionsPattern[fitAnalysisSamples]]:=
 With[{
   parametersOption=OptionValue["parameters"],
   appendChiSqOption=OptionValue["appendChiSq"],
+  minChiSqOption=OptionValue["minChiSq"],
   fitIndexOption=OptionValue["fitIndex"]
 },
-Module[{chisq,pvec,chisq0,getter},
-  chisq=Function[sfit,sfit[[1]]];
-  chisq0=chisq[tag["BASELINE"][[fitIndexOption]]];
+Module[{chisq,pvec,chisq0,minChiSq,getter},
+  If[appendChiSqOption===True,
+    chisq=Function[sfit,sfit[[1]]];
+    chisq0=If[NumericQ[minChiSqOption],
+      minChiSqOption,
+      chisq[tag["BASELINE"][[fitIndexOption]]]
+    ];
+    (* Find actual min chisq on the grid *)
+    minChiSq=Min[Map[chisq,tag["SAMPLE"][[;;,fitIndexOption]]]];
+    If[minChiSqOption===Automatic && minChiSq<chisq0,
+      Message[fitAnalysisSamples::lower,minChiSq,chisq0];
+      chisq0=minChiSq;
+    ];
+  ];
   pvec=Function[sfit,sfit[[2,parametersOption]]];
   getter=If[appendChiSqOption===True,
     Function[sfit,Append[pvec[sfit],chisq[sfit]-chisq0]],
@@ -302,7 +316,9 @@ Module[{chisq,pvec,chisq0,getter},
   ];
   Developer`ToPackedArray[Map[getter,tag["SAMPLE"][[;;,fitIndexOption]]]]
 ]]
-Options[fitAnalysisSamples]={ "parameters"->{7,8},"appendChiSq"->True,"fitIndex"->1 };
+Options[fitAnalysisSamples]={
+  "parameters"->{7,8},"appendChiSq"->True,"minChiSq"->Automatic,"fitIndex"->1
+};
 
 
 Clear[loadFitResiduals]
