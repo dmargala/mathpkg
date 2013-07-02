@@ -385,42 +385,59 @@ Options[loadFitResiduals]={
 };
 
 
+fitResidualsPlot::badtheory="Theory has dimensions `1` but expected `2`.";
 fitResidualsPlot[tag_,options:OptionsPattern[{fitResidualsPlot,Histogram}]]:=
 With[{
   verboseOption=OptionValue["verbose"],
   nlargestOption=OptionValue["nlargest"],
   rangeOption=OptionValue["range"],
-  nbinsOption=OptionValue["nbins"]
+  nbinsOption=OptionValue["nbins"],
+  theoryOption=OptionValue["theory"]
 },
-Module[{nbins,nfloat,nlargest,largest,rms,dx,nhist},
+Module[{nbins,nfloat,rms,chij,chisq,nlargest,largest,dx,nhist},
   nbins=Length[tag["INDEX"]];
   nfloat=nbins-tag["NDOF"];
   (* Calculate the expected RMS *)
   rms=N[Sqrt[tag["NDOF"]/nbins]];
+  (* Recalculate chij if we are not using the default theory *)
+  chij=If[theoryOption===Automatic,
+    (* Use values already calculated using the saved best-fit theory *)
+    tag["CHIJ"],
+    (* Check that the theory provided has the expected shape *)
+    If[Dimensions[theoryOption]!=Dimensions[tag["PRED"]],
+      Message[fitResidualsPlot::badtheory,Dimensions[theoryOption],Dimensions[tag["PRED"]]];
+      Return[$Failed]
+    ];
+    (* Recalculate using the theory provided *)
+    Total/@(tag["EVEC"]Outer[Times,Sqrt[tag["EVAL"]],tag["DATA"]-theoryOption])
+  ];
+  chisq=Total[chij^2];
   If[verboseOption===True,
-    Print["chi^2/dof = ",tag["CHISQ"]," / (",nbins," - ",nfloat,
-      ") with prob = ",chiSquareProbability[tag["CHISQ"],tag["NDOF"]]];
+    Print["chi^2/dof = ",chisq," / (",nbins," - ",nfloat,
+      ") with prob = ",chiSquareProbability[chisq,tag["NDOF"]]];
     nlargest=Min[nbins,nlargestOption];
-    largest=Ordering[tag["CHIJ"]^2,nlargest,Greater];
+    largest=Ordering[chij^2,nlargest,Greater];
     Print[nlargest," modes with largest chi^2 contributions:"];
-    Print[TableForm[{largest,(tag["CHIJ"]^2)[[largest]]}]];
-    Print["Residuals mean = ",Mean[tag["CHIJ"]]," and RMS = ",
-      RootMeanSquare[tag["CHIJ"]]," (expected ",rms,")"];
+    Print[TableForm[{largest,(chij^2)[[largest]]}]];
+    Print["Residuals mean = ",Mean[chij]," and RMS = ",
+      RootMeanSquare[chij]," (expected ",rms,")"];
   ];
   (* Calculate the number of bins to use *)
   nhist=If[nbinsOption===Automatic,2 Max[10,Floor[nbins/25]],nbinsOption];
   (* Calculate the bin size *)
   dx=2 rangeOption/nhist;
   Show[{
-    Histogram[tag["CHIJ"],{-rangeOption,+rangeOption,dx},
+    Histogram[chij,{-rangeOption,+rangeOption,dx},
       FilterRules[{options},Options[Histogram]],
       Frame->True,AxesOrigin->{0,0},FrameLabel->{"Mode Residual","Modes"},
       LabelStyle->Medium],
-    Plot[Length[tag["CHIJ"]]dx PDF[NormalDistribution[0,rms],x],
+    Plot[Length[chij]dx PDF[NormalDistribution[0,rms],x],
       {x,-rangeOption,+rangeOption},PlotStyle->{Thick,Red}]
   }]
 ]]
-Options[fitResidualsPlot]={"verbose"->True,"nlargest"->10,"range"->5,"nbins"->Automatic};
+Options[fitResidualsPlot]={
+  "verbose"->True,"nlargest"->10,"range"->5,"nbins"->Automatic,"theory"->Automatic
+};
 
 
 (* See http://mathematica.stackexchange.com/questions/7887/best-way-to-create-symmetric-matrices *)
