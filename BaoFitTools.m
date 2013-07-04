@@ -464,6 +464,28 @@ Options[fitResidualsPlot]={
 };
 
 
+scan1D[f_,x1r_,x2r_,ngrid_]:=
+Module[{x1grid,x2grid,fgrid,f1,f2,x1,x2,x10,x20,x,x1min,x2min,curves},
+  x1grid=Range[x1r[[1]],x1r[[2]],(x1r[[2]]-x1r[[1]])/(ngrid-1)];
+  x2grid=Range[x2r[[1]],x2r[[2]],(x2r[[2]]-x2r[[1]])/(ngrid-1)];
+  fgrid=Table[f[x1,x2],{x1,x1grid},{x2,x2grid}];
+  curves=Transpose[Table[
+    x1=x1grid[[i]];
+    f1=Interpolation[Transpose[{x2grid,fgrid[[i,;;]]}]];
+    x20=x1grid[[First[Ordering[fgrid[[i,;;]],1]]]];
+    x2min=First[FindMinimum[f1[x],{x,x20,x2r[[1]],x2r[[2]]},AccuracyGoal->4]];
+    x2=x2grid[[i]];
+    f2=Interpolation[Transpose[{x1grid,fgrid[[;;,i]]}]];
+    x10=x2grid[[First[Ordering[fgrid[[;;,i]],1]]]];
+    x1min=First[FindMinimum[f2[x],{x,x10,x1r[[1]],x1r[[2]]},AccuracyGoal->4]];
+    {{x1,x2min},{x2,x1min}},
+    {i,ngrid}
+  ]];
+  Print[ListPlot[curves[[1]]]];
+  Print[ListPlot[curves[[2]]]];
+]
+
+
 fitContoursPlot::banscans="Scans have wrong shape `1`.";
 fitContoursPlot::badlen="Number of styles (`1`) does not match number of scans (`2`).";
 fitContoursPlot[scans_,options:OptionsPattern[{fitContoursPlot,ListPlot}]]:=
@@ -471,7 +493,8 @@ With[{
   levelsOption=OptionValue["levels"],
   xRangeOption=OptionValue["xRange"],
   yRangeOption=OptionValue["yRange"],
-  stylesOption=OptionValue["styles"]
+  stylesOption=OptionValue["styles"],
+  scan1DOption=OptionValue["scan1D"]
 },
 Module[{s,styles,xr,yr,f},
   (* Wrap scans in a List if there is only one *)
@@ -493,6 +516,8 @@ Module[{s,styles,xr,yr,f},
   yr=If[yRangeOption===Automatic,{Min[s[[;;,;;,2]]],Max[s[[;;,;;,2]]]},yRangeOption];
   (* Build interpolations for each scan *)
   f=Map[Interpolation[##,InterpolationOrder->1]&,scans];
+  (* Do 1D scans if requested *)
+  If[scan1DOption===True,Print[Table[scan1D[f[[i]],xr,yr,15],{i,Length[s]}]]];
   (* Make the graphics *)
   Show[{
     createFrame[Plot,xr,yr,FilterRules[{options},Options[ListPlot]],AspectRatio->1],
@@ -502,13 +527,13 @@ Module[{s,styles,xr,yr,f},
     Table[
       ContourPlot[f[[i]][x,y],{x,xr[[1]],xr[[-1]]},{y,yr[[1]],yr[[-1]]},Contours->levelsOption,
         ContourShading->None,ContourStyle->styles[[i]]],
-      {i,Length[scans]}
+      {i,Length[s]}
     ]
   }]
 ]]
 Options[fitContoursPlot]={
   "levels"->gaussianChiSquareContourLevel[{0.68,0.95,0.997},2],
-  "xRange"->Automatic,"yRange"->Automatic,"styles"->Automatic
+  "xRange"->Automatic,"yRange"->Automatic,"styles"->Automatic,"scan1D"->True
 };
 
 
