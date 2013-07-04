@@ -110,7 +110,8 @@ fit analysis associated with the specified tag. The following options are suppor
       Default is True.
     - minChiSq: Value to use for chisq(min) or Automatic (default).
     - fitIndex: index of analysis fit to use, must be >= 1 and <= tag[\"NFIT\"].
-      Default is 1.";
+      Default is 1.
+    - icovScale: amount to rescale (chiSq - minChiSq). Default is 1.";
 
 
 fitDensityPlot::usage=
@@ -297,7 +298,8 @@ With[{
   parametersOption=OptionValue["parameters"],
   appendChiSqOption=OptionValue["appendChiSq"],
   minChiSqOption=OptionValue["minChiSq"],
-  fitIndexOption=OptionValue["fitIndex"]
+  fitIndexOption=OptionValue["fitIndex"],
+  icovScaleOption=OptionValue["icovScale"]
 },
 Module[{chisq,pvec,chisq0,minChiSq,getter},
   If[appendChiSqOption===True,
@@ -315,13 +317,13 @@ Module[{chisq,pvec,chisq0,minChiSq,getter},
   ];
   pvec=Function[sfit,sfit[[2,parametersOption]]];
   getter=If[appendChiSqOption===True,
-    Function[sfit,Append[pvec[sfit],chisq[sfit]-chisq0]],
+    Function[sfit,Append[pvec[sfit],icovScaleOption(chisq[sfit]-chisq0)]],
     Function[sfit,pvec[sfit]]
   ];
   Developer`ToPackedArray[Map[getter,tag["SAMPLE"][[;;,fitIndexOption]]]]
 ]]
 Options[fitAnalysisSamples]={
-  "parameters"->{7,8},"appendChiSq"->True,"minChiSq"->Automatic,"fitIndex"->1
+  "parameters"->{7,8},"appendChiSq"->True,"minChiSq"->Automatic,"fitIndex"->1,"icovScale"->1
 };
 
 
@@ -469,7 +471,10 @@ With[{
   yRangeOption=OptionValue["yRange"]
 },
 Module[{xRange,yRange},
-  1
+  (* Get the plot ranges to use *)
+  xRange=If[xRangeOption===Automatic,{Min[scans[[;;,;;,1]]],Max[scans[[;;,;;,1]]]},xRangeOption];
+  yRange=If[yRangeOption===Automatic,{Min[scans[[;;,;;,2]]],Max[scans[[;;,;;,2]]]},yRangeOption];
+  {xRange,yRange}
 ]]
 Options[fitContoursPlot]={
   "levels"->gaussianChiSquareContourLevel[{0.68,0.95,0.997},2],
