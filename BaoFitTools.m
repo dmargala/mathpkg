@@ -130,6 +130,10 @@ fitResidualsPlot::usage=
 "fitResidualsPlot[tag] plots the distribution of chisq residuals by eigenmode.";
 
 
+fitContoursPlot::usage=
+"fitContoursPlot[scans] plots the delta(chisq) contours for the specified scans.";
+
+
 fitModePlot::usage=
 "fitModePlot[tag,mode] plots the per-bin weights (left) and per-bin chisq contributions
 (right) of the specified eigenmode.";
@@ -455,6 +459,21 @@ Module[{nbins,nfloat,rms,chij,chisq,prob,nlargest,largest,legend,dx,nhist},
 Options[fitResidualsPlot]={
   "verbose"->True,"nlargest"->10,"range"->5,"nbins"->Automatic,"theory"->Automatic,
   "icovScale"->1,"legend"->True,"label"->None
+};
+
+
+fitContoursPlot[scans_,OptionsPattern[{fitContoursPlot,ContourPlot}]]:=
+With[{
+  levelsOption=OptionValue["levels"],
+  xRangeOption=OptionValue["xRange"],
+  yRangeOption=OptionValue["yRange"]
+},
+Module[{xRange,yRange},
+  1
+]]
+Options[fitContoursPlot]={
+  "levels"->gaussianChiSquareContourLevel[{0.68,0.95,0.997},2],
+  "xRange"->Automatic,"yRange"->Automatic
 };
 
 
