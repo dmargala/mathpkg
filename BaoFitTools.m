@@ -393,9 +393,11 @@ With[{
   rangeOption=OptionValue["range"],
   nbinsOption=OptionValue["nbins"],
   theoryOption=OptionValue["theory"],
-  icovScaleOption=OptionValue["icovScale"]
+  icovScaleOption=OptionValue["icovScale"],
+  legendOption=OptionValue["legend"],
+  labelOption=OptionValue["label"]
 },
-Module[{nbins,nfloat,rms,chij,chisq,nlargest,largest,dx,nhist},
+Module[{nbins,nfloat,rms,chij,chisq,prob,nlargest,largest,legend,dx,nhist},
   nbins=Length[tag["INDEX"]];
   nfloat=nbins-tag["NDOF"];
   (* Calculate the expected RMS *)
@@ -416,15 +418,26 @@ Module[{nbins,nfloat,rms,chij,chisq,nlargest,largest,dx,nhist},
   chij=Sqrt[icovScaleOption] chij;
   (* Calculate the total chisq *)
   chisq=Total[chij^2];
+  prob=chiSquareProbability[chisq,tag["NDOF"]];
   If[verboseOption===True,
-    Print["chi^2/dof = ",chisq," / (",nbins," - ",nfloat,
-      ") with prob = ",chiSquareProbability[chisq,tag["NDOF"]]];
+    Print["chi^2/dof = ",chisq," / (",nbins," - ",nfloat,") with prob = ",prob];
     nlargest=Min[nbins,nlargestOption];
     largest=Ordering[chij^2,nlargest,Greater];
     Print[nlargest," modes with largest chi^2 contributions:"];
     Print[TableForm[{largest,(chij^2)[[largest]]}]];
     Print["Residuals mean = ",Mean[chij]," and RMS = ",
       RootMeanSquare[chij]," (expected ",rms,")"];
+  ];
+  (* Prepare the legend to show *)
+  legend=If[legendOption===True,
+    {
+      If[labelOption===None,{},Text[Style[labelOption,Larger,Bold],Scaled[{0.05,0.95}],{-1,1}]],
+      Text[Style["\!\(\*SuperscriptBox[\(\[Chi]\), \(2\)]\)/dof =",Larger],Scaled[{0.95,0.95}],{1,1}],
+      Text[Style[ToString[Round[chisq,0.1]]<>"/("<>ToString[nbins]<>"-"<>ToString[nfloat]<>")",
+        Larger],Scaled[{0.95,0.85}],{1,1}],
+      Text[Style["prob= "<>ToString[Round[100 prob,0.1]]<>"%",Larger],Scaled[{0.95,0.75}],{1,1}]
+    },
+    {}
   ];
   (* Calculate the number of bins to use *)
   nhist=If[nbinsOption===Automatic,2 Max[10,Floor[nbins/25]],nbinsOption];
@@ -433,15 +446,15 @@ Module[{nbins,nfloat,rms,chij,chisq,nlargest,largest,dx,nhist},
   Show[{
     Histogram[chij,{-rangeOption,+rangeOption,dx},
       FilterRules[{options},Options[Histogram]],
-      Frame->True,AxesOrigin->{0,0},FrameLabel->{"Mode Residual","Modes"},
-      LabelStyle->Medium],
+      Frame->True,AxesOrigin->{0,0},FrameLabel->{"Covariance Mode Residual","Number of Modes"},
+      LabelStyle->Medium,Epilog->legend],
     Plot[Length[chij]dx PDF[NormalDistribution[0,rms],x],
       {x,-rangeOption,+rangeOption},PlotStyle->{Thick,Red}]
   }]
 ]]
 Options[fitResidualsPlot]={
   "verbose"->True,"nlargest"->10,"range"->5,"nbins"->Automatic,"theory"->Automatic,
-  "icovScale"->1
+  "icovScale"->1,"legend"->True,"label"->None
 };
 
 
