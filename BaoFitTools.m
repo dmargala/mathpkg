@@ -464,25 +464,45 @@ Options[fitResidualsPlot]={
 };
 
 
+(* Finds the minimum of a smooth function interpolated through the input points
+and returns [x,y] at the minimum location *)
+findMinimum[xgrid_,ygrid_,showPlot_:False]:=
+Module[{f,x0,x,goal,min,xy},
+  (* Is either endpoint a minimum ? *)
+  If[ygrid[[1]]==Min[ygrid],Return[{xgrid[[1]],ygrid[[1]]}]];
+  If[ygrid[[-1]]==Min[ygrid],Return[{xgrid[[-1]],ygrid[[-1]]}]];
+  (* Build an interpolating function *)
+  f=Interpolation[Transpose[{xgrid,ygrid}],InterpolationOrder->3];
+  (* Find the minimum on the grid *)
+  x0=xgrid[[First[Ordering[ygrid,1]]]];
+  (* Find the interpolated minimum *)
+  goal=4-Floor[Log[10,Max[xgrid]-Min[xgrid]]];
+  Quiet[
+    min=FindMinimum[f[x],{x,x0,xgrid[[1]],xgrid[[-1]]},AccuracyGoal->goal,PrecisionGoal->1],
+    {FindMinimum::lstol}
+  ];
+  xy={x/.min[[2]],min[[1]]};
+  If[showPlot===True,
+    Print[Show[{
+      Plot[f[x],{x,xgrid[[1]],xgrid[[-1]]}],
+      ListPlot[Transpose[{xgrid,ygrid}],PlotStyle->PointSize[Medium]],
+      Graphics[{Red,PointSize[Large],Point[xy]}]
+    }]]
+  ];
+  xy
+]
+
+
 scan1D[f_,x1r_,x2r_,ngrid_]:=
-Module[{x1grid,x2grid,fgrid,f1,f2,x1,x2,x10,x20,x,x1min,x2min,curves},
+Module[{x1grid,x2grid,fgrid,curves},
   x1grid=Range[x1r[[1]],x1r[[2]],(x1r[[2]]-x1r[[1]])/(ngrid-1)];
   x2grid=Range[x2r[[1]],x2r[[2]],(x2r[[2]]-x2r[[1]])/(ngrid-1)];
   fgrid=Table[f[x1,x2],{x1,x1grid},{x2,x2grid}];
-  curves=Transpose[Table[
-    x1=x1grid[[i]];
-    f1=Interpolation[Transpose[{x2grid,fgrid[[i,;;]]}]];
-    x20=x1grid[[First[Ordering[fgrid[[i,;;]],1]]]];
-    x2min=First[FindMinimum[f1[x],{x,x20,x2r[[1]],x2r[[2]]},AccuracyGoal->4]];
-    x2=x2grid[[i]];
-    f2=Interpolation[Transpose[{x1grid,fgrid[[;;,i]]}]];
-    x10=x2grid[[First[Ordering[fgrid[[;;,i]],1]]]];
-    x1min=First[FindMinimum[f2[x],{x,x10,x1r[[1]],x1r[[2]]},AccuracyGoal->4]];
-    {{x1,x2min},{x2,x1min}},
-    {i,ngrid}
-  ]];
-  Print[ListPlot[curves[[1]]]];
-  Print[ListPlot[curves[[2]]]];
+  curves=Transpose[Table[{
+    Join[{x1grid[[i]]},findMinimum[x2grid,fgrid[[i,;;]]]],
+    Join[{x2grid[[i]]},findMinimum[x1grid,fgrid[[;;,i]]]]
+  },{i,ngrid}
+  ]]
 ]
 
 
@@ -494,9 +514,11 @@ With[{
   xRangeOption=OptionValue["xRange"],
   yRangeOption=OptionValue["yRange"],
   stylesOption=OptionValue["styles"],
-  scan1DOption=OptionValue["scan1D"]
+  scan1DOption=OptionValue["scan1D"],
+  plot1DOption=OptionValue["plot1D"],
+  n1DOption=OptionValue["n1D"]
 },
-Module[{s,styles,xr,yr,f},
+Module[{s,styles,xr,yr,f,curves},
   (* Wrap scans in a List if there is only one *)
   s=If[Depth[scans]==3,{scans},scans];
   (* Check that scans has the expected shape *)
@@ -517,23 +539,30 @@ Module[{s,styles,xr,yr,f},
   (* Build interpolations for each scan *)
   f=Map[Interpolation[##,InterpolationOrder->1]&,scans];
   (* Do 1D scans if requested *)
-  If[scan1DOption===True,Print[Table[scan1D[f[[i]],xr,yr,15],{i,Length[s]}]]];
+  If[scan1DOption===True,
+    curves=Table[scan1D[f[[i]],xr,yr,n1DOption],{i,Length[s]}]
+  ];
   (* Make the graphics *)
   Show[{
     createFrame[Plot,xr,yr,FilterRules[{options},Options[ListPlot]],AspectRatio->1],
     ContourPlot[f[[1]][x,y],{x,xr[[1]],xr[[-1]]},{y,yr[[1]],yr[[-1]]},
       ContourStyle->None,Contours->Range[0,100],ColorFunction->temperatureMap,
       PlotLegends->Automatic,PlotRange->All],
-    Table[
+    Table[{
       ContourPlot[f[[i]][x,y],{x,xr[[1]],xr[[-1]]},{y,yr[[1]],yr[[-1]]},Contours->levelsOption,
         ContourShading->None,ContourStyle->styles[[i]]],
-      {i,Length[s]}
-    ]
+      If[scan1DOption&&plot1DOption,
+        ListPlot[{curves[[i,1,;;,{1,2}]],curves[[i,2,;;,{2,1}]]},
+          PlotStyle->styles[[i]],Joined->True],
+        {}
+      ]
+    },{i,Length[s]}]
   }]
 ]]
 Options[fitContoursPlot]={
   "levels"->gaussianChiSquareContourLevel[{0.68,0.95,0.997},2],
-  "xRange"->Automatic,"yRange"->Automatic,"styles"->Automatic,"scan1D"->True
+  "xRange"->Automatic,"yRange"->Automatic,"styles"->Automatic,"scan1D"->True,
+  "plot1D"->False,"n1D"->40
 };
 
 
