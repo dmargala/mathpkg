@@ -465,9 +465,14 @@ Options[fitResidualsPlot]={
 
 
 (* Finds the minimum of a smooth function interpolated through the input points
-and returns [x,y] at the minimum location *)
-findMinimum[xgrid_,ygrid_,showPlot_:False]:=
-Module[{f,x0,x,goal,min,xy},
+and returns {x,y} at the minimum location followed by {xm,xp,level} such that
+y(x-xm) = y(x+xp) = y+level for each level in errorLevels. *)
+findMinimumAndErrors[xgrid_,ygrid_,OptionsPattern[findMinimumAndErrors]]:=
+With[{
+  errorLevels=OptionValue["errorLevels"],
+  showPlot=OptionValue["showPlot"]
+},
+Module[{f,x0,x,goal,min,xmin,ymin,roots},
   (* Is either endpoint a minimum ? *)
   If[ygrid[[1]]==Min[ygrid],Return[{xgrid[[1]],ygrid[[1]]}]];
   If[ygrid[[-1]]==Min[ygrid],Return[{xgrid[[-1]],ygrid[[-1]]}]];
@@ -481,28 +486,51 @@ Module[{f,x0,x,goal,min,xy},
     min=FindMinimum[f[x],{x,x0,xgrid[[1]],xgrid[[-1]]},AccuracyGoal->goal,PrecisionGoal->1],
     {FindMinimum::lstol}
   ];
-  xy={x/.min[[2]],min[[1]]};
+  {xmin,ymin}={x/.min[[2]],min[[1]]};
+  roots=Table[
+    {
+      xmin-(x/.First[FindRoot[f[x]==ymin+level,{x,(Min[xgrid]+xmin)/2,Min[xgrid],xmin}]]),
+      (x/.First[FindRoot[f[x]==ymin+level,{x,(Max[xgrid]+xmin)/2,xmin,Max[xgrid]}]])-xmin,
+      level
+    },
+    {level,errorLevels}
+  ];
   If[showPlot===True,
     Print[Show[{
       Plot[f[x],{x,xgrid[[1]],xgrid[[-1]]}],
       ListPlot[Transpose[{xgrid,ygrid}],PlotStyle->PointSize[Medium]],
-      Graphics[{Red,PointSize[Large],Point[xy]}]
-    }]]
+      Graphics[{
+        Red,PointSize[Large],Point[{xmin,ymin}],
+        Point[Map[{xmin-##[[1]],ymin+##[[2]]}&,roots[[;;,{1,3}]]]],
+        Point[Map[{xmin+##[[1]],ymin+##[[2]]}&,roots[[;;,{2,3}]]]]
+      }]
+    }]];
+    Print["min(y) = ",ymin," at x0 = ",xmin];
+    Do[
+      Print["dy = ",roots[[k,3]]," at x = x0 - ",roots[[k,1]]," and x0 + ",roots[[k,2]]],
+      {k,Length[roots]}
+    ];
   ];
-  xy
-]
+  {xmin,ymin}
+]]
+Options[findMinimumAndErrors]={"errorLevels"->{}, "showPlot"->False};
 
 
 scan1D[f_,x1r_,x2r_,ngrid_]:=
-Module[{x1grid,x2grid,fgrid,curves},
+Module[{x1grid,x2grid,fgrid,curves,x1min,x2min},
   x1grid=Range[x1r[[1]],x1r[[2]],(x1r[[2]]-x1r[[1]])/(ngrid-1)];
   x2grid=Range[x2r[[1]],x2r[[2]],(x2r[[2]]-x2r[[1]])/(ngrid-1)];
   fgrid=Table[f[x1,x2],{x1,x1grid},{x2,x2grid}];
   curves=Transpose[Table[{
-    Join[{x1grid[[i]]},findMinimum[x2grid,fgrid[[i,;;]]]],
-    Join[{x2grid[[i]]},findMinimum[x1grid,fgrid[[;;,i]]]]
+    Join[{x1grid[[i]]},findMinimumAndErrors[x2grid,fgrid[[i,;;]]]],
+    Join[{x2grid[[i]]},findMinimumAndErrors[x1grid,fgrid[[;;,i]]]]
   },{i,ngrid}
-  ]]
+  ]];
+  x1min=findMinimumAndErrors[curves[[1,;;,1]],curves[[1,;;,3]],
+    errorLevels->{1,2,3},showPlot->True];
+  x2min=findMinimumAndErrors[curves[[2,;;,1]],curves[[2,;;,3]],
+    errorLevels->{1,2,3},showPlot->True];
+  curves
 ]
 
 
