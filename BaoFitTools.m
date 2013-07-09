@@ -516,7 +516,7 @@ Module[{f,x0,x,goal,min,xmin,ymin,roots},
 Options[findMinimumAndErrors]={"errorLevels"->{}, "showPlot"->False};
 
 
-scan1D[f_,x1r_,x2r_,ngrid_]:=
+scan1D[f_,x1r_,x2r_,ngrid_,levels_]:=
 Module[{x1grid,x2grid,fgrid,curves,x1min,x2min},
   x1grid=Range[x1r[[1]],x1r[[2]],(x1r[[2]]-x1r[[1]])/(ngrid-1)];
   x2grid=Range[x2r[[1]],x2r[[2]],(x2r[[2]]-x2r[[1]])/(ngrid-1)];
@@ -527,9 +527,9 @@ Module[{x1grid,x2grid,fgrid,curves,x1min,x2min},
   },{i,ngrid}
   ]];
   x1min=findMinimumAndErrors[curves[[1,;;,1]],curves[[1,;;,3]],
-    errorLevels->{1,2,3},showPlot->True];
+    errorLevels->levels,showPlot->True];
   x2min=findMinimumAndErrors[curves[[2,;;,1]],curves[[2,;;,3]],
-    errorLevels->{1,2,3},showPlot->True];
+    errorLevels->levels,showPlot->True];
   curves
 ]
 
@@ -544,7 +544,8 @@ With[{
   stylesOption=OptionValue["styles"],
   scan1DOption=OptionValue["scan1D"],
   plot1DOption=OptionValue["plot1D"],
-  n1DOption=OptionValue["n1D"]
+  n1DOption=OptionValue["n1D"],
+  levels1DOption=OptionValue["levels1D"]
 },
 Module[{s,styles,xr,yr,f,curves},
   (* Wrap scans in a List if there is only one *)
@@ -565,10 +566,10 @@ Module[{s,styles,xr,yr,f,curves},
   xr=If[xRangeOption===Automatic,{Min[s[[;;,;;,1]]],Max[s[[;;,;;,1]]]},xRangeOption];
   yr=If[yRangeOption===Automatic,{Min[s[[;;,;;,2]]],Max[s[[;;,;;,2]]]},yRangeOption];
   (* Build interpolations for each scan *)
-  f=Map[Interpolation[##,InterpolationOrder->1]&,scans];
+  f=Map[Interpolation[##,InterpolationOrder->3]&,scans];
   (* Do 1D scans if requested *)
   If[scan1DOption===True,
-    curves=Table[scan1D[f[[i]],xr,yr,n1DOption],{i,Length[s]}]
+    curves=Table[scan1D[f[[i]],xr,yr,n1DOption,levels1DOption],{i,Length[s]}]
   ];
   (* Make the graphics *)
   Show[{
@@ -579,9 +580,9 @@ Module[{s,styles,xr,yr,f,curves},
     Table[{
       ContourPlot[f[[i]][x,y],{x,xr[[1]],xr[[-1]]},{y,yr[[1]],yr[[-1]]},Contours->levelsOption,
         ContourShading->None,ContourStyle->styles[[i]]],
-      If[scan1DOption&&plot1DOption,
+      If[(scan1DOption===True)&&(plot1DOption===True),
         ListPlot[{curves[[i,1,;;,{1,2}]],curves[[i,2,;;,{2,1}]]},
-          PlotStyle->styles[[i]],Joined->True],
+          PlotStyle->styles[[i]]],
         {}
       ]
     },{i,Length[s]}]
@@ -590,7 +591,7 @@ Module[{s,styles,xr,yr,f,curves},
 Options[fitContoursPlot]={
   "levels"->gaussianChiSquareContourLevel[{0.68,0.95,0.997},2],
   "xRange"->Automatic,"yRange"->Automatic,"styles"->Automatic,"scan1D"->True,
-  "plot1D"->False,"n1D"->40
+  "plot1D"->False,"n1D"->40,"levels1D"->{1,2}
 };
 
 
