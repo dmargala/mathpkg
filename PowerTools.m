@@ -226,14 +226,20 @@ xigrid=fgdata (rgrid/r0)^(-\[Alpha])/dsf;
 
 
 Clear[sbTransform]
-sbTransform[plfunc_,rmin_,rmax_,ell_,veps_,verbose_:False]:=
+sbTransform[plfunc_,rmin_,rmax_,ell_,veps_,OptionsPattern[]]:=
+With[{
+  verboseOption=OptionValue["verbose"]
+},
 Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator},
-{fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[plfunc,rmin,rmax,ell,veps,verbose];
-rzoom=rgrid[[nsf+1;;-nsf-1]];
-xizoom=xigrid[[nsf+1;;-nsf-1]];
-interpolator=Interpolation[Transpose[{Log[rzoom], xizoom}]];
-Function[r,interpolator[Log[r]]]
-]
+  {fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[plfunc,rmin,rmax,ell,veps,verboseOption];
+  rzoom=rgrid[[nsf+1;;-nsf-1]];
+  xizoom=xigrid[[nsf+1;;-nsf-1]];
+  interpolator=Interpolation[Transpose[{Log[rzoom], xizoom}]];
+  Function[r,interpolator[Log[r]]]
+]]
+Options[sbTransform]={
+"verbose"->False
+};
 
 
 End[]
