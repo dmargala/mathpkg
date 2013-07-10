@@ -50,8 +50,8 @@ transformedCoordinates::usage=
 "transformedCoordinates[name][k,mu] returns the transformed coordinates {k',mu'}.";
 
 
-distortionMultipole::usage=
-"distortionMultipole[model,k,ell] calculates the specified multipole of the specified distortion model at the specified k.";
+projectMultipole::usage=
+"projectMultipole[f,ell] evaluates the multipole projection integral of f(mu)P(ell,mu) over {-1,+1}, scaled by (2 ell+1)/2.";
 
 
 distortionMultipoleFunction::usage=
@@ -136,8 +136,7 @@ Options[createDistortionModel]={
 };
 
 
-distortionMultipole[name_,k_,ell_]:=
-  (2 ell+1)/2 NIntegrate[redshiftSpaceDistortion[name][k,mu]nonlinearDistortion[name][k,mu]LegendreP[ell,mu],{mu,-1,+1},AccuracyGoal->12]
+projectMultipole[f_,ell_]:=(2 ell+1)/2 NIntegrate[f[mu]LegendreP[ell,mu],{mu,-1,+1},AccuracyGoal->12]
 
 
 distortionMultipoleFunction[name_,kmin_,kmax_,ell_,nPerDecade_]:=
@@ -146,7 +145,7 @@ Module[{nk,dk,k,pts,interpolator},
   dk=(kmax/kmin)^(1/(nk-1));
   pts=Table[
     k=kmin dk^(i-1);
-    {Log[k],distortionMultipole[name,k,ell]},
+    {Log[k],projectMultipole[redshiftSpaceDistortion[name][k,##]nonlinearDistortion[name][k,##]&,ell]},
     {i,nk}
   ];
   interpolator=Interpolation[pts];
