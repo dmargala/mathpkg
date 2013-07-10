@@ -197,8 +197,8 @@ getndsf[veps_,ell_]:=Module[{eps,ndsf,dsfmax,nsf,dsf},
 
 
 Clear[sbTransformWork]
-sbTransformWork[plfunc_,rmin_,rmax_,ell_,veps_,verbose_]:=
-Module[{nsf,dsf,kr,k0,r0,nsg,ntot,n,\[Alpha],fdata,fnorm,gdata,fgdata,rgrid,xigrid,rzoom,xizoom,popts},
+sbTransformWork[callback_,rmin_,rmax_,ell_,veps_,verbose_]:=
+Module[{nsf,dsf,kr,k0,r0,nsg,ntot,n,\[Alpha],fdata,fnorm,plfunc,gdata,fgdata,rgrid,xigrid,rzoom,xizoom,popts},
 {nsf,dsf}=getndsf[veps,ell];
 kr=kr0[ell]//N;
 r0=Sqrt[rmin rmax];
@@ -206,18 +206,20 @@ k0=kr/r0;
 (* Calculate the number of samples needed to cover (rmin,rmax) *)
 nsg=Ceiling[Log[rmax/rmin]/(2dsf)];
 ntot=nsf+nsg;
-If[verbose,Print[k0 Exp[-ntot dsf]," \[LessEqual] k \[LessEqual] ",k0 Exp[+ntot dsf]," is covered with ",2 ntot," samples (",1/dsf," per logint)."]];
+(* Get the Pl(k) function to use *)
+plfunc=callback[k0 Exp[-ntot dsf],k0 Exp[+ntot dsf],2 ntot];
+(* Start tabulating... *)
 \[Alpha]=(1-ell)/2;
 fdata=Table[
-n=wrap[m,nsg+nsf];
-If[Abs[n]<=nsf,ff[n dsf,ell,kr,\[Alpha]]dsf,0],
-{m,0,2(nsg+nsf)-1}
+  n=wrap[m,nsg+nsf];
+  If[Abs[n]<=nsf,ff[n dsf,ell,kr,\[Alpha]]dsf,0],
+  {m,0,2(nsg+nsf)-1}
 ];
 (* Note that we use -s here ! *)
 gdata=Table[gg[-n dsf,plfunc,ell,k0,\[Alpha]]dsf,{n,-ntot,ntot-1}];
 fgdata=Re[Fourier[
-Fourier[fdata,FourierParameters->{1,-1}]Fourier[gdata,FourierParameters->{1,-1}]/(2ntot),
-FourierParameters->{1,+1}
+  Fourier[fdata,FourierParameters->{1,-1}] Fourier[gdata,FourierParameters->{1,-1}]/(2ntot),
+  FourierParameters->{1,+1}
 ]];
 rgrid=Table[r0 Exp[n dsf],{n,-ntot,ntot-1}];
 xigrid=fgdata (rgrid/r0)^(-\[Alpha])/dsf;
@@ -230,8 +232,12 @@ sbTransform[plfunc_,rmin_,rmax_,ell_,veps_,OptionsPattern[]]:=
 With[{
   verboseOption=OptionValue["verbose"]
 },
-Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator},
-  {fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[plfunc,rmin,rmax,ell,veps,verboseOption];
+Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator,callback},
+  callback=Function[{kmin,kmax,nk},
+    If[verboseOption===True,Print[kmin " \[LessEqual] k \[LessEqual] ",kmax," is covered with ",nk," samples (",nk/Log[kmax/kmin]," per logint)."]];
+    plfunc
+  ];
+  {fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[callback,rmin,rmax,ell,veps,verboseOption];
   rzoom=rgrid[[nsf+1;;-nsf-1]];
   xizoom=xigrid[[nsf+1;;-nsf-1]];
   interpolator=Interpolation[Transpose[{Log[rzoom], xizoom}]];
