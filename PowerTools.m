@@ -6,7 +6,7 @@ BeginPackage["DeepZot`PowerTools`"]
 
 
 PowerTools::usage=
-"A collection of utilities for working with cosmological power spectra."
+"A collection of utilities for working with cosmological power spectra.";
 
 
 makePower::usage=
@@ -15,7 +15,7 @@ interpolates in log(k) and P(k) and extrapolates using power laws in k. The foll
 are supported:
   verbose (False) - set True to print out kmin, kmax, and the number of points being used.
   extrapolateBelow (True) - set False to print a message if extrapolation below kmin is attempted.
-  extrapolateAbove (True) - set False to print a message if extrapolation above kmax is attempted."
+  extrapolateAbove (True) - set False to print a message if extrapolation above kmax is attempted.";
 
 
 createDistortionModel::usage=
@@ -35,19 +35,19 @@ Separate help is available for each of these definitions. Use the following opti
  - \[Alpha]L   (1) rescaling of (k,\[Mu]) along \[Mu]=1 axis
  - \[Alpha]T   (1) rescaling of (k,\[Mu]) along \[Mu]=0 axis
 Use OptionValue[name,opt] to get option values associated with a named distortion model.
-To clear a previously defined model, use Clear[name]."
+To clear a previously defined model, use Clear[name].";
 
 
 redshiftSpaceDistortion::usage=
-"redshiftSpaceDistortion[model][k,mu] calculates the redshift-space distortion factor."
+"redshiftSpaceDistortion[model][k,mu] calculates the redshift-space distortion factor.";
 
 
 nonlinearDistortion::usage=
-"nonlinearDistortion[model][k,mu] calculates the non-linear distortion factor."
+"nonlinearDistortion[model][k,mu] calculates the non-linear distortion factor.";
 
 
 transformedCoordinates::usage=
-"transformedCoordinates[name][k,mu] returns the transformed coordinates {k',mu'}."
+"transformedCoordinates[name][k,mu] returns the transformed coordinates {k',mu'}.";
 
 
 sbTransform::usage=
@@ -56,7 +56,7 @@ of the specified function for multipole ell. Returns an interpolating function
 defined for r in [rmin,rmax] that is free of any aliasing artifacts.
 Use the veps parameter to control the numerical accuracy of the result.
 sbTransform[plfunc,rmin,rmax,ell,veps,True] displays the k range and
-sampling that is being used, which can be useful in building a suitable plfunc."
+sampling that is being used, which can be useful in building a suitable plfunc.";
 
 
 Begin["Private`"]
