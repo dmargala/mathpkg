@@ -73,6 +73,14 @@ createCorrelationFunction::usage=
 corresponding to the specified linear theory power spectrum.";
 
 
+createCorrelationMultipole::usage=
+"createCorrelationMultipole[xi,rmin,rmax,ell] returns an interpolation function for the specified multipole of the specified
+xi(r,mu) function, valid over the specified range of r. Options include:
+  - alphaP : rescaling parallel to the line of sight (default 1)
+  - alphaT : rescaling transverse to the line of sight (default 1)
+Note that alphaP or alphaT different from 1 will generally require that xi(r,mu) be valid outside [rmin,rmax].";
+
+
 Begin["Private`"]
 
 
@@ -278,6 +286,26 @@ Module[{lvec,xi},
 ]]
 Options[createCorrelationFunction]={
   "verbose"->False,"lmax"->4,"distortion"->None,"distortionSampling"->5,"veps"->0.001
+};
+
+
+createCorrelationMultipole[xi_,rmin_,rmax_,ell_,OptionsPattern[]]:=
+With[{
+  alphaPOption=OptionValue["alphaP"],
+  alphaTOption=OptionValue["alphaT"],
+  npointsOption=OptionValue["npoints"]
+},
+Module[{alphaP,alphaT,npoints,rvec,f,pts},
+  alphaP=alphaPOption;
+  alphaT=alphaTOption;
+  npoints=If[npointsOption===Automatic,Ceiling[rmax-rmin],npointsOption];
+  rvec=Table[rmin+(j-1)(rmax-rmin)/(npoints-1),{j,npoints}];
+  f=Function[{r,mu},With[{alpha=Sqrt[alphaP^2 mu^2 + alphaT^2 (1-mu^2)]},xi[alpha r,(alphaP/alpha)mu]]];
+  pts=Table[{r,projectMultipole[f[r,##]&,ell]},{r,rvec}];
+  Interpolation[pts]
+]]
+Options[createCorrelationMultipole]={
+  "alphaP"->1,"alphaT"->1,"npoints"->Automatic
 };
 
 
