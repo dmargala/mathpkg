@@ -147,18 +147,23 @@ Options[createDistortionModel]={
 projectMultipole[f_,ell_]:=(2 ell+1)/2 NIntegrate[f[mu]LegendreP[ell,mu],{mu,-1,+1},AccuracyGoal->12]
 
 
-distortionMultipoleFunction[name_,kmin_,kmax_,ell_,nPerDecade_]:=
+distortionMultipoleFunction[name_,kmin_,kmax_,ell_,OptionsPattern[]]:=
+With[{
+  nPtsPerDecade=OptionValue["nPtsPerDecade"],
+  padFraction=OptionValue["padFraction"]
+},
 Module[{nk,dk,k,pts,interpolator},
-  nk=Max[10,Ceiling[Log[10,kmax/kmin]nPerDecade]];
-  dk=(kmax/kmin)^(1/(nk-1));
+  nk=Max[10,Ceiling[Log[10,kmax/kmin]nPtsPerDecade]];
+  dk=padFraction^2(kmax/kmin)^(1/(nk-1));
   pts=Table[
-    k=kmin dk^(i-1);
+    k=(kmin/padFraction) dk^(i-1);
     {Log[k],projectMultipole[redshiftSpaceDistortion[name][k,##]nonlinearDistortion[name][k,##]&,ell]},
     {i,nk}
   ];
   interpolator=Interpolation[pts];
   Function[k,interpolator[Log[k]]]
-]
+]]
+Options[distortionMultipoleFunction]={"nPtsPerDecade"->5,"padFraction"->1.05};
 
 
 epsApprox[veps_,ell_]:=
@@ -244,7 +249,8 @@ sbTransform[plfunc_,rmin_,rmax_,ell_,veps_,OptionsPattern[]]:=
 With[{
   verboseOption=OptionValue["verbose"],
   distortionOption=OptionValue["distortion"],
-  distortionSamplingOption=OptionValue["distortionSampling"]
+  distortionSamplingOption=OptionValue["distortionSampling"],
+  padFractionOption=OptionValue["padFraction"]
 },
 Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator,callback,distortion},
   callback=Function[{kmin,kmax,nk},
@@ -252,18 +258,18 @@ Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator,callback,d
     If[distortionOption===None,
       plfunc,
       If[verboseOption===True,Print["Sampling distortion model at ",distortionSamplingOption," points per decade."]];
-      distortion=distortionMultipoleFunction[distortionOption,kmin,kmax,ell,distortionSamplingOption];
+      distortion=distortionMultipoleFunction[distortionOption,kmin,kmax,ell,"nPtsPerDecade"->distortionSamplingOption];
       Function[k,plfunc[k]distortion[k]]
     ]
   ];
-  {fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[callback,rmin,rmax,ell,veps,verboseOption];
+  {fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[callback,rmin/padFractionOption,rmax padFractionOption,ell,veps,verboseOption];
   rzoom=rgrid[[nsf+1;;-nsf-1]];
   xizoom=xigrid[[nsf+1;;-nsf-1]];
   interpolator=Interpolation[Transpose[{Log[rzoom], xizoom}]];
   Function[r,interpolator[Log[r]]]
 ]]
 Options[sbTransform]={
-"verbose"->False,"distortion"->None,"distortionSampling"->5
+"verbose"->False,"distortion"->None,"distortionSampling"->5,"padFraction"->1.05
 };
 
 
