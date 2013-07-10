@@ -25,11 +25,15 @@ createDistortionModel::usage=
  - transformedCoordinates[name][kp,mup]
 Separate help is available for each of these definitions. Use the following options
 (defaults in parentheses) to customize the created distortion model:
- - bias (1) tracer bias
- - beta (0) redshift-space linear distortion parameter
+ - bias (1) tracer-1 bias
+ - beta (0) tracer-1 redshift-space linear distortion parameter
+ - bias2(Automatic) tracer-2 bias or same as tracer-1 bias if Automatic
+ - beta2(Automatic) tracer-2 beta or same as tracer-1 beta if Automatic
  - sigL (0) longitudinal component of non-linear broadening sigma
  - sigT (0) transverse component of non-linear broadening sigma
  - sigS (0) fingers of god sigma
+ - \[Alpha]L   (1) rescaling of (k,\[Mu]) along \[Mu]=1 axis
+ - \[Alpha]T   (1) rescaling of (k,\[Mu]) along \[Mu]=0 axis
 Use OptionValue[name,opt] to get option values associated with a named distortion model.
 To clear a previously defined model, use Clear[name]."
 
@@ -93,22 +97,27 @@ createDistortionModel[name_,OptionsPattern[]]:=
 With[{
     bias=OptionValue["bias"],
     beta=OptionValue["beta"],
+    bias2Option=OptionValue["bias2"],
+    beta2Option=OptionValue["beta2"],
     sigL=OptionValue["sigL"],
     sigT=OptionValue["sigT"],
     sigS=OptionValue["sigS"],
     \[Alpha]L=OptionValue["\[Alpha]L"],
     \[Alpha]T=OptionValue["\[Alpha]T"]
 },
-    Options[name]^={ "bias"->bias,"beta"->beta,"sigL"->sigL,"sigT"->sigT,"sigS"->sigS,"\[Alpha]L"->\[Alpha]L,"\[Alpha]T"->\[Alpha]T };
-    redshiftSpaceDistortion[name]^=Function[{k,mu},Evaluate[Simplify[bias^2(1+beta mu^2)^2]]];
+Module[{bias2,beta2},
+    bias2=If[bias2Option===Automatic,bias,bias2Option];
+    beta2=If[beta2Option===Automatic,beta,beta2Option];
+    Options[name]^={ "bias"->bias,"beta"->beta,"bias2"->bias,"beta2"->beta2,"sigL"->sigL,"sigT"->sigT,"sigS"->sigS,"\[Alpha]L"->\[Alpha]L,"\[Alpha]T"->\[Alpha]T };
+    redshiftSpaceDistortion[name]^=Function[{k,mu},Evaluate[Simplify[bias bias2(1+beta mu^2)(1+beta2 mu^2)]]];
     nonlinearDistortion[name]^=Function[{k,mu},Evaluate[Simplify[
         Exp[-(mu^2 sigL^2+(1-mu^2)sigT^2)k^2/2]/(1+(mu sigS k)^2)^2]]];
     transformedCoordinates[name]^=Function[{k,mu},Evaluate[PowerExpand[Simplify[
         With[{\[Alpha]=Sqrt[\[Alpha]L^2 mu^2 + \[Alpha]T^2 (1-mu^2)]},{\[Alpha] k,\[Alpha]L/\[Alpha] mu}]]]]];
-]
+]]
 SetAttributes[createDistortionModel,HoldFirst]
 Options[createDistortionModel]={
-    "bias"->1,"beta"->0,"sigL"->0,"sigT"->0,"sigS"->0,"\[Alpha]L"->1,"\[Alpha]T"->1
+    "bias"->1,"beta"->0,"bias2"->Automatic,"beta2"->Automatic,"sigL"->0,"sigT"->0,"sigS"->0,"\[Alpha]L"->1,"\[Alpha]T"->1
 };
 
 
