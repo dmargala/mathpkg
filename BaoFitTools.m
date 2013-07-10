@@ -170,7 +170,7 @@ of the 3D binned data associated with the specified tag. The following options a
       redshift of first data point).
     - gammaBias: exponent of (1+z)/(1+zref) used to adjust data at z (default is 3.8).
     - verbose: print verbose output (default is True).
-Returns {pvec,pcov,chisq,ndof,prob} where pvec is the vector of multipole parameters xi(ell,r(k))
+Returns {pvec,pcov,chisq,ndof,prob,lgrid} where pvec is the vector of multipole parameters xi(ell,r(k))
 with the ell index increasing fastest, then r(k) in rgrid, and pcov is the corresponding
 covariance matrix. chisq is the chisq value corresponding to the best fit of tag[\"DATA\"]
 represented by pvec, assuming data inverse covariance tag[\"ICOV\"].";
@@ -470,9 +470,10 @@ y(x-xm) = y(x+xp) = y+level for each level in errorLevels. *)
 findMinimumAndErrors[xgrid_,ygrid_,OptionsPattern[findMinimumAndErrors]]:=
 With[{
   errorLevels=OptionValue["errorLevels"],
-  showPlot=OptionValue["showPlot"]
+  showPlot=OptionValue["showPlot"],
+  y0Option=OptionValue["y0"]
 },
-Module[{f,x0,x,goal,min,xmin,ymin,roots},
+Module[{f,x0,x,goal,min,xmin,ymin,y0,roots},
   (* Is either endpoint a minimum ? *)
   If[ygrid[[1]]==Min[ygrid],Return[{xgrid[[1]],ygrid[[1]]}]];
   If[ygrid[[-1]]==Min[ygrid],Return[{xgrid[[-1]],ygrid[[-1]]}]];
@@ -481,16 +482,17 @@ Module[{f,x0,x,goal,min,xmin,ymin,roots},
   (* Find the minimum on the grid *)
   x0=xgrid[[First[Ordering[ygrid,1]]]];
   (* Find the interpolated minimum *)
-  goal=4-Floor[Log[10,Max[xgrid]-Min[xgrid]]];
+  goal=6-Floor[Log[10,Max[xgrid]-Min[xgrid]]];
   Quiet[
     min=FindMinimum[f[x],{x,x0,xgrid[[1]],xgrid[[-1]]},AccuracyGoal->goal,PrecisionGoal->1],
     {FindMinimum::lstol}
   ];
   {xmin,ymin}={x/.min[[2]],min[[1]]};
+  y0=If[y0Option===Automatic,ymin,y0Option];
   roots=Table[
     {
-      xmin-(x/.First[FindRoot[f[x]==ymin+level,{x,(Min[xgrid]+xmin)/2,Min[xgrid],xmin}]]),
-      (x/.First[FindRoot[f[x]==ymin+level,{x,(Max[xgrid]+xmin)/2,xmin,Max[xgrid]}]])-xmin,
+      xmin-(x/.First[FindRoot[f[x]==y0+level,{x,(Min[xgrid]+xmin)/2,Min[xgrid],xmin}]]),
+      (x/.First[FindRoot[f[x]==y0+level,{x,(Max[xgrid]+xmin)/2,xmin,Max[xgrid]}]])-xmin,
       level
     },
     {level,errorLevels}
@@ -505,15 +507,16 @@ Module[{f,x0,x,goal,min,xmin,ymin,roots},
         Point[Map[{xmin+##[[1]],ymin+##[[2]]}&,roots[[;;,{2,3}]]]]
       }]
     }]];
-    Print["min(y) = ",ymin," at x0 = ",xmin];
+    Print["min(y) = ",y0," at x0 = ",xmin];
     Do[
-      Print["dy = ",roots[[k,3]]," at x = x0 - ",roots[[k,1]]," and x0 + ",roots[[k,2]]],
+      Print["dy = ",roots[[k,3]]," at x = ",xmin-roots[[k,1]]," and ",xmin+roots[[k,2]],
+        " or x = ",x0+(roots[[k,2]]-roots[[k,1]])/2," +/- ",(roots[[k,2]]+roots[[k,1]])/2],
       {k,Length[roots]}
     ];
   ];
   {xmin,ymin}
 ]]
-Options[findMinimumAndErrors]={"errorLevels"->{}, "showPlot"->False};
+Options[findMinimumAndErrors]={"errorLevels"->{}, "showPlot"->False,"y0"->Automatic};
 
 
 scan1D[f_,x1r_,x2r_,ngrid_,levels_]:=
@@ -527,9 +530,9 @@ Module[{x1grid,x2grid,fgrid,curves,x1min,x2min},
   },{i,ngrid}
   ]];
   x1min=findMinimumAndErrors[curves[[1,;;,1]],curves[[1,;;,3]],
-    errorLevels->levels,showPlot->True];
+    errorLevels->levels,showPlot->True,y0->0];
   x2min=findMinimumAndErrors[curves[[2,;;,1]],curves[[2,;;,3]],
-    errorLevels->levels,showPlot->True];
+    errorLevels->levels,showPlot->True,y0->0];
   curves
 ]
 
@@ -591,7 +594,7 @@ Module[{s,styles,xr,yr,f,curves},
 Options[fitContoursPlot]={
   "levels"->gaussianChiSquareContourLevel[{0.68,0.95,0.997},2],
   "xRange"->Automatic,"yRange"->Automatic,"styles"->Automatic,"scan1D"->True,
-  "plot1D"->False,"n1D"->40,"levels1D"->{1,2}
+  "plot1D"->False,"n1D"->40,"levels1D"->{1,4}
 };
 
 
