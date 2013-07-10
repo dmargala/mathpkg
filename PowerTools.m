@@ -180,11 +180,6 @@ Clear[sbTransformWork]
 sbTransformWork[plfunc_,rmin_,rmax_,ell_,veps_,verbose_]:=
 Module[{nsf,dsf,kr,k0,r0,nsg,ntot,n,\[Alpha],fdata,fnorm,gdata,fgdata,rgrid,xigrid,rzoom,xizoom,popts},
 {nsf,dsf}=getndsf[veps,ell];
-(*eps=epsApprox[veps,ell];
-ndsf=nds[ell,eps,True];
-dsfmax=Min[ds[ell,eps],Log[10]/40];
-nsf=Ceiling[ndsf/dsfmax];
-dsf=ndsf/nsf;*)
 kr=kr0[ell]//N;
 r0=Sqrt[rmin rmax];
 k0=kr/r0;
