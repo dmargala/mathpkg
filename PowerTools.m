@@ -50,6 +50,10 @@ transformedCoordinates::usage=
 "transformedCoordinates[name][k,mu] returns the transformed coordinates {k',mu'}.";
 
 
+distortionMultipole::usage=
+"distortionMultipole[model,k,ell] calculates the specified multipole of the specified distortion model at the specified k.";
+
+
 sbTransform::usage=
 "sbTransform[plfunc,rmin,rmax,ell,veps] calculates the spherical Bessel transform
 of the specified function for multipole ell. Returns an interpolating function
@@ -119,6 +123,10 @@ SetAttributes[createDistortionModel,HoldFirst]
 Options[createDistortionModel]={
     "bias"->1,"beta"->0,"bias2"->Automatic,"beta2"->Automatic,"sigL"->0,"sigT"->0,"sigS"->0,"\[Alpha]L"->1,"\[Alpha]T"->1
 };
+
+
+distortionMultipole[name_,k_,ell_]:=
+  (2 ell+1)/2 NIntegrate[redshiftSpaceDistortion[name][k,mu]nonlinearDistortion[name][k,mu]LegendreP[ell,mu],{mu,-1,+1}]
 
 
 epsApprox[veps_,ell_]:=
