@@ -32,8 +32,6 @@ Separate help is available for each of these definitions. Use the following opti
  - sigL (0) longitudinal component of non-linear broadening sigma
  - sigT (0) transverse component of non-linear broadening sigma
  - sigS (0) fingers of god sigma
- - \[Alpha]L   (1) rescaling of (k,\[Mu]) along \[Mu]=1 axis
- - \[Alpha]T   (1) rescaling of (k,\[Mu]) along \[Mu]=0 axis
 Use OptionValue[name,opt] to get option values associated with a named distortion model.
 To clear a previously defined model, use Clear[name].";
 
@@ -44,10 +42,6 @@ redshiftSpaceDistortion::usage=
 
 nonlinearDistortion::usage=
 "nonlinearDistortion[model][k,mu] calculates the non-linear distortion factor.";
-
-
-transformedCoordinates::usage=
-"transformedCoordinates[name][k,mu] returns the transformed coordinates {k',mu'}.";
 
 
 projectMultipole::usage=
@@ -123,9 +117,7 @@ With[{
     beta2Option=OptionValue["beta2"],
     sigL=OptionValue["sigL"],
     sigT=OptionValue["sigT"],
-    sigS=OptionValue["sigS"],
-    \[Alpha]L=OptionValue["\[Alpha]L"],
-    \[Alpha]T=OptionValue["\[Alpha]T"]
+    sigS=OptionValue["sigS"]
 },
 Module[{bias2,beta2},
     Clear[name];
@@ -135,8 +127,6 @@ Module[{bias2,beta2},
     redshiftSpaceDistortion[name]^=Function[{k,mu},Evaluate[Simplify[bias bias2(1+beta mu^2)(1+beta2 mu^2)]]];
     nonlinearDistortion[name]^=Function[{k,mu},Evaluate[Simplify[
         Exp[-(mu^2 sigL^2+(1-mu^2)sigT^2)k^2/2]/(1+(mu sigS k)^2)^2]]];
-    transformedCoordinates[name]^=Function[{k,mu},Evaluate[PowerExpand[Simplify[
-        With[{\[Alpha]=Sqrt[\[Alpha]L^2 mu^2 + \[Alpha]T^2 (1-mu^2)]},{\[Alpha] k,\[Alpha]L/\[Alpha] mu}]]]]];
 ]]
 SetAttributes[createDistortionModel,HoldFirst]
 Options[createDistortionModel]={
