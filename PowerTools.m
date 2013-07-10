@@ -54,6 +54,11 @@ distortionMultipole::usage=
 "distortionMultipole[model,k,ell] calculates the specified multipole of the specified distortion model at the specified k.";
 
 
+distortionMultipoleFunction::usage=
+"distortionMultipoleFunction[model,kmin,kmax,ell,nPtsPerDecade] returns an interpolated function for kmin < k < kmax for the
+specified distortion model multipole.";
+
+
 sbTransform::usage=
 "sbTransform[plfunc,rmin,rmax,ell,veps] calculates the spherical Bessel transform
 of the specified function for multipole ell. Returns an interpolating function
@@ -110,6 +115,7 @@ With[{
     \[Alpha]T=OptionValue["\[Alpha]T"]
 },
 Module[{bias2,beta2},
+    Clear[name];
     bias2=If[bias2Option===Automatic,bias,bias2Option];
     beta2=If[beta2Option===Automatic,beta,beta2Option];
     Options[name]^={ "bias"->bias,"beta"->beta,"bias2"->bias,"beta2"->beta2,"sigL"->sigL,"sigT"->sigT,"sigS"->sigS,"\[Alpha]L"->\[Alpha]L,"\[Alpha]T"->\[Alpha]T };
@@ -126,7 +132,21 @@ Options[createDistortionModel]={
 
 
 distortionMultipole[name_,k_,ell_]:=
-  (2 ell+1)/2 NIntegrate[redshiftSpaceDistortion[name][k,mu]nonlinearDistortion[name][k,mu]LegendreP[ell,mu],{mu,-1,+1}]
+  (2 ell+1)/2 NIntegrate[redshiftSpaceDistortion[name][k,mu]nonlinearDistortion[name][k,mu]LegendreP[ell,mu],{mu,-1,+1},AccuracyGoal->12]
+
+
+distortionMultipoleFunction[name_,kmin_,kmax_,ell_,nPerDecade_]:=
+Module[{nk,dk,k,pts,interpolator},
+  nk=Max[10,Ceiling[Log[10,kmax/kmin]nPerDecade]];
+  dk=(kmax/kmin)^(1/(nk-1));
+  pts=Table[
+    k=kmin dk^(i-1);
+    {Log[k],distortionMultipole[name,k,ell]},
+    {i,nk}
+  ];
+  interpolator=Interpolation[pts];
+  Function[k,interpolator[Log[k]]]
+]
 
 
 epsApprox[veps_,ell_]:=
