@@ -68,6 +68,11 @@ sbTransform[plfunc,rmin,rmax,ell,veps,True] displays the k range and
 sampling that is being used, which can be useful in building a suitable plfunc.";
 
 
+createCorrelationFunction::usage=
+"createCorrelationFunction[linearPower,rmin,rmax] returns a function of (r,mu) that evaluates the correlation function
+corresponding to the specified linear theory power spectrum.";
+
+
 Begin["Private`"]
 
 
@@ -252,6 +257,28 @@ Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator,callback,d
 ]]
 Options[sbTransform]={
 "verbose"->False,"distortion"->None,"distortionSampling"->5
+};
+
+
+createCorrelationFunction[linearPower_,rmin_,rmax_,OptionsPattern[]]:=
+With[{
+  verboseOption=OptionValue["verbose"],
+  lmaxOption=OptionValue["lmax"],
+  distortionOption=OptionValue["distortion"],
+  distortionSamplingOption=OptionValue["distortionSampling"],
+  vepsOption=OptionValue["veps"]
+},
+Module[{lvec,xi},
+  lvec=Range[0,lmaxOption,2];
+  xi=Table[
+    sbTransform[linearPower,rmin,rmax,ell,vepsOption,
+      "distortion"->distortionOption,"distortionSampling"->distortionSamplingOption,"verbose"->verboseOption],
+    {ell,lvec}
+  ];
+  Function[{r,mu},Sum[xi[[j]][r]LegendreP[lvec[[j]],mu],{j,Length[lvec]}]]
+]]
+Options[createCorrelationFunction]={
+  "verbose"->False,"lmax"->4,"distortion"->None,"distortionSampling"->5,"veps"->0.001
 };
 
 
