@@ -230,12 +230,19 @@ xigrid=fgdata (rgrid/r0)^(-\[Alpha])/dsf;
 Clear[sbTransform]
 sbTransform[plfunc_,rmin_,rmax_,ell_,veps_,OptionsPattern[]]:=
 With[{
-  verboseOption=OptionValue["verbose"]
+  verboseOption=OptionValue["verbose"],
+  distortionOption=OptionValue["distortion"],
+  distortionSamplingOption=OptionValue["distortionSampling"]
 },
-Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator,callback},
+Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator,callback,distortion},
   callback=Function[{kmin,kmax,nk},
     If[verboseOption===True,Print[kmin " \[LessEqual] k \[LessEqual] ",kmax," is covered with ",nk," samples (",nk/Log[kmax/kmin]," per logint)."]];
-    plfunc
+    If[distortionOption===None,
+      plfunc,
+      If[verboseOption===True,Print["Sampling distortion model at ",distortionSamplingOption," points per decade."]];
+      distortion=distortionMultipoleFunction[distortionOption,kmin,kmax,ell,distortionSamplingOption];
+      Function[k,plfunc[k]distortion[k]]
+    ]
   ];
   {fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[callback,rmin,rmax,ell,veps,verboseOption];
   rzoom=rgrid[[nsf+1;;-nsf-1]];
@@ -244,7 +251,7 @@ Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator,callback},
   Function[r,interpolator[Log[r]]]
 ]]
 Options[sbTransform]={
-"verbose"->False
+"verbose"->False,"distortion"->None,"distortionSampling"->5
 };
 
 
