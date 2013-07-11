@@ -117,20 +117,22 @@ With[{
     beta2Option=OptionValue["beta2"],
     sigL=OptionValue["sigL"],
     sigT=OptionValue["sigT"],
-    sigS=OptionValue["sigS"]
+    sigS=OptionValue["sigS"],
+    multipoleRescalingOption=OptionValue["multipoleRescaling"]
 },
 Module[{bias2,beta2},
     Clear[name];
     bias2=If[bias2Option===Automatic,bias,bias2Option];
     beta2=If[beta2Option===Automatic,beta,beta2Option];
-    Options[name]^={ "bias"->bias,"beta"->beta,"bias2"->bias,"beta2"->beta2,"sigL"->sigL,"sigT"->sigT,"sigS"->sigS,"\[Alpha]L"->\[Alpha]L,"\[Alpha]T"->\[Alpha]T };
+    Options[name]^={ "bias"->bias,"beta"->beta,"bias2"->bias,"beta2"->beta2,"sigL"->sigL,"sigT"->sigT,"sigS"->sigS };
     redshiftSpaceDistortion[name]^=Function[{k,mu},Evaluate[Simplify[bias bias2(1+beta mu^2)(1+beta2 mu^2)]]];
     nonlinearDistortion[name]^=Function[{k,mu},Evaluate[Simplify[
         Exp[-(mu^2 sigL^2+(1-mu^2)sigT^2)k^2/2]/(1+(mu sigS k)^2)^2]]];
+    multipoleRescaling[name]^=multipoleRescalingOption;
 ]]
 SetAttributes[createDistortionModel,HoldFirst]
 Options[createDistortionModel]={
-    "bias"->1,"beta"->0,"bias2"->Automatic,"beta2"->Automatic,"sigL"->0,"sigT"->0,"sigS"->0,"\[Alpha]L"->1,"\[Alpha]T"->1
+    "bias"->1,"beta"->0,"bias2"->Automatic,"beta2"->Automatic,"sigL"->0,"sigT"->0,"sigS"->0,"multipoleRescaling"->None
 };
 
 
@@ -142,12 +144,15 @@ With[{
   nPtsPerDecade=OptionValue["nPtsPerDecade"],
   padFraction=OptionValue["padFraction"]
 },
-Module[{nk,dk,k,pts,interpolator},
+Module[{index,rescale,nk,dk,k,pts,interpolator},
+  index=1+ell/2;
+  rescale=Which[multipoleRescaling[name]===None,1,index<=Length[multipoleRescaling[name]],multipoleRescaling[name][[index]],True,1];
+  Print["using rescale = ",rescale," for ell = ",ell];
   nk=Max[10,Ceiling[Log[10,kmax/kmin]nPtsPerDecade]];
   dk=padFraction^2(kmax/kmin)^(1/(nk-1));
   pts=Table[
     k=(kmin/padFraction) dk^(i-1);
-    {Log[k],projectMultipole[redshiftSpaceDistortion[name][k,##]nonlinearDistortion[name][k,##]&,ell]},
+    {Log[k],projectMultipole[rescale redshiftSpaceDistortion[name][k,##] nonlinearDistortion[name][k,##]&,ell]},
     {i,nk}
   ];
   interpolator=Interpolation[pts];
