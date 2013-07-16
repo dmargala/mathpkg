@@ -50,20 +50,24 @@ createCosmology::usage=
  - zdrag[name]
  - betas[name][z]
 Separate help is available for each of these definitions, e.g., ?\[CapitalOmega]rad.
-Use the following options (defaults in parentheses) to customize the
+Use the following options (defaults in parentheses from Planck+WP column of Table 2
+in Planck 2013 results paper or CAMB July 2013 params.ini) to customize the
 created cosmology:
- - h (0.7) H0/(100 km/s/Mpc).
- - \[CapitalOmega]\[CapitalLambda] (0.73) present-day fraction of dark energy.
- - \[CapitalOmega]bh2 (0.0227) present-day physical baryon fraction.
+ - h (0.6704) H0/(100 km/s/Mpc).
+ - \[CapitalOmega]m (0.3183) present-day fraction of matter.
+ - \[CapitalOmega]\[CapitalLambda] (Automatic) present-day fraction of dark energy.
+ - \[CapitalOmega]bh2 (0.022032) present-day physical baryon fraction.
  - w0 (-1) dark-energy equation parameter state present-day value.
  - wa (0) dark-energy equation of state parameter derivative wrt scale a.
  - \[CapitalOmega]k (0) present-day curvature fraction.
- - Tcmb (2.725) present-day CMB temperature in Kelvin.
+ - Tcmb (2.7255) present-day CMB temperature in Kelvin.
  - Nnu (3.046) effective number of massless neutrinos.
- - ns (0.972) scalar primordial power spectral index.
- - amps (2.41e-9) scalar primordial power amplitude.
- - kpivot (0.002/Mpc) pivot wavenumber used to define primordial scalar power.
- - retau (0.089) optical depth to reionization.
+ - ns (0.9619) scalar primordial power spectral index.
+ - amps (2.20e-9) scalar primordial power amplitude.
+ - kpivot (0.05/Mpc) pivot wavenumber used to define primordial scalar power.
+ - retau (0.0925) optical depth to reionization.
+ - YP (0.247695) Helimum fraction.
+ - mnu (0.06) Mass of single massive neutrino species in eV.
 Use OptionValue[name,opt] to get option values associated with a named
 cosmology. To clear a previously defined cosmology, use Clear[name]. Use
 the name provided here to identify the created cosmology in functions
@@ -254,11 +258,13 @@ With[{
     amps=OptionValue["amps"],
     kpivot=OptionValue["kpivot"],
     retau=OptionValue["retau"],
-	YP=OptionValue["YP"]
+	YP=OptionValue["YP"],
+    mnu=OptionValue["mnu"]
 },
 Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
-        "Tcmb"->Tcmb,"Nnu"->Nnu,"ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
+        "Tcmb"->Tcmb,"Nnu"->Nnu,"ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau,"YP"->YP,
+        "mnu"->mnu };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu]/criticalDensityToday[h](1+z)^4]]];
 	name/: \[CapitalOmega]photons[name]=Function[z,Evaluate[Simplify[photonDensity[Tcmb]/criticalDensityToday[h](1+z)^4]]];
     \[CapitalOmega]mval=If[\[CapitalOmega]m===Automatic,1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]m];
@@ -286,9 +292,9 @@ Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
 ]]
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
-    "h"->0.7,"\[CapitalOmega]\[CapitalLambda]"->0.73,"\[CapitalOmega]m"->Automatic,"\[CapitalOmega]bh2"->0.0227,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
-    "Tcmb"->2.72548,"Nnu"->3.03761,"ns"->0.972,"amps"->(2.41*10^-9),"kpivot"->0.002,
-    "retau"->0.089,"YP"->0.24
+    "h"->0.6704,"\[CapitalOmega]\[CapitalLambda]"->Automatic,"\[CapitalOmega]m"->0.3183,"\[CapitalOmega]bh2"->0.022032,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
+    "Tcmb"->2.7255,"Nnu"->3.046,"ns"->0.9619,"amps"->(2.215*10^-9),"kpivot"->0.05,
+    "retau"->0.0925,"YP"->0.247695,"mnu"->0.06
 };
 
 
