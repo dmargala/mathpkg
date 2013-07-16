@@ -789,7 +789,7 @@ Module[{vec,zval,points,rTmax,rPmax,rPmin,range,zmin,zmax,gridOptions,regionFunc
         InterpolationOrder->0,PlotRange->{{0,rTmax},{Min[0,rPmin],rPmax},range},
         LabelStyle->Medium,ColorFunctionScaling->False,
         ColorFunction->(temperatureMap[(##-zmin)/(zmax-zmin)]&),
-        FrameLabel->{"\!\(\*SubscriptBox[\(r\), \(\[Perpendicular]\)]\)(Mpc/h)","\!\(\*SubscriptBox[\(r\), \(||\)]\)(Mpc/h)"}
+        FrameLabel->{"\!\(\*SubscriptBox[\(r\), \(\[Perpendicular]\)]\)(Mpc/h)","\!\(\*SubscriptBox[\(r\), \(\[LeftDoubleBracketingBar]\)]\)(Mpc/h)"}
     ]
 ]]
 Options[fitDensityPlot]={"rpow"->0,"zindex"->1,"key"->"PRED","vector"->None,"grid"->Automatic,"rmin"->None,"rmax"->None};
