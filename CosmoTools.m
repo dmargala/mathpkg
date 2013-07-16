@@ -9,32 +9,32 @@ BeginPackage["DeepZot`CosmoTools`",{"Units`","PhysicalConstants`"}]
 
 
 CosmoTools::usage=
-"A collection of utilities for cosmological calculations."
+"A collection of utilities for cosmological calculations.";
 
 
 criticalDensityToday::usage=
-"criticalDensityToday[hValue] calcualtes the present critical density in J/m^3."
+"criticalDensityToday[hValue] calcualtes the present critical density in J/m^3.";
 
 
 radiationDensity::usage=
 "radiationDensity[Tcmb,Nnu] calculates the Stefan-Boltzmann radiation energy density
-in J/m^3 for a CMB temperature Tcmb in Kelvin and Nnu massless neutrinos."
+in J/m^3 for a CMB temperature Tcmb in Kelvin and Nnu massless neutrinos.";
 
 
 zstar::usage=
 "zstar[\[CapitalOmega]mh2,\[CapitalOmega]bh2] calculates the redshift of last scattering using equation (E-1)
-of Hu & Sugiyama 1996 (astro-ph/9510117)."
+of Hu & Sugiyama 1996 (astro-ph/9510117).";
 
 
 zeq::usage=
 "zeq[\[CapitalOmega]mh2,Tcmb] calculates the redshift of matter-radiation equality using equation (2)
-of Eistenstein & Hu 1998 (astro-ph/9709112)."
+of Eistenstein & Hu 1998 (astro-ph/9709112).";
 
 
 zdrag::usage=
 "zdrag[\[CapitalOmega]mh2,\[CapitalOmega]bh2] calculates the redshift at which the baryon-photon fluid separates,
 defined as the moment when the Compton drag experienced by the baryons falls below
-some threshold, using equation (4) of Eistenstein & Hu 1998 (astro-ph/9709112)."
+some threshold, using equation (4) of Eistenstein & Hu 1998 (astro-ph/9709112).";
 
 
 createCosmology::usage=
@@ -67,53 +67,58 @@ created cosmology:
 Use OptionValue[name,opt] to get option values associated with a named
 cosmology. To clear a previously defined cosmology, use Clear[name]. Use
 the name provided here to identify the created cosmology in functions
-like comovingDistanceFunction."
+like comovingDistanceFunction.";
 
 
 exportToCamb::usage=
 "exportToCamb[filename,name] writes the parameters of the named cosmology to the
-specified filename in CAMB input format."
+specified filename in CAMB input format.";
 
 
 \[CapitalOmega]rad::usage=
-"\[CapitalOmega]rad[name][z] returns the radiation energy density relative to the critical density at the specified redshift."
+"\[CapitalOmega]rad[name][z] returns the radiation energy density relative to the critical density
+at the specified redshift.";
 
 
 \[CapitalOmega]photons::usage=
-"\[CapitalOmega]photons[name][z] returns the photon energy density relative to the critical density at the specified redshift."
+"\[CapitalOmega]photons[name][z] returns the photon energy density relative to the critical density
+at the specified redshift.";
 
 
 \[CapitalOmega]de::usage=
-"\[CapitalOmega]de[name][z] returns the dark-energy density relative to the critical density at the specified redshift."
+"\[CapitalOmega]de[name][z] returns the dark-energy density relative to the critical density at
+the specified redshift.";
 
 
 \[CapitalOmega]mat::usage=
-"\[CapitalOmega]mat[name][z] returns the matter energy density relative to the critical density at the specified redshift."
+"\[CapitalOmega]mat[name][z] returns the matter energy density relative to the critical density at
+the specified redshift.";
 
 
 H0::usage=
-"H0[name] returns H0 in (km/s)/Mpc."
+"H0[name] returns H0 in (km/s)/Mpc.";
 
 
 Hratio::usage=
-"Hratio[name][z] returns H(z)/H0."
+"Hratio[name][z] returns H(z)/H0.";
 
 
 hubbleDistance::usage=
-"hubbleDistance[name] returns the Hubble distance c/H0 in Mpc (not Mpc/h)."
+"hubbleDistance[name] returns the Hubble distance c/H0 in Mpc (not Mpc/h).";
 
 
 curvatureTransform::usage=
 "curvatureTransform[name][x] returns the comoving transverse distance DM corresponding to the
-scaled comoving line-of-sight distance x = DC/(c/H0)."
+scaled comoving line-of-sight distance x = DC/(c/H0).";
 
 
 primordialPower::usage=
-"primordialPower[name][k] returns the primordial power P(k) in 1/Mpc for k in 1/Mpc."
+"primordialPower[name][k] returns the primordial power P(k) in 1/Mpc for k in 1/Mpc.";
 
 
 betas::usage=
-"betas[name][z] returns the sound speed in the bayron-photon fluid relative to the speed of light."
+"betas[name][z] returns the sound speed in the bayron-photon fluid relative to the
+speed of light.";
 
 
 comovingDistanceFunction::usage=
@@ -122,30 +127,30 @@ along the line of sight to a redshift z <= zmax for the named cosmology. Possibl
 defaults in parentheses) are:
  - physical (False) units are Mpc (True) or Mpc/h (False).
  - inverted (False) return inverse function z(Dc) instead of Dc(z) when True.
- - pointsPerDecade (20) number of interpolation points to use per decade."
+ - pointsPerDecade (20) number of interpolation points to use per decade.";
 
 
 transverseDistanceFunction::usage=
 "transverseDistanceFunction[cosmology,zmax] returns a function that evaluates the comoving distance
 transverse to the line of sight at a redshift z <= zmax for the named cosmology. Options are the same
-as for comovingDistanceFunction."
+as for comovingDistanceFunction.";
 
 
 angularDiameterDistanceFunction::usage=
 "angularDiameterDistanceFunction[cosmology,zmax] returns a function that evaluates the
 angular diameter distance to a redshift z <= zmax for the named cosmology. Options are the same
-as for comovingDistanceFunction."
+as for comovingDistanceFunction.";
 
 
 luminosityDistanceFunction::usage=
 "angularDiameterDistanceFunction[cosmology,zmax] returns a function that evaluates the
 luminosity distance to a redshift z <= zmax for the named cosmology. Options are the same
-as for comovingDistanceFunction."
+as for comovingDistanceFunction.";
 
 
 ageOfUniverse::usage=
 "ageOfUniverse[cosmology] returns the age of the universe in Gyr for the named cosmology.
-The result is cached after first evaluation."
+The result is cached after first evaluation.";
 
 
 lookbackTimeFunction::usage=
@@ -153,33 +158,35 @@ lookbackTimeFunction::usage=
 to a redshift z <= zmax for the named cosmology. Possible options are:
  - physical (True) units Gyr (True) or Gyr/h (False).
  - pointsPerDecade (20) number of interpolation points to use per decade.
- - inverted (False) return inverse function z(tLB) instead of tLB(z) when True."
+ - inverted (False) return inverse function z(tLB) instead of tLB(z) when True.";
 
 
 conformalTimeFunction::usage=
 "conformalTimeFunction[cosmology,zmax] returns a function that evaluates the conformal time
-at redshift z <= zmax for the named cosmology. Options are the same as for lookbackTimeFunction."
+at redshift z <= zmax for the named cosmology. Options are the same as for
+lookbackTimeFunction.";
 
 
 soundHorizonFunction::usage=
 "soundHorizonFunction[cosmology,zmax] returns a function that evaluates the sound horizon at
-redshift z <= zmax for the named cosmology. Options are the same as for comovingDistanceFunction."
+redshift z <= zmax for the named cosmology. Options are the same as for
+comovingDistanceFunction.";
 
 
 rsdrag::usage=
 "rsdrag[cosmology] returns the sound horizon in Mpc (not Mpc/h) at zdrag for the named cosmology.
-The result is cached after the first evaluation."
+The result is cached after the first evaluation.";
 
 
 recombinationXe::usage=
 "recombinationXe[cosmology,zmin,zmax] returns a 2 functions that evaluate the free electron fraction
 (relative to Hydrogen nuclei) and the matter temperature respectively at redshift zmin <= z <= zmax 
-for the named cosmology."
+for the named cosmology.";
 
 
 \[Tau]b::usage=
 "\[Tau]b[cosmology,xe,zd,zmin] calculates the baryon drag optical depth to redshift zd > zmin for 
-the named cosmology and free election function xe."
+the named cosmology and free election function xe.";
 
 
 Begin["Private`"]
