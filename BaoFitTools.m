@@ -861,6 +861,7 @@ fitResidualsMultipole::notdata="Can only project modes for key -> \"DATA\".";
 fitResidualsMultipole[tag_,OptionsPattern[fitResidualsMultipole]]:=
 With[{
   ell=OptionValue["ell"],
+  muValue=OptionValue["mu"],
   zindex=OptionValue["zindex"],
   keyOption=OptionValue["key"],
   projectOutModesOption=OptionValue["projectOutModes"]
@@ -887,7 +888,10 @@ Module[{zval,wgtfunc,wgts,indices,rvec,xivec,cov,sigvec},
   indices=binSlice[tag,{_,_,zval},"USER"];
   rvec=Union[tag["USER"][[;;,1]][[indices]]];
   (* Calculate the weight to give each bin based on its (r,l,z) values *)
-  wgtfunc=Function[{r1,r2,ll,zz},If[{r1,ell,zval}=={r2,ll,zz},1.,0.]];
+  wgtfunc=If[muValue===None,
+    Function[{r1,r2,ll,zz},If[{r1,ell,zval}=={r2,ll,zz},1.,0.]],
+    Function[{r1,r2,ll,zz},If[{r1,zval}=={r2,zz},LegendreP[ll,muValue],0.]]
+  ];
   wgts=Table[Apply[wgtfunc[r,##]&,tag["USER"],1],{r,rvec}];
   (* Get the data vector and covariance *)
   If[projectOutModesOption===None,
@@ -908,7 +912,9 @@ Module[{zval,wgtfunc,wgts,indices,rvec,xivec,cov,sigvec},
   (* Return the corresponding vector of (r,xi,sigma) tuples *)
   Transpose[{rvec,xivec,sigvec}]
 ]]
-Options[fitResidualsMultipole]={"ell"->0,"zindex"->1,"key"->"DATA","projectOutModes"->None};
+Options[fitResidualsMultipole]={
+  "ell"->0,"mu"->None,"zindex"->1,"key"->"DATA","projectOutModes"->None
+};
 
 
 Clear[fitMultipolePlot]
