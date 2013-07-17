@@ -865,7 +865,7 @@ With[{
   keyOption=OptionValue["key"],
   projectOutModesOption=OptionValue["projectOutModes"]
 },
-Module[{zval,indices,rvec,xivec,cov,sigvec},
+Module[{zval,wgtfunc,wgts,indices,rvec,xivec,cov,sigvec},
   (* Check for a valid residuals tag *)
   If[!ValueQ[tag["ZVEC"]||!ValueQ[tag["USER"]]||!ValueQ[tag[keyOption]]],
     Message[fitResidualsMultipole::badtag,ToString[tag]];
@@ -882,22 +882,29 @@ Module[{zval,indices,rvec,xivec,cov,sigvec},
       Return[$Failed]
     ];
   ];
-  (* Lookup the dataset indices for the specified ell,z *)
+  (* Lookup the r values available for the specified redshift *)
   zval=tag["ZVEC"][[zindex]];
-  indices=binSlice[tag,{_,N[ell],zval},"USER"];
-  rvec=tag["USER"][[;;,1]][[indices]];
+  indices=binSlice[tag,{_,_,zval},"USER"];
+  rvec=Union[tag["USER"][[;;,1]][[indices]]];
+  (* Calculate the weight to give each bin based on its (r,l,z) values *)
+  wgtfunc=Function[{r1,r2,ll,zz},If[{r1,ell,zval}=={r2,ll,zz},1.,0.]];
+  wgts=Table[Apply[wgtfunc[r,##]&,tag["USER"],1],{r,rvec}];
+  (* Get the data vector and covariance *)
   If[projectOutModesOption===None,
     (* Get the data vector for this slice *)
-    xivec=tag[keyOption][[indices]];
+    xivec=tag[keyOption];
     (* Assign the errors for this slice *)
-    sigvec=If[keyOption==="DATA",tag["ERROR"][[indices]],ConstantArray[0.,Length[rvec]]],
+    cov=If[keyOption==="DATA",Inverse[tag["ICOV"]],ConstantArray[0.,{Length[rvec],Length[rvec]}]],
     (* Project out the data for this slice *)
-    xivec=fitProjectedData[tag,projectOutModesOption][[indices]];
+    xivec=fitProjectedData[tag,projectOutModesOption];
     (* Project out the covariance for this slice, removing the modes completely *)
-    cov=fitProjectedCovariance[tag,projectOutModesOption,0.][[indices,indices]];
-    (* Calculate the projected diagonal errors *)
-    sigvec=Sqrt[Diagonal[cov]];
+    cov=fitProjectedCovariance[tag,projectOutModesOption,0.];
   ];
+  (* Apply the weights to get the final numbers for each r value *)
+  xivec=wgts.xivec;
+  cov=wgts.cov.Transpose[wgts];
+  (* Calculate the diagonal errors *)
+  sigvec=Sqrt[Diagonal[cov]];
   (* Return the corresponding vector of (r,xi,sigma) tuples *)
   Transpose[{rvec,xivec,sigvec}]
 ]]
