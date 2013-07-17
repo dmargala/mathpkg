@@ -1005,9 +1005,8 @@ Module[{curves,points,pstyles,rvec,rpad,rmin,rmax,wgt,yvec,usepos,range,spread,l
       "\*SubscriptBox[\[Xi],"<>ToString[ellOption]<>"](r)"
   };
   Show[{
-    createFrame[Plot,{rmin,rmax},range,
-      FrameLabel->labels,Axes->{True,False},AxesOrigin->{0,0},
-      FilterRules[{options},Options[ListPlot]]],
+    createFrame[Plot,{rmin,rmax},range,FilterRules[{options},Options[ListPlot]],
+      FrameLabel->labels,Axes->{True,False},AxesOrigin->{0,0}],
     (* plot each curve *)
     If[curves===None,{},ListPlot[curves,Joined->True,PlotStyle->curvesStyleOption]],
     (* plot points for each set of data *)
