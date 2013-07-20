@@ -49,6 +49,7 @@ createCosmology::usage=
  - zeq[name]
  - zdrag[name]
  - betas[name][z]
+ - nH[name][z]
 Separate help is available for each of these definitions, e.g., ?\[CapitalOmega]rad.
 Use the following options (defaults in parentheses from Planck+WP column of Table 2
 in Planck 2013 results paper or CAMB July 2013 params.ini) to customize the
@@ -123,6 +124,10 @@ primordialPower::usage=
 betas::usage=
 "betas[name][z] returns the sound speed in the bayron-photon fluid relative to the
 speed of light.";
+
+
+nH::usage=
+"nH[name][z] returns the Hydrogen number density per m^3 at the specified redshift.";
 
 
 comovingDistanceFunction::usage=
@@ -288,7 +293,10 @@ Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     ];
     With[{\[CapitalOmega]\[Gamma]=radiationDensity[Tcmb,0]/criticalDensityToday[h],\[CapitalOmega]b=\[CapitalOmega]bh2/h^2},
         name/: betas[name]=If[\[CapitalOmega]\[Gamma]>0,Function[z,Evaluate[Simplify[1/Sqrt[3(1+(3\[CapitalOmega]b)/(4\[CapitalOmega]\[Gamma])/(1+z))]]]],Indeterminate];
-    ]
+    ];
+    With[{mc2=Convert[PhysicalConstants`ProtonMass PhysicalConstants`SpeedOfLight^2/Joule,1]},
+      name/: nH[name]=Function[z,Evaluate[Simplify[(1-YP)\[CapitalOmega]bh2/h^2 criticalDensityToday[h]/mc2 (1+z)^3]]]
+    ];
 ]]
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
@@ -491,7 +499,7 @@ E2s1sH=1.63403067 10^-18 Units`Joule (* H 2s energy from the ground state *),
 YP=OptionValue[cosmology,"YP"] (* Helium fraction *),
 \[CapitalOmega]b=OptionValue[cosmology,"\[CapitalOmega]bh2"]/OptionValue[cosmology,"h"]^2 (* Baryon Fraction Today *),
 \[Rho]crit=criticalDensityToday[OptionValue[cosmology,"h"]] Units`Joule/Units`Meter^3 (* Critical Density Today *)},
-Module[{z,H,Trad,Tmat,t,\[Rho]b,nb,ne,nH,nHe,xe,\[Alpha]B,\[Beta]B,K,C,TmatRHS},
+Module[{z,H,Trad,Tmat,t,\[Rho]b,nb,ne,nH,nHe,xe,\[Alpha]B,\[Beta]B,K,C,eqns},
 	(* Hubble Rate *)
 	H=H0[cosmology]Hratio[cosmology][z]Convert[(Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),1/Units`Second];
 	(* Radiation Temperature *)
@@ -514,14 +522,16 @@ Module[{z,H,Trad,Tmat,t,\[Rho]b,nb,ne,nH,nHe,xe,\[Alpha]B,\[Beta]B,K,C,TmatRHS},
 	K=\[Lambda]\[Alpha]^3/(8 \[Pi] H);
 	(* Effect of 2 Photon Decay and Redshifting *)
 	C=Simplify[(1+K \[CapitalLambda]2\[Gamma] nH (1-xe[z]))/(1+K (\[CapitalLambda]2\[Gamma] +\[Beta]B )nH(1-xe[z]))];
-	{xe,Tmat}/.Flatten[NDSolve[{
+    (* Simplify the equations to be solved *)
+    eqns={
 		(* Free electron equation *)
 		D[xe[z],z]==Units`Convert[C (xe[z]^2nH \[Alpha]B-\[Beta]B(1-xe[z])Exp[-E2s1sH/(kB Tmat[z] Units`Kelvin)])/((1+z)H),1],
 		(* Matter/Radiation Temperature Relation Eq 5 *)
 		D[Tmat[z],z]==Units`Convert[(8\[Sigma]T Arad Trad^4)/(3(1+z)H  me PhysicalConstants`SpeedOfLight),1]Simplify[ne/(ne+nH+nHe)]*(Tmat[z]-Trad/Units`Kelvin)+2Tmat[z]/(1+z),
 		(*Initial conditions *)
 		xe[zmax]==1,Tmat[zmax]==T0*(1+zmax)/Units`Kelvin
-	},{xe,Tmat},{z,zmin,zmax}]]
+    };
+	{xe,Tmat}/.Flatten[NDSolve[eqns,{xe,Tmat},{z,zmin,zmax}]]
 ]]
 
 
@@ -536,8 +546,11 @@ c=PhysicalConstants`SpeedOfLight,
 YP=OptionValue[cosmology,"YP"],
 h0=H0[cosmology] Convert[(Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),1/Units`Second]
 },
-Convert[(4\[CapitalOmega]\[Gamma])/3(\[Sigma]T(1-YP)\[Rho]crit)/(mp h0 c),1]NIntegrate[(xe[zp](1+zp)^3)/Hratio[cosmology][zp],{zp,zmin,zd}]
-]
+Module[{scale},
+  scale=Convert[(4\[CapitalOmega]\[Gamma])/3(\[Sigma]T(1-YP)\[Rho]crit)/(mp h0 c),1];
+  Print[LogLogPlot[scale (xe[zp](1+zp)^3)/Hratio[cosmology][zp],{zp,zmin,zd}]];
+  scale NIntegrate[(xe[zp](1+zp)^3)/Hratio[cosmology][zp],{zp,zmin,zd}]
+]]
 
 
 End[]
