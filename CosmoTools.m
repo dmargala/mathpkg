@@ -50,6 +50,7 @@ createCosmology::usage=
  - zdrag[name]
  - betas[name][z]
  - nH[name][z]
+ - XeEq[name][z]
 Separate help is available for each of these definitions, e.g., ?\[CapitalOmega]rad.
 Use the following options (defaults in parentheses from Planck+WP column of Table 2
 in Planck 2013 results paper or CAMB July 2013 params.ini) to customize the
@@ -128,6 +129,12 @@ speed of light.";
 
 nH::usage=
 "nH[name][z] returns the Hydrogen number density per m^3 at the specified redshift.";
+
+
+XeEq::usage=
+"XeEq[name][z] returns Xe, the ratio of the free electron to Hydrogen number densities,
+at the specified redshift, calculated assuming that the reaction e- + p <-> H + \[Gamma] remains
+in chemical equilibrium.";
 
 
 comovingDistanceFunction::usage=
@@ -297,6 +304,19 @@ Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     With[{mc2=Convert[PhysicalConstants`ProtonMass PhysicalConstants`SpeedOfLight^2/Joule,1]},
       name/: nH[name]=Function[z,Evaluate[Simplify[(1-YP)\[CapitalOmega]bh2/h^2 criticalDensityToday[h]/mc2 (1+z)^3]]]
     ];
+    With[{
+      eps0=Units`Convert[Units`Rydberg/PhysicalConstants`BoltzmannConstant/Kelvin,1],
+      scale=Units`Convert[
+        PhysicalConstants`ElectronMass PhysicalConstants`BoltzmannConstant/
+          (2 \[Pi] PhysicalConstants`PlanckConstantReduced^2)Kelvin Meter^2,1
+      ]
+    },
+    name/: XeEq[name]=Function[z,
+      With[{y=(scale Tcmb(1+z))^(3/2) Exp[-eps0/(Tcmb(1+z))]/nH[name][z]},
+        (Sqrt[y(y+4)]-y)/2
+      ]
+    ]
+  ];
 ]]
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
