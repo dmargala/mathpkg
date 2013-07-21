@@ -441,6 +441,7 @@ With[{
   xeMethod=OptionValue["xeMethod"],
   inverted=OptionValue["inverted"],
   pointsPerDecade=OptionValue["pointsPerDecade"],
+  clight=PhysicalConstants`SpeedOfLight,
   \[Sigma]T=PhysicalConstants`ThomsonCrossSection
 },
 Module[{Xe,scale,taudot},
@@ -450,10 +451,14 @@ Module[{Xe,scale,taudot},
     xeMethod=="Equilibrium",XeEq[cosmology],
     True,Message[opticalDepthFunction::badxe,xeMethod];Return[$Failed]
   ];
-  (* Calculate scale of d(tau)/dz in (km/s)^-1 *)
-  scale=Convert[\[Sigma]T/(Meter^3)/(H0[cosmology](Kilo Meter/Second)/(Mega Parsec))(Kilo Meter/Second),1];
+  (* Calculate scale of d(tau)/dz, accounting for the units of nH and H0 *)
+  scale=Convert[clight \[Sigma]T/(Meter^3)/((Kilo Meter/Second)/(Mega Parsec)),1];
+  Print[scale];
   (* Make a function giving the derivative of the photon optical depth wrt redshift *)
-  taudot=Function[z,scale Xe[z]nH[cosmology][z]/((1+z)Hratio[cosmology][z])];
+  taudot=Function[z,Evaluate[Simplify[scale Xe[z]nH[cosmology][z]/((1+z)H0[cosmology]Hratio[cosmology][z])]]];
+  Print[LogPlot[taudot[Exp[t]-1],{t,0,Log[1+zmax]},PlotRange->All]];
+  (* Build and return the interpolated integral *)
+  buildFunction[taudot,zmax,"inverted"->inverted,"pointsPerDecade"->pointsPerDecade]
 ]]
 Options[opticalDepthFunction]={"xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->20};
 
