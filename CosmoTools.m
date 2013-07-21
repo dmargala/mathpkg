@@ -507,6 +507,7 @@ With[{
   zmaxOption=OptionValue["zmax"],
   zmaxXeEq=OptionValue["zmaxXeEq"],
   zmaxGuess=OptionValue["zmaxGuess"],
+  extendedOption=OptionValue["extended"],
   (* Case B recombination parameters *)
   a=4.309,b=-0.6166,c=0.6703,d=0.5300,F=1.14,
   T0=OptionValue[cosmology,"Tcmb"]Units`Kelvin (* CMB Temperature Today *),
@@ -524,7 +525,7 @@ With[{
   \[CapitalOmega]b=OptionValue[cosmology,"\[CapitalOmega]bh2"]/OptionValue[cosmology,"h"]^2 (* Baryon Fraction Today *),
   \[Rho]crit=criticalDensityToday[OptionValue[cosmology,"h"]] Units`Joule/Units`Meter^3 (* Critical Density Today *)
 },
-Module[{zmax,z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns},
+Module[{zmax,z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns,xef},
     zmax=If[zmaxOption===Automatic,
         (* Find redshift where XeEq[z] = zMaxXeEq using zmaxGuess as starting point for root finder *)
         (* This could probably be solved analytically with a bit more work, if necessary *)
@@ -562,9 +563,14 @@ Module[{zmax,z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns
 		(*Initial conditions *)
 		xe[zmax]==1,Tmat[zmax]==T0*(1+zmax)/Units`Kelvin
     };
-	{xe,Tmat}/.Flatten[NDSolve[eqns,{xe,Tmat},{z,zmin,zmax}]]
+	xef=(xe/.Flatten[NDSolve[eqns,{xe,Tmat},{z,zmin,zmax}]]);
+    (* Use XeEq[z] above 0.999 zmax. This creates a tiny discontinuity at the cross over that
+    could be interpolated out if necessary. *)
+    If[extendedOption===True,Function[z,If[z<0.999zmax,xef[z],XeEq[cosmology][z]]],xef]
 ]]
-Options[recombinationXe]={"zmin"->0,"zmax"->Automatic,"zmaxXeEq"->0.999,"zmaxGuess"->1500};
+Options[recombinationXe]={
+  "zmin"->0,"zmax"->Automatic,"zmaxXeEq"->0.999,"zmaxGuess"->1500,"extended"->True
+};
 
 
 Clear[\[Tau]b];
