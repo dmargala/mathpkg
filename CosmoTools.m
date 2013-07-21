@@ -527,6 +527,7 @@ With[{
 Module[{zmax,z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns},
     zmax=If[zmaxOption===Automatic,
         (* Find redshift where XeEq[z] = zMaxXeEq using zmaxGuess as starting point for root finder *)
+        (* This could probably be solved analytically with a bit more work, if necessary *)
         z/.FindRoot[XeEq[cosmology][z]==zmaxXeEq,{z,zmaxGuess}],
         zmaxOption
     ];
@@ -563,7 +564,7 @@ Module[{zmax,z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns
     };
 	{xe,Tmat}/.Flatten[NDSolve[eqns,{xe,Tmat},{z,zmin,zmax}]]
 ]]
-Options[recombinationXe]={"zmin"->100,"zmax"->Automatic,"zmaxXeEq"->0.999,"zmaxGuess"->1500};
+Options[recombinationXe]={"zmin"->0,"zmax"->Automatic,"zmaxXeEq"->0.999,"zmaxGuess"->1500};
 
 
 Clear[\[Tau]b];
