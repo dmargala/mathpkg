@@ -183,6 +183,14 @@ at redshift z <= zmax for the named cosmology. Options are the same as for
 lookbackTimeFunction.";
 
 
+opticalDepthFunction::usage=
+"opticalDepthFunction[cosmology,zmax] returns a function that evaluates the optical depth at
+redshift z <= zmax for the named cosmology. Options are:
+  - xeMethod: \"Detailed\" (default) or \"Equilibrium\".
+ - pointsPerDecade (20) number of interpolation points to use per decade.
+ - inverted (False) return inverse function z(tau) instead of tau(z) when True.";
+
+
 soundHorizonFunction::usage=
 "soundHorizonFunction[cosmology,zmax] returns a function that evaluates the sound horizon at
 redshift z <= zmax for the named cosmology. Options are the same as for
@@ -424,6 +432,30 @@ Module[{h,scale,transform},
     ]
 ]]
 Options[buildDistanceFunction]={"physical"->False,"transverse"->False,"zpower"->0};
+
+
+Clear[opticalDepthFunction]
+opticalDepthFunction::badxe="Invalid xeMethod `1`. Choose \"Detailed\" (default) or \"Equilibrium\".";
+opticalDepthFunction[cosmology_,zmax_,OptionsPattern[]]:=
+With[{
+  xeMethod=OptionValue["xeMethod"],
+  inverted=OptionValue["inverted"],
+  pointsPerDecade=OptionValue["pointsPerDecade"],
+  \[Sigma]T=PhysicalConstants`ThomsonCrossSection
+},
+Module[{Xe,scale,taudot},
+  (* Get the free electron fraction function to use *)
+  Xe=Which[
+    xeMethod=="Detailed",recombinationXe[cosmology],
+    xeMethod=="Equilibrium",XeEq[cosmology],
+    True,Message[opticalDepthFunction::badxe,xeMethod];Return[$Failed]
+  ];
+  (* Calculate scale of d(tau)/dz in (km/s)^-1 *)
+  scale=Convert[\[Sigma]T/(Meter^3)/(H0[cosmology](Kilo Meter/Second)/(Mega Parsec))(Kilo Meter/Second),1];
+  (* Make a function giving the derivative of the photon optical depth wrt redshift *)
+  taudot=Function[z,scale Xe[z]nH[cosmology][z]/((1+z)Hratio[cosmology][z])];
+]]
+Options[opticalDepthFunction]={"xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->20};
 
 
 Clear[comovingDistanceFunction]
