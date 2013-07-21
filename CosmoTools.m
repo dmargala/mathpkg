@@ -519,7 +519,7 @@ E2s1sH=1.63403067 10^-18 Units`Joule (* H 2s energy from the ground state *),
 YP=OptionValue[cosmology,"YP"] (* Helium fraction *),
 \[CapitalOmega]b=OptionValue[cosmology,"\[CapitalOmega]bh2"]/OptionValue[cosmology,"h"]^2 (* Baryon Fraction Today *),
 \[Rho]crit=criticalDensityToday[OptionValue[cosmology,"h"]] Units`Joule/Units`Meter^3 (* Critical Density Today *)},
-Module[{z,H,Trad,Tmat,t,\[Rho]b,nb,ne,nH,nHe,xe,\[Alpha]B,\[Beta]B,K,C,eqns},
+Module[{z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns},
 	(* Hubble Rate *)
 	H=H0[cosmology]Hratio[cosmology][z]Convert[(Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),1/Units`Second];
 	(* Radiation Temperature *)
@@ -532,22 +532,22 @@ Module[{z,H,Trad,Tmat,t,\[Rho]b,nb,ne,nH,nHe,xe,\[Alpha]B,\[Beta]B,K,C,eqns},
 	\[Beta]B=Units`Convert[\[Alpha]B*( (2\[Pi] me Tmat[z]Units`Kelvin kB)/hP^2)^(3/2)Exp[-EionH2s/(Tmat[z]Units`Kelvin kB)],1/Units`Second];
 	(* Baryon Density *)
 	\[Rho]b=\[Rho]crit (1+z)^3 \[CapitalOmega]b;
-	(* Number Density of Hydrogen Nuclei *)
-	nH=Units`Convert[(1-YP)\[Rho]b/(mp PhysicalConstants`SpeedOfLight^2),1/Units`Meter^3];
-	(* Number Density of Electrons *)
-	ne=Units`Convert[xe[z]*nH,1/Units`Meter^3];
-	(* Number Density of Helium Nuclei *)
-	nHe=Units`Convert[YP*\[Rho]b/(4*mp PhysicalConstants`SpeedOfLight^2),1/Units`Meter^3];
+	(* Number Density of Hydrogen nuclei as function of z *)
+    nHz=nH[cosmology][z]/Units`Meter^3;
+	(* Number Density of free electrons as function of z *)
+	nez=Units`Convert[xe[z]nHz,1/Units`Meter^3];
+	(* Number Density of Helium nuclei as a function of z (via \[Rho]b) *)
+	nHez=Units`Convert[YP*\[Rho]b/(4*mp PhysicalConstants`SpeedOfLight^2),1/Units`Meter^3];
 	(* Cosmological Redshifting Rate *)
 	K=\[Lambda]\[Alpha]^3/(8 \[Pi] H);
 	(* Effect of 2 Photon Decay and Redshifting *)
-	C=Simplify[(1+K \[CapitalLambda]2\[Gamma] nH (1-xe[z]))/(1+K (\[CapitalLambda]2\[Gamma] +\[Beta]B )nH(1-xe[z]))];
+	C=Simplify[(1+K \[CapitalLambda]2\[Gamma] nHz (1-xe[z]))/(1+K (\[CapitalLambda]2\[Gamma] +\[Beta]B )nHz(1-xe[z]))];
     (* Simplify the equations to be solved *)
     eqns={
 		(* Free electron equation *)
-		D[xe[z],z]==Units`Convert[C (xe[z]^2nH \[Alpha]B-\[Beta]B(1-xe[z])Exp[-E2s1sH/(kB Tmat[z] Units`Kelvin)])/((1+z)H),1],
+		D[xe[z],z]==Units`Convert[C (xe[z]^2 nHz \[Alpha]B-\[Beta]B(1-xe[z])Exp[-E2s1sH/(kB Tmat[z] Units`Kelvin)])/((1+z)H),1],
 		(* Matter/Radiation Temperature Relation Eq 5 *)
-		D[Tmat[z],z]==Units`Convert[(8\[Sigma]T Arad Trad^4)/(3(1+z)H  me PhysicalConstants`SpeedOfLight),1]Simplify[ne/(ne+nH+nHe)]*(Tmat[z]-Trad/Units`Kelvin)+2Tmat[z]/(1+z),
+		D[Tmat[z],z]==Units`Convert[(8\[Sigma]T Arad Trad^4)/(3(1+z)H  me PhysicalConstants`SpeedOfLight),1]Simplify[nez/(nez+nHz+nHez)]*(Tmat[z]-Trad/Units`Kelvin)+2Tmat[z]/(1+z),
 		(*Initial conditions *)
 		xe[zmax]==1,Tmat[zmax]==T0*(1+zmax)/Units`Kelvin
     };
