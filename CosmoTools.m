@@ -501,25 +501,35 @@ Module[{scale,sdrag},
 
 Clear[recombinationXe]
 (* NDSolve doesn't like to go all the way down below ~100 or past ~1800 *)
-recombinationXe[cosmology_,zmin_:100,zmax_:1800]:=
+recombinationXe[cosmology_,OptionsPattern[]]:=
 With[{
-(* Case B recombination parameters *)
-a=4.309,b=-0.6166,c=0.6703,d=0.5300,F=1.14,
-T0=OptionValue[cosmology,"Tcmb"]Units`Kelvin (* CMB Temperature Today *),
-Arad=4 PhysicalConstants`StefanConstant/PhysicalConstants`SpeedOfLight (* Radiation Constant *),
-\[Sigma]T=PhysicalConstants`ThomsonCrossSection,
-kB=PhysicalConstants`BoltzmannConstant,
-hP=PhysicalConstants`PlanckConstant,
-me=PhysicalConstants`ElectronMass,
-mp=PhysicalConstants`ProtonMass,
-EionH2s=5.446605 10^-19 Units`Joule (* H 2s ionization energy *),
-E2s1sH=1.63403067 10^-18 Units`Joule (* H 2s energy from the ground state *),
-\[Lambda]\[Alpha]=1215.668 10^-10 Units`Meter (* Lyman Alpha wavelength *),
-\[CapitalLambda]2\[Gamma]=8.22458/Units`Second (* 2 photon decay rate *),
-YP=OptionValue[cosmology,"YP"] (* Helium fraction *),
-\[CapitalOmega]b=OptionValue[cosmology,"\[CapitalOmega]bh2"]/OptionValue[cosmology,"h"]^2 (* Baryon Fraction Today *),
-\[Rho]crit=criticalDensityToday[OptionValue[cosmology,"h"]] Units`Joule/Units`Meter^3 (* Critical Density Today *)},
-Module[{z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns},
+  zmin=OptionValue["zmin"],
+  zmaxOption=OptionValue["zmax"],
+  zmaxXeEq=OptionValue["zmaxXeEq"],
+  zmaxGuess=OptionValue["zmaxGuess"],
+  (* Case B recombination parameters *)
+  a=4.309,b=-0.6166,c=0.6703,d=0.5300,F=1.14,
+  T0=OptionValue[cosmology,"Tcmb"]Units`Kelvin (* CMB Temperature Today *),
+  Arad=4 PhysicalConstants`StefanConstant/PhysicalConstants`SpeedOfLight (* Radiation Constant *),
+  \[Sigma]T=PhysicalConstants`ThomsonCrossSection,
+  kB=PhysicalConstants`BoltzmannConstant,
+  hP=PhysicalConstants`PlanckConstant,
+  me=PhysicalConstants`ElectronMass,
+  mp=PhysicalConstants`ProtonMass,
+  EionH2s=5.446605 10^-19 Units`Joule (* H 2s ionization energy *),
+  E2s1sH=1.63403067 10^-18 Units`Joule (* H 2s energy from the ground state *),
+  \[Lambda]\[Alpha]=1215.668 10^-10 Units`Meter (* Lyman Alpha wavelength *),
+  \[CapitalLambda]2\[Gamma]=8.22458/Units`Second (* 2 photon decay rate *),
+  YP=OptionValue[cosmology,"YP"] (* Helium fraction *),
+  \[CapitalOmega]b=OptionValue[cosmology,"\[CapitalOmega]bh2"]/OptionValue[cosmology,"h"]^2 (* Baryon Fraction Today *),
+  \[Rho]crit=criticalDensityToday[OptionValue[cosmology,"h"]] Units`Joule/Units`Meter^3 (* Critical Density Today *)
+},
+Module[{zmax,z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns},
+    zmax=If[zmaxOption===Automatic,
+        (* Find redshift where XeEq[z] = zMaxXeEq using zmaxGuess as starting point for root finder *)
+        z/.FindRoot[XeEq[cosmology][z]==zmaxXeEq,{z,zmaxGuess}],
+        zmaxOption
+    ];
 	(* Hubble Rate *)
 	H=H0[cosmology]Hratio[cosmology][z]Convert[(Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),1/Units`Second];
 	(* Radiation Temperature *)
@@ -553,6 +563,7 @@ Module[{z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns},
     };
 	{xe,Tmat}/.Flatten[NDSolve[eqns,{xe,Tmat},{z,zmin,zmax}]]
 ]]
+Options[recombinationXe]={"zmin"->100,"zmax"->Automatic,"zmaxXeEq"->0.999,"zmaxGuess"->1500};
 
 
 Clear[\[Tau]b];
