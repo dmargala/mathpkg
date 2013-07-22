@@ -456,7 +456,7 @@ With[{
 Module[{Xe,drag,scale,taudot},
   (* Which type of optical depth are we calculating ? *)
   drag=Which[
-    type=="Photon",Identity,
+    type=="Photon",1&,
     type=="Baryon",Rb\[Gamma][cosmology],
     True,Message[opticalDepthFunction::badtype,type];Return[$Failed]
   ];
@@ -476,7 +476,7 @@ Module[{Xe,drag,scale,taudot},
   (* Build and return the interpolated integral *)
   buildFunction[taudot,zmax,"inverted"->inverted,"pointsPerDecade"->pointsPerDecade]
 ]]
-Options[opticalDepthFunction]={"type"->"Photon","xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->10,"plot"->True};
+Options[opticalDepthFunction]={"type"->"Photon","xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->50,"plot"->True};
 
 
 Clear[comovingDistanceFunction]
