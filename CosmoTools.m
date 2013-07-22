@@ -48,6 +48,7 @@ createCosmology::usage=
  - zstar[name]
  - zeq[name]
  - zdrag[name]
+ - Rb\[Gamma][name][z]
  - betas[name][z]
  - nH[name][z]
  - XeEq[name][z]
@@ -120,6 +121,10 @@ scaled comoving line-of-sight distance x = DC/(c/H0).";
 
 primordialPower::usage=
 "primordialPower[name][k] returns the primordial power P(k) in 1/Mpc for k in 1/Mpc.";
+
+
+Rb\[Gamma]::usage=
+"Rb\[Gamma][name][z] returns the baryon to photon energy density ratio at the specified redshift.";
 
 
 betas::usage=
@@ -307,7 +312,8 @@ Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
         name/: zdrag[name]=zdrag[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
     ];
     With[{\[CapitalOmega]\[Gamma]=radiationDensity[Tcmb,0]/criticalDensityToday[h],\[CapitalOmega]b=\[CapitalOmega]bh2/h^2},
-        name/: betas[name]=If[\[CapitalOmega]\[Gamma]>0,Function[z,Evaluate[Simplify[1/Sqrt[3(1+(3\[CapitalOmega]b)/(4\[CapitalOmega]\[Gamma])/(1+z))]]]],Indeterminate];
+        name/: Rb\[Gamma][name]=If[\[CapitalOmega]\[Gamma]>0,Function[z,Evaluate[Simplify[(3\[CapitalOmega]b)/(4\[CapitalOmega]\[Gamma])/(1+z)]]],Indeterminate];
+        name/: betas[name]=If[\[CapitalOmega]\[Gamma]>0,Function[z,Evaluate[Simplify[1/Sqrt[3(1+Rb\[Gamma][name][z])]]]],Indeterminate];
     ];
     With[{mc2=Convert[PhysicalConstants`ProtonMass PhysicalConstants`SpeedOfLight^2/Joule,1]},
       name/: nH[name]=Function[z,Evaluate[Simplify[(1-YP)\[CapitalOmega]bh2/h^2 criticalDensityToday[h]/mc2 (1+z)^3]]]
@@ -441,6 +447,7 @@ With[{
   xeMethod=OptionValue["xeMethod"],
   inverted=OptionValue["inverted"],
   pointsPerDecade=OptionValue["pointsPerDecade"],
+  plotOption=OptionValue["plot"],
   clight=PhysicalConstants`SpeedOfLight,
   \[Sigma]T=PhysicalConstants`ThomsonCrossSection
 },
@@ -453,14 +460,15 @@ Module[{Xe,scale,taudot},
   ];
   (* Calculate scale of d(tau)/dz, accounting for the units of nH and H0 *)
   scale=Convert[clight \[Sigma]T/(Meter^3)/((Kilo Meter/Second)/(Mega Parsec)),1];
-  Print[scale];
   (* Make a function giving the derivative of the photon optical depth wrt redshift *)
   taudot=Function[z,Evaluate[Simplify[scale Xe[z]nH[cosmology][z]/((1+z)H0[cosmology]Hratio[cosmology][z])]]];
-  Print[LogPlot[taudot[Exp[t]-1],{t,0,Log[1+zmax]},PlotRange->All]];
+  If[plotOption===True,
+    Print[LogPlot[taudot[Exp[t]-1],{t,0,Log[1+zmax]},PlotRange->All]]
+  ];
   (* Build and return the interpolated integral *)
   buildFunction[taudot,zmax,"inverted"->inverted,"pointsPerDecade"->pointsPerDecade]
 ]]
-Options[opticalDepthFunction]={"xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->20};
+Options[opticalDepthFunction]={"xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->20,"plot"->True};
 
 
 Clear[comovingDistanceFunction]
