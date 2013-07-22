@@ -441,9 +441,11 @@ Options[buildDistanceFunction]={"physical"->False,"transverse"->False,"zpower"->
 
 
 Clear[opticalDepthFunction]
+opticalDepthFunction::badtype="Invalid type `1`. Choose \"Photon\" (default) or \"Baryon\".";
 opticalDepthFunction::badxe="Invalid xeMethod `1`. Choose \"Detailed\" (default) or \"Equilibrium\".";
 opticalDepthFunction[cosmology_,zmax_,OptionsPattern[]]:=
 With[{
+  type=OptionValue["type"],
   xeMethod=OptionValue["xeMethod"],
   inverted=OptionValue["inverted"],
   pointsPerDecade=OptionValue["pointsPerDecade"],
@@ -451,7 +453,13 @@ With[{
   clight=PhysicalConstants`SpeedOfLight,
   \[Sigma]T=PhysicalConstants`ThomsonCrossSection
 },
-Module[{Xe,scale,taudot},
+Module[{Xe,drag,scale,taudot},
+  (* Which type of optical depth are we calculating ? *)
+  drag=Which[
+    type=="Photon",Identity,
+    type=="Baryon",Rb\[Gamma][cosmology],
+    True,Message[opticalDepthFunction::badtype,type];Return[$Failed]
+  ];
   (* Get the free electron fraction function to use *)
   Xe=Which[
     xeMethod=="Detailed",recombinationXe[cosmology],
@@ -460,15 +468,15 @@ Module[{Xe,scale,taudot},
   ];
   (* Calculate scale of d(tau)/dz, accounting for the units of nH and H0 *)
   scale=Convert[clight \[Sigma]T/(Meter^3)/((Kilo Meter/Second)/(Mega Parsec)),1];
-  (* Make a function giving the derivative of the photon optical depth wrt redshift *)
-  taudot=Function[z,Evaluate[Simplify[scale Xe[z]nH[cosmology][z]/((1+z)H0[cosmology]Hratio[cosmology][z])]]];
+  (* Make a function giving the derivative of the optical depth wrt redshift *)
+  taudot=Function[z,Evaluate[Simplify[scale Xe[z]nH[cosmology][z]/((1+z)H0[cosmology]Hratio[cosmology][z])/drag[z]]]];
   If[plotOption===True,
     Print[LogPlot[taudot[Exp[t]-1],{t,0,Log[1+zmax]},PlotRange->All]]
   ];
   (* Build and return the interpolated integral *)
   buildFunction[taudot,zmax,"inverted"->inverted,"pointsPerDecade"->pointsPerDecade]
 ]]
-Options[opticalDepthFunction]={"xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->20,"plot"->True};
+Options[opticalDepthFunction]={"type"->"Photon","xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->10,"plot"->True};
 
 
 Clear[comovingDistanceFunction]
