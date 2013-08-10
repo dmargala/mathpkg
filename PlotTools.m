@@ -78,11 +78,14 @@ using ArrayPlot. The first row of data is drawn at the bottom of the image unles
 but this can be overridden with DataReversed->False. All options of ArrayPlot and
 dataRange are supported, in addition to:
   - map: function that maps array values to display values (default is Identity).
+  - magnification: relative amount to increase the image size by.
+  - zoom: amount to zoom the image about its center, clipping the borders.
 The default color map is grayscale with white representing the maximum value. Use
 the ColorFunction option to change this. When using dataRange options to clip some
 data, the ClippingStyle->{loStyle,hiStyle} option can be used to control how
 clipped pixels are displayed. The default image size matches the dimensions of the
-pixel data, but can be changed with the ImageSize option."
+pixel data, but can be changed with the ImageSize (absolute) or magnification
+(relative) options."
 
 
 Begin["Private`"]
@@ -277,18 +280,30 @@ Options[dataRange]={
 };
 
 
+Clear[pixelImage]
 pixelImage[data_,options:OptionsPattern[{ArrayPlot,dataRange,pixelImage}]]:=
 With[{
-    map=OptionValue["map"]
+    map=OptionValue["map"],
+    magnification=OptionValue["magnification"],
+    zoom=OptionValue["zoom"]
 },
-Module[{range},
-    range=Map[map,dataRange[data,FilterRules[{options},Options[dataRange]]]];
-    ArrayPlot[Map[map,data,{2}],FilterRules[{options},Options[ArrayPlot]],
-        DataReversed->True,ColorFunction->(GrayLevel[1-#]&),ImageSize->Dimensions[data],
+Module[{range,w,h,dw,dh,zoomed},
+    zoomed=data;
+    If[zoom>1,
+        {w,h}=Dimensions[data];
+        dw=Round[w (zoom-1)/zoom/2];
+        dh=Round[h (zoom-1)/zoom/2];
+        zoomed=data[[1+dw;;w-dw,1+dh;;h-dh]];
+    ];
+    {w,h}=Dimensions[zoomed];
+    If[!(magnification===None),{w,h}=magnification {w,h}];
+    range=Map[map,dataRange[zoomed,FilterRules[{options},Options[dataRange]]]];
+    ArrayPlot[Map[map,zoomed,{2}],FilterRules[{options},Options[ArrayPlot]],
+        DataReversed->True,ColorFunction->(GrayLevel[1-#]&),ImageSize->{w,h},AspectRatio->Full,
         Frame->True,PlotRangePadding->0,PlotRange->range,ClippingStyle->{None,None}
     ]
 ]]
-Options[pixelImage]={"map"->Identity};
+Options[pixelImage]={"map"->Identity,"magnification"->None,"zoom"->None};
 
 
 End[]
