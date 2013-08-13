@@ -74,7 +74,7 @@ includes all elements but the following options can be use:
 
 pixelImage::usage=
 "Draws an image of pixel data stored in a 2D rectangular list {{row1},{row2},...}
-using ArrayPlot. The first row of data is drawn at the bottom of the image unless,
+using ArrayPlot. The first row of data is drawn at the bottom of the image by default,
 but this can be overridden with DataReversed->False. All options of ArrayPlot and
 dataRange are supported, in addition to:
   - map: function that maps array values to display values (default is Identity).
