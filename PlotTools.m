@@ -287,8 +287,9 @@ With[{
     magnification=OptionValue["magnification"],
     zoom=OptionValue["zoom"]
 },
-Module[{range,w,h,dw,dh,zoomed},
+Module[{w,h,dw,dh,zoomed,min,max,mmin,mmax,lo,hi,in,mdata},
     zoomed=data;
+    (* zoom about the image center by the specified factor *)
     If[zoom>1,
         {w,h}=Dimensions[data];
         dw=Round[w (zoom-1)/zoom/2];
@@ -296,11 +297,20 @@ Module[{range,w,h,dw,dh,zoomed},
         zoomed=data[[1+dw;;w-dw,1+dh;;h-dh]];
     ];
     {w,h}=Dimensions[zoomed];
+    (* increase the image dimensions by the specified factor, if requested *)
     If[!(magnification===None),{w,h}=magnification {w,h}];
-    range=Map[map,dataRange[zoomed,FilterRules[{options},Options[dataRange]]]];
-    ArrayPlot[Map[map,zoomed,{2}],FilterRules[{options},Options[ArrayPlot]],
-        DataReversed->True,ColorFunction->(GrayLevel[1-#]&),ImageSize->{w,h},AspectRatio->Full,
-        Frame->True,PlotRangePadding->0,PlotRange->range,ClippingStyle->{None,None}
+    (* calculate range to use after zooming but before mapping *)
+    {min,max}=dataRange[zoomed,FilterRules[{options},Options[dataRange]]];
+    {mmin,mmax}={map[0],map[1]};
+    (* only apply the map to min \[LessEqual] z \[LessEqual] max, rescaled to 0-1 *)
+    lo=UnitStep[min-zoomed];
+    hi=UnitStep[zoomed-max];
+    in=UnitStep[(zoomed-min)(max-zoomed)];
+    mdata=((mmin-1.)lo+(mmax+1.)hi)(1-in)+Map[map,(zoomed-min)/(max-min),{2}]in;
+    ArrayPlot[mdata,FilterRules[{options},Options[ArrayPlot]],
+        DataReversed->True,ColorFunction->(GrayLevel[1-#]&),ImageSize->{w,h},
+        AspectRatio->Full,Frame->True,PlotRangePadding->0,
+        PlotRange->{mmin,mmax},ClippingStyle->{None,None}
     ]
 ]]
 Options[pixelImage]={"map"->Identity,"magnification"->None,"zoom"->None};
