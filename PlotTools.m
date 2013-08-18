@@ -291,12 +291,12 @@ Module[{w,h,dw,dh,zoomed,min,max,mmin,mmax,lo,hi,in,mdata},
     zoomed=data;
     (* zoom about the image center by the specified factor *)
     If[zoom>1,
-        {w,h}=Dimensions[data];
+        {h,w}=Dimensions[data];
         dw=Round[w (zoom-1)/zoom/2];
         dh=Round[h (zoom-1)/zoom/2];
-        zoomed=data[[1+dw;;w-dw,1+dh;;h-dh]];
+        zoomed=data[[1+dh;;h-dh,1+dw;;w-dw]];
     ];
-    {w,h}=Dimensions[zoomed];
+    {h,w}=Dimensions[zoomed];
     (* increase the image dimensions by the specified factor, if requested *)
     If[!(magnification===None),{w,h}=magnification {w,h}];
     (* calculate range to use after zooming but before mapping *)
