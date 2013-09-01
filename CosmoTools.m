@@ -13,7 +13,8 @@ CosmoTools::usage=
 
 
 criticalDensityToday::usage=
-"criticalDensityToday[hValue] calcualtes the present critical density in J/m^3.";
+"criticalDensityToday[hValue] calcualtes the present (z=0) critical density in J/m^3.
+Multiply by Hratio[z] to get the critical density at a different redshift.";
 
 
 radiationDensity::usage=
@@ -83,23 +84,27 @@ specified filename in CAMB input format.";
 
 
 \[CapitalOmega]rad::usage=
-"\[CapitalOmega]rad[name][z] returns the radiation energy density relative to the critical density
-at the specified redshift.";
+"\[CapitalOmega]rad[name][z] returns the radiation energy density at the specified redshift relative
+to the critical density today. Divide by Hratio[z]^2 to get the density relative to the
+critical density at z.";
 
 
 \[CapitalOmega]photons::usage=
-"\[CapitalOmega]photons[name][z] returns the photon energy density relative to the critical density
-at the specified redshift.";
+"\[CapitalOmega]photons[name][z] returns the photon energy density at the specified redshift relative
+to the critical density today. Divide by Hratio[z]^2 to get the density relative to the
+critical density at z.";
 
 
 \[CapitalOmega]de::usage=
-"\[CapitalOmega]de[name][z] returns the dark-energy density relative to the critical density at
-the specified redshift.";
+"\[CapitalOmega]de[name][z] returns the dark-energy density at the specified redshift relative
+to the critical density today. Divide by Hratio[z]^2 to get the density relative to the
+critical density at z.";
 
 
 \[CapitalOmega]mat::usage=
-"\[CapitalOmega]mat[name][z] returns the matter energy density relative to the critical density at
-the specified redshift.";
+"\[CapitalOmega]mat[name][z] returns the matter density at the specified redshift relative
+to the critical density today. Divide by Hratio[z]^2 to get the density relative to the
+critical density at z.";
 
 
 H0::usage=
