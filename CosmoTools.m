@@ -193,6 +193,14 @@ at redshift z <= zmax for the named cosmology. Options are the same as for
 lookbackTimeFunction.";
 
 
+growthFunction::usage=
+"growthFunction[cosmology,zmax] returns a function that evaluates the normalized linear
+growth function G(z) at redshift z <= zmax for the named cosmology. The method is eqn (16)
+of Weinberg 2012, so not exact, and only valid for models close to LCDM. Possible options are:
+ - pointsPerDecade (20) number of interpolation points to use per decade.
+ - inverted (False) return inverse function z(tLB) instead of tLB(z) when True.";
+
+
 opticalDepthFunction::usage=
 "opticalDepthFunction[cosmology,zmax] returns a function that evaluates the optical depth at
 redshift z <= zmax for the named cosmology. Options are:
@@ -427,6 +435,16 @@ Module[{npts,ds,sval,partials,tabulated,interpolator},
     ]
 ]]
 Options[buildFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"inverted"->False};
+
+
+Clear[growthFunction]
+growthFunction[cosmology_,zmax_,options:OptionsPattern[{buildFunction}]]:=
+With[{w0=OptionValue[cosmology,"w0"],wa=OptionValue[cosmology,"wa"]},
+Module[{\[Gamma]},
+    \[Gamma]=0.55+0.05(1+w0+wa/2);
+    buildFunction[(\[CapitalOmega]mat[cosmology][#1]/Hratio[cosmology][#1]^2)^\[Gamma]/(1+#1)&,zmax,
+        transform->(Exp[-#2]&),FilterRules[{options},Options[buildFunction]]]
+]]
 
 
 (* Builds a distance function using options physical (Mpc vs Mpc/h), transverse (apply curvatureTransform), and
