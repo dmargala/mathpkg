@@ -75,6 +75,11 @@ xi(r,mu) function, valid over the specified range of r. Options include:
 Note that alphaP or alphaT different from 1 will generally require that xi(r,mu) be valid outside [rmin,rmax].";
 
 
+generateGaussianRandomField::usage=
+"generateGaussianRandomField[power,length,size] returns a 3D delta field sampled from
+the specified power spectrum on a grid of the specified length and size.";
+
+
 Begin["Private`"]
 
 
@@ -326,6 +331,45 @@ Module[{alphaP,alphaT,npoints,rvec,f,pts},
 ]]
 Options[createCorrelationMultipole]={
   "alphaP"->1,"alphaT"->1,"npoints"->Automatic
+};
+
+
+Clear[generateGaussianRandomField]
+generateGaussianRandomField[power_,OptionsPattern[]]:=
+With[{
+  gridPoints=OptionValue["gridPoints"],
+  gridLength=OptionValue["gridLength"],
+  seed=OptionValue["seed"]
+},
+Module[{deltak,offset,dk,L3,rms},
+  (* Set the random seed if requested *)
+  If[!(seed===None),SeedRandom[seed]];
+  (* Generate random phases at each grid point *)
+  deltak=Exp[I Pi RandomReal[{0,1},{gridPoints,gridPoints,gridPoints}]];
+  Print[{ByteCount[deltak],Developer`PackedArrayQ[deltak]}];
+  (* Multiply by unit Gaussian random amplitudues at each grid point *)
+  deltak*=RandomVariate[NormalDistribution[0,1],{gridPoints,gridPoints,gridPoints}];
+  Print[{ByteCount[deltak],Developer`PackedArrayQ[deltak]}];
+  (* Build the k grid along one axis using FFT indexing *)
+  offset=Floor[(gridPoints-1)/2];
+  dk=N[(2\[Pi])/gridLength];
+  L3=N[2 gridLength^3];
+  With[{
+    kgrid=dk RotateLeft[Range[gridPoints]-offset-1,offset],
+    rmsF=Compile[{{kx,_Real},{ky,_Real},{kz,_Real}},Sqrt[power[Sqrt[kx^2+ky^2+kz^2]]/L3]]
+    },
+    Print[Developer`PackedArrayQ[kgrid]];
+    rms=Outer[List,kgrid,kgrid,kgrid];
+    Print[Developer`PackedArrayQ[rms]];
+    rms=Apply[rmsF,rms,{3}];
+    Print[Developer`PackedArrayQ[rms]];
+  ];
+  Print[{ByteCount[deltak],Developer`PackedArrayQ[deltak]}];
+  deltak*=rms;
+  Re[InverseFourier[deltak]]
+]]
+Options[generateGaussianRandomField]={
+  "gridPoints"->256,"gridLength"->100,"seed"->None
 };
 
 
