@@ -80,6 +80,13 @@ generateGaussianRandomField::usage=
 the specified power spectrum on a grid of the specified length and size.";
 
 
+growthVarianceFunction::usage=
+"growthVarianceFunction[power,kmin,kmax] returns a function that evaluates the variance of growth fluctuations
+integrated from kmin to k with kmin <= k <= kmax. Options are:
+ - pointsPerDecade (20) number of interpolation points to use per decade.
+ - inverted (False) return inverse function k(var) instead of var(k) when True.";
+
+
 Begin["Private`"]
 
 
@@ -371,6 +378,38 @@ Module[{deltak,offset,dk,L3,rms},
 Options[generateGaussianRandomField]={
   "gridPoints"->256,"gridLength"->100,"seed"->None
 };
+
+
+(* Builds a function that evaluates f[k]=scale*transform[k,Integral[integrand[kk],{kk,kmin,k}]] using interpolation
+in log k with the specified number of points per decade. The default scale=1 and transform[k,f]=f.
+With inverted->True, evaluates k[f] instead of f[k]. Based on the similar function in CosmoTools. *)
+Clear[buildKFunction]
+buildKFunction[integrand_,kmin_,kmax_,OptionsPattern[]]:=
+With[{pointsPerDecade=OptionValue["pointsPerDecade"],inverted=OptionValue["inverted"],
+scale=OptionValue["scale"],transform=OptionValue["transform"]},
+Module[{npts,ds,sval,partials,tabulated,interpolator},
+	npts=Ceiling[N[Log[kmax/kmin]pointsPerDecade/Log[10]]];
+    (* Integrate over equally spaced intervals in s = log(k) *)
+    ds=Log[kmax/kmin]/(npts-1);
+	sval=Log[kmin]+Table[n ds,{n,0,npts-1}];
+	partials=Table[NIntegrate[integrand[Exp[s]]Exp[s],{s,sval[[n]],sval[[n+1]]}],{n,1,npts-1}];
+    (* Accumulate the partials and add the boundary condition that the integral is zero at k = kmin *)
+	tabulated=Prepend[Accumulate[partials],0];
+    (* Apply the scale and transform[k,f] to the cummulative integrals *)
+    tabulated=scale Apply[transform,Transpose[{Exp[sval]-1,tabulated}],1];
+    (* Create the requested interpolation f(k) or k(f) *)
+    If[inverted===True,
+        interpolator=Interpolation[Transpose[{tabulated,sval}]];
+	        Function[f,Exp[interpolator[f]]],
+    	interpolator=Interpolation[Transpose[{sval,tabulated}]];
+            Function[k,interpolator[Log[k]]]
+    ]
+]]
+Options[buildKFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"inverted"->False};
+
+
+growthVarianceFunction[power_,kmin_,kmax_,options:OptionsPattern[{buildKFunction}]]:=
+  buildKFunction[##^2/(2\[Pi]^2) power[##]&,kmin,kmax,options]
 
 
 End[]
