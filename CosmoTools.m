@@ -119,6 +119,12 @@ hubbleDistance::usage=
 "hubbleDistance[name] returns the Hubble distance c/H0 in Mpc (not Mpc/h).";
 
 
+logGrowthRate::usage=
+"logGrowthRate[name][z] returns the logarithmic growth rate f(a) = d(logG(a))/d(log(a)) at a = 1/(1+z)
+using the approximate eqn (15) of Weinberg 2012. Use growthFunction[name,zmax] to evaluate the
+corresponding growth function integral eqn (16).";
+
+
 curvatureTransform::usage=
 "curvatureTransform[name][x] returns the comoving transverse distance DM corresponding to the
 scaled comoving line-of-sight distance x = DC/(c/H0).";
@@ -319,6 +325,10 @@ Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     name/: curvatureTransform[name]=Function[x,Evaluate[Simplify[Which[
         \[CapitalOmega]k>0,Sinh[Sqrt[\[CapitalOmega]k]x]/Sqrt[\[CapitalOmega]k],\[CapitalOmega]k<0,Sin[Sqrt[-\[CapitalOmega]k]x]/Sqrt[-\[CapitalOmega]k],True,x]]]];
     name/: primordialPower[name]=Function[k,Evaluate[Simplify[amps (k/kpivot)^(ns-1)k]]];
+    name/: logGrowthRate[name]=
+        With[{\[Gamma]=0.55+0.05(1+w0+wa/2)},
+            Function[z,Evaluate[Simplify[(\[CapitalOmega]mat[name][z]/Hratio[name][z]^2)^\[Gamma]]]]
+        ];
     With[{\[CapitalOmega]mh2=\[CapitalOmega]mat[name][0]h^2},
         name/: zstar[name]=zstar[\[CapitalOmega]mh2,\[CapitalOmega]bh2];
         name/: zeq[name]=If[Tcmb>0,zeq[\[CapitalOmega]mh2,Tcmb],Indeterminate];
@@ -439,12 +449,10 @@ Options[buildFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"inv
 
 Clear[growthFunction]
 growthFunction[cosmology_,zmax_,options:OptionsPattern[{buildFunction}]]:=
-With[{w0=OptionValue[cosmology,"w0"],wa=OptionValue[cosmology,"wa"]},
 Module[{\[Gamma]},
-    \[Gamma]=0.55+0.05(1+w0+wa/2);
-    buildFunction[(\[CapitalOmega]mat[cosmology][#1]/Hratio[cosmology][#1]^2)^\[Gamma]/(1+#1)&,zmax,
+    buildFunction[logGrowthRate[cosmology][#1]/(1+#1)&,zmax,
         transform->(Exp[-#2]&),FilterRules[{options},Options[buildFunction]]]
-]]
+]
 
 
 (* Builds a distance function using options physical (Mpc vs Mpc/h), transverse (apply curvatureTransform), and
