@@ -295,6 +295,7 @@ Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`M
 Clear[createCosmology]
 createCosmology::overconstrained = "Parameters are overconstrained: \[CapitalOmega]\[CapitalLambda]=`1`, \[CapitalOmega]m=`2`, \[CapitalOmega]rad=`3`, \[CapitalOmega]k=`4`.";
 createCosmology::badnnu = "Number of massive neutrinos must be 0,1,2 or 3.";
+createCosmology::badmnu = "Cannot have mnu < 0, or mnu > 0 with NnuMassive = 0.";
 createCosmology[name_,OptionsPattern[]]:=
 With[{
     h=OptionValue["h"],
@@ -317,6 +318,10 @@ With[{
 Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     If[!MemberQ[{0,1,2,3},NnuMassive],
         Message[createCosmology::badnnu];
+        Return[$Failed]
+    ];
+    If[mnu<0||(NnuMassive==0&&mnu==0),
+        Message[createCosmology::badmnu];
         Return[$Failed]
     ];
     name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
