@@ -58,7 +58,7 @@ Use the following options (defaults in parentheses from Planck+WP column of Tabl
 in Planck 2013 results paper or CAMB July 2013 params.ini) to customize the
 created cosmology:
  - h (0.6704) H0/(100 km/s/Mpc).
- - \[CapitalOmega]m (0.3183) present-day fraction of matter.
+ - \[CapitalOmega]m (0.3183) present-day fraction of matter, including any massive neutrinos.
  - \[CapitalOmega]\[CapitalLambda] (Automatic) present-day fraction of dark energy.
  - \[CapitalOmega]bh2 (0.022032) present-day physical baryon fraction.
  - w0 (-1) dark-energy equation parameter state present-day value.
@@ -327,7 +327,7 @@ Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
         "Tcmb"->Tcmb,"Nnu"->Nnu,"NnuMassive"->NnuMassive,"mnu"->mnu,
          "ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
-    name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu]/criticalDensityToday[h](1+z)^4]]];
+    name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu (3-NnuMassive)/3]/criticalDensityToday[h](1+z)^4]]];
 	name/: \[CapitalOmega]photons[name]=Function[z,Evaluate[Simplify[photonDensity[Tcmb]/criticalDensityToday[h](1+z)^4]]];
     \[CapitalOmega]mval=If[\[CapitalOmega]m===Automatic,1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]m];
     \[CapitalOmega]\[CapitalLambda]val=If[\[CapitalOmega]\[CapitalLambda]===Automatic,1-\[CapitalOmega]m-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]\[CapitalLambda]];
