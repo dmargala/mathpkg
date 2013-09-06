@@ -65,13 +65,14 @@ created cosmology:
  - wa (0) dark-energy equation of state parameter derivative wrt scale a.
  - \[CapitalOmega]k (0) present-day curvature fraction.
  - Tcmb (2.7255) present-day CMB temperature in Kelvin.
- - Nnu (3.046) effective number of massless neutrinos.
+ - Nnu (3.046) effective total number of neutrinos.
+ - NnuMassive (1) number of massive neutrino species (must be 0,1,2 or 3).
+ - mnu (0.06) Mass of massive neutrino species in eV.
  - ns (0.9619) scalar primordial power spectral index.
  - amps (2.20e-9) scalar primordial power amplitude.
  - kpivot (0.05/Mpc) pivot wavenumber used to define primordial scalar power.
  - retau (0.0925) optical depth to reionization.
  - YP (0.247695) Helimum fraction.
- - mnu (0.06) Mass of single massive neutrino species in eV.
 Use OptionValue[name,opt] to get option values associated with a named
 cosmology. To clear a previously defined cosmology, use Clear[name]. Use
 the name provided here to identify the created cosmology in functions
@@ -104,7 +105,13 @@ critical density at z.";
 \[CapitalOmega]mat::usage=
 "\[CapitalOmega]mat[name][z] returns the matter density at the specified redshift relative
 to the critical density today. Divide by Hratio[z]^2 to get the density relative to the
-critical density at z.";
+critical density at z. Includes dark matter, baryons and any massive neutrinos.";
+
+
+\[CapitalOmega]nu::usage=
+"\[CapitalOmega]nu[name][z] returns the massive neutrino energy density at the specified redshift relative
+to the critical density today. Divide by Hratio[z]^2 to get the density relative to the
+critical density at z. Calculated as NnuMassive (mnu/93.04)/ h^2.";
 
 
 H0::usage=
@@ -325,6 +332,7 @@ Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     ];
     name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda]val Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
     name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]mval (1+z)^3]]];
+    name/: \[CapitalOmega]nu[name]=Function[z,Evaluate[Simplify[NnuMassive (mnu/93.04)/h^2 (1+z)^3]]];
     name/: H0[name]=100 h;
     name/: Hratio[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]]]]];
     name/: hubbleDistance[name]=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
@@ -376,7 +384,7 @@ exportToCamb[filename_,cosmology_,OptionsPattern[]]:=With[{
     \[CapitalOmega]bh2=OptionValue[cosmology,"\[CapitalOmega]bh2"],
     Nnu=OptionValue[cosmology,"Nnu"],
     NnuMassive=OptionValue[cosmology,"NnuMassive"],
-    omnuh2=OptionValue[cosmology,"mnu"]/93.04,
+    \[CapitalOmega]\[Nu]=\[CapitalOmega]nu[cosmology][0],
     path=DirectoryName[filename],
     tag=FileBaseName[filename],
     redshifts=Sort[OptionValue["redshifts"],Greater],
@@ -393,13 +401,13 @@ lines={
 "use_physical = T",
 "hubble = "<>ToString[H0[cosmology],form],
 "ombh2 = "<>ToString[\[CapitalOmega]bh2,form],
-"omch2 = "<>ToString[\[CapitalOmega]m h^2 - omnuh2 - \[CapitalOmega]bh2,form],
-"omnuh2 = "<>ToString[omnuh2,form],
+"omch2 = "<>ToString[\[CapitalOmega]m h^2 - \[CapitalOmega]\[Nu] h^2 - \[CapitalOmega]bh2,form],
+"omnuh2 = "<>ToString[\[CapitalOmega]\[Nu] h^2,form],
 "omk = "<>ToString[OptionValue[cosmology,"\[CapitalOmega]k"],form],
 "w = "<>ToString[OptionValue[cosmology,"w0"],form],
 "temp_cmb = "<>ToString[OptionValue[cosmology,"Tcmb"],form],
-"massless_neutrinos = "<>ToString[If[omnuh2>0,(2/3)Nnu,Nnu],form],
-"massive_neutrinos  = "<>ToString[If[omnuh2>0,(1/3)Nnu,0],form],
+"massless_neutrinos = "<>ToString[If[\[CapitalOmega]\[Nu]>0,((3-NnuMassive)/3)Nnu,Nnu],form],
+"massive_neutrinos  = "<>ToString[If[\[CapitalOmega]\[Nu]>0,(NnuMassive/3)Nnu,0],form],
 "helium_fraction = "<>ToString[OptionValue[cosmology,"YP"],form],
 "scalar_amp(1) = "<>ToString[OptionValue[cosmology,"amps"],form],
 "scalar_spectral_index(1) = "<>ToString[OptionValue[cosmology,"ns"],form],
