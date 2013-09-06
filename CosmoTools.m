@@ -79,6 +79,19 @@ the name provided here to identify the created cosmology in functions
 like comovingDistanceFunction.";
 
 
+createCMBVariant::usage=
+"createCMBVariant[name,base,changes] creates a new cosmology starting from the specified base cosmology
+and applying the specified changes (specified as a rule or list of rules), while keeping the quantities
+best measured by CMB fixed. Specifically, the values of \[CapitalOmega]mh2 and \[CapitalOmega]bh2 (which determine rs(z*) are held
+fixed and the base model's value of h is adjusted to preserve the base models angular diameter
+distance DA(z*). The result is equivalent to calling createCosmology with the new parameters. Options are:
+  - verbose: display the \[Delta]DA(z*) vs \[Delta]h graph used to determine the new value of h and parameter values
+    (default is True).
+  - hrange: amount to vary the base model's value of h on each side (default is 0.1).
+  - nsteps: number of steps to divide hrange into, giving a total of 2 nsteps + 1 models for interpolation
+    (default is 2).";
+
+
 exportToCamb::usage=
 "exportToCamb[filename,name] writes the parameters of the named cosmology to the
 specified filename in CAMB input format.";
@@ -380,6 +393,53 @@ Options[createCosmology]={
     "Tcmb"->2.7255,"Nnu"->3.046,"NnuMassive"->1,"mnu"->0.06,
     "ns"->0.9619,"amps"->(2.215*10^-9),"kpivot"->0.05,"retau"->0.0925,"YP"->0.247695
 };
+
+
+Clear[createCMBVariant]
+createCMBVariant[variant_,base_,changes_,OptionsPattern[]]:=
+With[{
+  verbose=OptionValue["verbose"],
+  hrange=OptionValue["hrange"],
+  nsteps=OptionValue["nsteps"]
+},
+Module[{changesList,h0,h1,\[CapitalOmega]mh2,\[CapitalOmega]bh2,zstar0,zstar1,Dc0,Dc1,Dstar0,Dstar1,data,model,dh,h,interpolator,dhval},
+  changesList=If[Head[changes]===Rule,{changes},changes];
+  (* Extract base model parameters *)
+  h0=OptionValue[base,"h"];
+  \[CapitalOmega]bh2=OptionValue[base,"\[CapitalOmega]bh2"];
+  \[CapitalOmega]mh2=\[CapitalOmega]mat[base][0]h0^2;
+  zstar0=zstar[base];
+  Dc0=angularDiameterDistanceFunction[base,zstar0,physical->True];
+  Dstar0=Dc0[zstar0];
+  (* Create a grid of variant models with different values of h and tabulate their Dc(zstar) values *)
+  dh=hrange/nsteps;
+  data=Table[
+    (* Create the variant model *)
+    h=h0+dh step;
+    createCosmology[model,Join[{"h"->h,"\[CapitalOmega]m"->\[CapitalOmega]mh2/h^2},changesList,Options[base]]];
+    (* zstar should not change unless we change \[CapitalOmega]mh2 or \[CapitalOmega]bh2 *)
+    zstar1=zstar[model];
+    Dc1=angularDiameterDistanceFunction[model,zstar1,physical->True];
+    Dstar1=Dc1[zstar1];
+    {h-h0,Dstar1-Dstar0}
+    ,{step,-nsteps,+nsteps}
+  ];
+  If[verbose===True,
+    Print[ListPlot[data,Frame->True,FrameLabel->{"\[Delta]h","\[Delta]D(z*) (Mpc)"},
+      Joined->True,PlotMarkers->Automatic,PlotStyle->Directive[PointSize[Large],Red]]
+    ];
+  ];
+  interpolator=Interpolation[data];
+  dhval=dhval/.FindRoot[interpolator[dhval]==0,{dhval,0,-hrange,+hrange}];
+  createCosmology[variant,Join[{"h"->h0+dhval,"\[CapitalOmega]m"->\[CapitalOmega]mh2/(h0+dhval)^2},changesList,Options[base]]];
+  If[verbose===True,
+    Print["base model: ",Options[base]];
+    Print["variant model: ",Options[variant]];
+    Print["changes: ",Complement[Options[variant],Options[base]]];
+  ]
+]]
+SetAttributes[createCMBVariant,HoldFirst]
+Options[createCMBVariant]={"verbose"->True,"hrange"->0.1,"nsteps"->2};
 
 
 Clear[exportToCamb]
