@@ -287,6 +287,7 @@ Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`M
 
 Clear[createCosmology]
 createCosmology::overconstrained = "Parameters are overconstrained: \[CapitalOmega]\[CapitalLambda]=`1`, \[CapitalOmega]m=`2`, \[CapitalOmega]rad=`3`, \[CapitalOmega]k=`4`.";
+createCosmology::badnnu = "Number of massive neutrinos must be 0,1,2 or 3.";
 createCosmology[name_,OptionsPattern[]]:=
 With[{
     h=OptionValue["h"],
@@ -298,17 +299,22 @@ With[{
     \[CapitalOmega]k=OptionValue["\[CapitalOmega]k"],
     Tcmb=OptionValue["Tcmb"],
     Nnu=OptionValue["Nnu"],
+    NnuMassive=OptionValue["NnuMassive"],
+    mnu=OptionValue["mnu"],
     ns=OptionValue["ns"],
     amps=OptionValue["amps"],
     kpivot=OptionValue["kpivot"],
     retau=OptionValue["retau"],
-	YP=OptionValue["YP"],
-    mnu=OptionValue["mnu"]
+	YP=OptionValue["YP"]
 },
 Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
+    If[!MemberQ[{0,1,2,3},NnuMassive],
+        Message[createCosmology::badnnu];
+        Return[$Failed]
+    ];
     name/: Options[name]= { "h"->h,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
-        "Tcmb"->Tcmb,"Nnu"->Nnu,"ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau,"YP"->YP,
-        "mnu"->mnu };
+        "Tcmb"->Tcmb,"Nnu"->Nnu,"NnuMassive"->NnuMassive,"mnu"->mnu,
+         "ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu]/criticalDensityToday[h](1+z)^4]]];
 	name/: \[CapitalOmega]photons[name]=Function[z,Evaluate[Simplify[photonDensity[Tcmb]/criticalDensityToday[h](1+z)^4]]];
     \[CapitalOmega]mval=If[\[CapitalOmega]m===Automatic,1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]m];
@@ -358,8 +364,8 @@ Module[{\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
     "h"->0.6704,"\[CapitalOmega]\[CapitalLambda]"->Automatic,"\[CapitalOmega]m"->0.3183,"\[CapitalOmega]bh2"->0.022032,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
-    "Tcmb"->2.7255,"Nnu"->3.046,"ns"->0.9619,"amps"->(2.215*10^-9),"kpivot"->0.05,
-    "retau"->0.0925,"YP"->0.247695,"mnu"->0.06
+    "Tcmb"->2.7255,"Nnu"->3.046,"NnuMassive"->1,"mnu"->0.06,
+    "ns"->0.9619,"amps"->(2.215*10^-9),"kpivot"->0.05,"retau"->0.0925,"YP"->0.247695
 };
 
 
@@ -369,6 +375,7 @@ exportToCamb[filename_,cosmology_,OptionsPattern[]]:=With[{
     \[CapitalOmega]m=\[CapitalOmega]mat[cosmology][0],
     \[CapitalOmega]bh2=OptionValue[cosmology,"\[CapitalOmega]bh2"],
     Nnu=OptionValue[cosmology,"Nnu"],
+    NnuMassive=OptionValue[cosmology,"NnuMassive"],
     omnuh2=OptionValue[cosmology,"mnu"]/93.04,
     path=DirectoryName[filename],
     tag=FileBaseName[filename],
