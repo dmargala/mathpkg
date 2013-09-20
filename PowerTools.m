@@ -93,6 +93,12 @@ for the quadrupole derived from the specified monopole using eqn (2.14) of Kirkb
 xi2[rmin]=xi2rmin.";
 
 
+constrainedXi4::usage=
+"constrainedXi4[xi0,xi2,rmin,rmax,xi4rmin] returns an interpolated function valid on rmin <= r <= rmax
+for the hexadecapole derived from the specified monopole and quadrupole using eqn (2.14) of Kirkby 2013, with
+xi2[rmin]=xi2rmin.";
+
+
 Begin["Private`"]
 
 
@@ -423,6 +429,14 @@ With[{xi0rmin=xi0[rmin]},
 Module[{integral,F,r},
   integral=F/.First[NDSolve[{F[rmin]==0,F'[r]==r^2 xi0[r]},F,{r,rmin,rmax}]];
   Function[r,xi0[r]+(rmin/r)^3(xi2rmin-xi0rmin)-(3/r^3)integral[r]]
+]]
+
+
+constrainedXi4[xi0_,xi2_,rmin_,rmax_,xi4rmin_]:=
+With[{xi0rmin=xi0[rmin]},
+Module[{integral,F,r},
+  integral=F/.First[NDSolve[{F[rmin]==0,F'[r]==r^4 (xi0[r]+xi2[r])},F,{r,rmin,rmax}]];
+  Function[r,xi0[r]+(rmin/r)^5(xi4rmin-xi0rmin)-(5/r^5)integral[r]]
 ]]
 
 
