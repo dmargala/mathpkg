@@ -544,7 +544,7 @@ Module[{npts,ds,sval,partials,tabulated,G,s,interpolator},
     ]
 ]]
 Options[buildFunction]={
-  "method"->"NIntegrate","pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"inverted"->False
+  "method"->"NDSolve","pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"inverted"->False
 };
 
 
@@ -609,7 +609,7 @@ Module[{Xe,drag,scale,taudot},
   (* Build and return the interpolated integral *)
   buildFunction[taudot,zmax,"inverted"->inverted,"pointsPerDecade"->pointsPerDecade]
 ]]
-Options[opticalDepthFunction]={"type"->"Photon","xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->50,"plot"->True};
+Options[opticalDepthFunction]={"type"->"Photon","xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->200,"plot"->True};
 
 
 Clear[comovingDistanceFunction]
