@@ -247,9 +247,9 @@ The result is cached after the first evaluation.";
 
 
 recombinationXe::usage=
-"recombinationXe[cosmology,zmin,zmax] returns a 2 functions that evaluate the free electron fraction
-(relative to Hydrogen nuclei) and the matter temperature respectively at redshift zmin <= z <= zmax 
-for the named cosmology.";
+"recombinationXe[cosmology,zmin,zmax] returns a function that evaluates
+the free electron fraction (relative to Hydrogen nuclei) at redshift
+zmin <= z <= zmax for the named cosmology.";
 
 
 \[Tau]b::usage=
