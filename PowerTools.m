@@ -87,6 +87,12 @@ integrated from kmin to k with kmin <= k <= kmax. Options are:
  - inverted (False) return inverse function k(var) instead of var(k) when True.";
 
 
+constrainedXi2::usage=
+"constrainedXi2[xi0,rmin,rmax,xi2rmin] returns an interpolated function valid on rmin <= r <= rmax
+for the quadrupole derived from the specified monopole using eqn (2.14) of Kirkby 2013, with
+xi2[rmin]=xi2rmin.";
+
+
 Begin["Private`"]
 
 
@@ -410,6 +416,14 @@ Options[buildKFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"in
 
 growthVarianceFunction[power_,kmin_,kmax_,options:OptionsPattern[{buildKFunction}]]:=
   buildKFunction[##^2/(2\[Pi]^2) power[##]&,kmin,kmax,options]
+
+
+constrainedXi2[xi0_,rmin_,rmax_,xi2rmin_]:=
+With[{xi0rmin=xi0[rmin]},
+Module[{integral,F,r},
+  integral=F/.First[NDSolve[{F[rmin]==0,F'[r]==r^2 xi0[r]},F,{r,rmin,rmax}]];
+  Function[r,xi0[r]+(rmin/r)^3(xi2rmin-xi0rmin)-(3/r^3)integral[r]]
+]]
 
 
 End[]
