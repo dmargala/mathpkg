@@ -752,7 +752,7 @@ Module[{zmax,z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns
 	xef=(xe/.Flatten[NDSolve[eqns,{xe,Tmat},{z,zmin,zmax}]]);
     (* Use XeEq[z] above 0.999 zmax. This creates a tiny discontinuity at the cross over that
     could be interpolated out if necessary. *)
-    If[extendedOption===True,Function[z,If[z<0.999zmax,xef[z],XeEq[cosmology][z]]],xef]
+    If[extendedOption===True,Function[z,If[z<0.99zmax,xef[z],XeEq[cosmology][z]]],xef]
 ]]
 Options[recombinationXe]={
   "zmin"->0,"zmax"->Automatic,"zmaxXeEq"->0.999,"zmaxGuess"->1500,"extended"->True
