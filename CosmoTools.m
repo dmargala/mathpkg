@@ -230,7 +230,8 @@ of Weinberg 2012, so not exact, and only valid for models close to LCDM. Possibl
 opticalDepthFunction::usage=
 "opticalDepthFunction[cosmology,zmax] returns a function that evaluates the optical depth at
 redshift z <= zmax for the named cosmology. Options are:
-  - xeMethod: \"Detailed\" (default) or \"Equilibrium\".
+ - xeMethod: \"Detailed\" (default) or \"Equilibrium\".
+ - type: \"Photon\" (default) or \"Baryon\" (for zstar and zdrag, respectively).
  - pointsPerDecade (20) number of interpolation points to use per decade.
  - inverted (False) return inverse function z(tau) instead of tau(z) when True.";
 
@@ -582,7 +583,8 @@ Module[{Xe,drag,scale,taudot},
   (* Make a function giving the derivative of the optical depth wrt redshift *)
   taudot=Function[z,Evaluate[Simplify[scale Xe[z]nH[cosmology][z]/((1+z)H0[cosmology]Hratio[cosmology][z])/drag[z]]]];
   If[plotOption===True,
-    Print[LogPlot[taudot[Exp[t]-1],{t,0,Log[1+zmax]},PlotRange->All]]
+    (* Plot the integrand that we will pass to build function *)
+    Print[LogPlot[taudot[Exp[t]-1]Exp[t],{t,0,Log[1+zmax]},PlotRange->All]]
   ];
   (* Build and return the interpolated integral *)
   buildFunction[taudot,zmax,"inverted"->inverted,"pointsPerDecade"->pointsPerDecade]
