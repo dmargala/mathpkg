@@ -513,18 +513,26 @@ With[{
   scale=OptionValue["scale"],
   transform=OptionValue["transform"]
 },
-Module[{npts,ds,sval,partials,tabulated,interpolator},
+Module[{npts,ds,sval,partials,tabulated,G,s,interpolator},
     If[method!="NIntegrate"&&method!="NDSolve",
       Message[buildFunction::badmethod];
       Return[$Failed]
     ];
+    (* Create the grid in s = Log[1+z] to use *)
 	npts=Ceiling[N[Log[1+zmax]pointsPerDecade/Log[10]]];
-    (* Integrate over equally spaced intervals in s = log(1+z) *)
     ds=Log[1+zmax]/(npts-1);
 	sval=Table[n ds,{n,0,npts-1}];
-	partials=Table[NIntegrate[integrand[Exp[s]-1]Exp[s],{s,sval[[n]],sval[[n+1]]}],{n,1,npts-1}];
-    (* Accumulate the partials and add the boundary condition that the integral is zero at z = 0 *)
-	tabulated=Prepend[Accumulate[partials],0];
+    If[method=="NIntegrate",
+      (* Integrate over equally spaced intervals in s = log(1+z) *)
+  	partials=Table[NIntegrate[integrand[Exp[s]-1]Exp[s],{s,sval[[n]],sval[[n+1]]}],{n,1,npts-1}];
+      (* Accumulate the partials and add the boundary condition that the integral is zero at z = 0 *)
+  	tabulated=Prepend[Accumulate[partials],0];
+      ,
+      (* Solve the ODE from s = 0 to s = Log[1+zmax] *)
+      G=G/.First[NDSolve[{G'[s]==integrand[Exp[s]-1]Exp[s],G[0]==0},G,{s,0,Log[1+zmax]}]];
+      (* Tabulate the solution *)
+      tabulated=G/@sval;
+    ];
     (* Apply the scale and transform[z,f] to the cummulative integrals *)
     tabulated=scale Apply[transform,Transpose[{Exp[sval]-1,tabulated}],1];
     (* Create the requested interpolation f(z) or z(f) *)
