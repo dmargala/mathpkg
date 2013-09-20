@@ -609,7 +609,7 @@ Module[{Xe,drag,scale,taudot},
   (* Build and return the interpolated integral *)
   buildFunction[taudot,zmax,"inverted"->inverted,"pointsPerDecade"->pointsPerDecade]
 ]]
-Options[opticalDepthFunction]={"type"->"Photon","xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->200,"plot"->True};
+Options[opticalDepthFunction]={"type"->"Photon","xeMethod"->"Detailed","inverted"->False,"pointsPerDecade"->200,"plot"->False};
 
 
 Clear[comovingDistanceFunction]
