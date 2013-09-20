@@ -504,10 +504,20 @@ Options[exportToCamb]={
 in log(1+z) with the specified number of points per decade. The default scale=1 and transform[z,f]=f.
 With inverted->True, evaluates z[f] instead of f[z]. *)
 Clear[buildFunction]
+buildFunction::badmethod="Only supported methods are \"NIntegrate\" and \"NDSolve\".";
 buildFunction[integrand_,zmax_,OptionsPattern[]]:=
-With[{pointsPerDecade=OptionValue["pointsPerDecade"],inverted=OptionValue["inverted"],
-scale=OptionValue["scale"],transform=OptionValue["transform"]},
+With[{
+  method=OptionValue["method"],
+  pointsPerDecade=OptionValue["pointsPerDecade"],
+  inverted=OptionValue["inverted"],
+  scale=OptionValue["scale"],
+  transform=OptionValue["transform"]
+},
 Module[{npts,ds,sval,partials,tabulated,interpolator},
+    If[method!="NIntegrate"&&method!="NDSolve",
+      Message[buildFunction::badmethod];
+      Return[$Failed]
+    ];
 	npts=Ceiling[N[Log[1+zmax]pointsPerDecade/Log[10]]];
     (* Integrate over equally spaced intervals in s = log(1+z) *)
     ds=Log[1+zmax]/(npts-1);
@@ -525,7 +535,9 @@ Module[{npts,ds,sval,partials,tabulated,interpolator},
             Function[z,interpolator[Log[1+z]]]
     ]
 ]]
-Options[buildFunction]={"pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"inverted"->False};
+Options[buildFunction]={
+  "method"->"NIntegrate","pointsPerDecade"->20,"scale"->1,"transform"->(#2&),"inverted"->False
+};
 
 
 Clear[growthFunction]
