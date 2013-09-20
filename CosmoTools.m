@@ -529,7 +529,7 @@ Module[{npts,ds,sval,partials,tabulated,G,s,interpolator},
   	tabulated=Prepend[Accumulate[partials],0];
       ,
       (* Solve the ODE from s = 0 to s = Log[1+zmax] *)
-      G=G/.First[NDSolve[{G'[s]==integrand[Exp[s]-1]Exp[s],G[0]==0},G,{s,0,Log[1+zmax]}]];
+      G=G/.First[NDSolve[{G'[s]==integrand[Exp[s]-1]Exp[s],G[0]==0},G,{s,0,Log[1+zmax]},MaxStepSize->ds]];
       (* Tabulate the solution *)
       tabulated=G/@sval;
     ];
