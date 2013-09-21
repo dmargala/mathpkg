@@ -99,6 +99,10 @@ for the hexadecapole derived from the specified monopole and quadrupole using eq
 xi2[rmin]=xi2rmin.";
 
 
+smoothedXi::usage=
+"smoothedXi[xi,rvec,model] returns an interpolated function...";
+
+
 Begin["Private`"]
 
 
@@ -438,6 +442,57 @@ Module[{integral,F,r},
   integral=F/.First[NDSolve[{F[rmin]==0,F'[r]==r^4 (xi0[r]+xi2[r])},F,{r,rmin,rmax}]];
   Function[r,xi0[r]+(rmin/r)^5(xi4rmin-xi0rmin)-(5/r^5)integral[r]]
 ]]
+
+
+smoothedXi::badn="Number of constraints (`1`) does not match number of coefficients (`2`).";
+smoothedXi::badpk="Peak at r=`1` is not bracketed by r values of constraints.";
+smoothedXi[xi_,rvec_,rpvec_,model_,OptionsPattern[]]:=
+With[{
+  nr=Length[rvec],
+  nrp=Length[rpvec],
+  ncoef=Length[model],
+  rpeakOption=OptionValue["rpeak"],
+  plotOption=OptionValue["plot"]
+},
+Module[{M,r,f,fp,xip,b,coefs,smooth,rsort,ipeak,rlo,rhi},
+  (* Check that the number of constraints matches the number of unknown coefficients *)
+  If[nr+nrp!=ncoef,
+    Message[smoothedXi::badn,nr+nrp,ncoef];
+    Return[$Failed]
+  ];
+  (* Points in rvec and rpvec are all assumed to be in the smooth regions on either side
+  of the peak. Figure out which r interval between these points contains the peak. *)
+  rsort=Sort[Join[rvec,rpvec,{rpeakOption}]];
+  ipeak=Flatten[Position[rsort,rpeakOption]];
+  Print[{rsort,ipeak}];
+  If[Length[ipeak]!=1||ipeak==1||ipeak==Length[rsort],
+    Message[smoothedXi::badpk,rpeakOption];
+    Return[$Failed]
+  ];
+  ipeak=First[ipeak];
+  {rlo,rhi}=rsort[[{ipeak-1,ipeak+1}]];
+  (* Build the coefficient matrix for the system of linear equations we need to solve *)
+  M=ConstantArray[0,{ncoef,ncoef}];
+  Do[
+    f=Function[r,Evaluate[Simplify[model[[i]][r]]]];
+    fp=Function[r,Evaluate[Simplify[D[f[r],r]]]];
+    M[[;;nr,i]]=f/@rvec;
+    M[[nr+1;;,i]]=fp/@rpvec;
+    ,{i,ncoef}
+  ];
+  (* Build the corresponding vector of RHS values *)
+  xip=Function[r,xi'[r]];
+  b=Join[xi/@rvec,xip/@rpvec];
+  Print[MatrixForm[M]];
+  Print[b];
+  coefs=LinearSolve[M,b];
+  Print[coefs];
+  smooth=Function[r,Evaluate[Simplify[coefs.Through[model[r]]]]];
+  If[plotOption===True,
+    1
+  ];
+]]
+Options[smoothedXi]={"rpeak"->110,"plot"->True};
 
 
 End[]
