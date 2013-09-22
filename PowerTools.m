@@ -99,8 +99,20 @@ for the hexadecapole derived from the specified monopole and quadrupole using eq
 xi2[rmin]=xi2rmin.";
 
 
-smoothedXi::usage=
-"smoothedXi[xi,rvec,model] returns an interpolated function...";
+getXiPeak::usage=
+"smoothedXi[xi,rvec,rpvec,modelTerms] returns an interpolated function for the peak in the specified correlation
+function using value (rvec) and derivative (rpvec) matching constraints at the specified r values and
+assuming a model of the smooth (peak-substracted shape) consisting of linear combination of the specified
+terms. The peak is obtained by first calculating the linear coefficients of the smooth model S(r) using
+constraints S(r)=xi(r) for all r in rvec and S'(r)=xi'(r) for all r in rpvec. The total number of constraint
+points must match the number of model terms so that the solution is unique. The input xi must be defined at
+all constraint points, which are assumed to all lie outside the peak region. The resulting peak model will be
+zero except on the constraint r interval containing rpeak (see below). The following options are supported:
+ - rpeak: the peak model is assumed non-zero in the constraint interval containing this r value (default 105).
+ - plot: generates a diagnostic plot if True (default = True).
+ - plotRMin: lower bound of the diagnostic plot.
+ - plotRMax: upper bound of the diagnostic plot.
+ - plotRPow: r-weighting power for the diagnostic plot.";
 
 
 Begin["Private`"]
@@ -444,33 +456,40 @@ Module[{integral,F,r},
 ]]
 
 
-smoothedXi::badn="Number of constraints (`1`) does not match number of coefficients (`2`).";
-smoothedXi::badpk="Peak at r=`1` is not bracketed by r values of constraints.";
-smoothedXi[xi_,rvec_,rpvec_,model_,OptionsPattern[]]:=
+getXiPeak::badn="Number of constraints (`1`) does not match number of coefficients (`2`).";
+getXiPeak::badpk="Peak at r=`1` is not bracketed by r values of constraints.";
+getXiPeak::nonzero="Bracketing values `1` should both be in rvec to avoid steps in peak function.";
+getXiPeak[xi_,rvec_,rpvec_,model_,OptionsPattern[]]:=
 With[{
   nr=Length[rvec],
   nrp=Length[rpvec],
   ncoef=Length[model],
   rpeakOption=OptionValue["rpeak"],
-  plotOption=OptionValue["plot"]
+  plotOption=OptionValue["plot"],
+  plotRMin=OptionValue["plotRMin"],
+  plotRMax=OptionValue["plotRMax"],
+  plotRPow=OptionValue["plotRPow"]
 },
 Module[{M,r,f,fp,xip,b,coefs,smooth,rsort,ipeak,rlo,rhi},
   (* Check that the number of constraints matches the number of unknown coefficients *)
   If[nr+nrp!=ncoef,
-    Message[smoothedXi::badn,nr+nrp,ncoef];
+    Message[getXiPeak::badn,nr+nrp,ncoef];
     Return[$Failed]
   ];
   (* Points in rvec and rpvec are all assumed to be in the smooth regions on either side
   of the peak. Figure out which r interval between these points contains the peak. *)
   rsort=Sort[Join[rvec,rpvec,{rpeakOption}]];
   ipeak=Flatten[Position[rsort,rpeakOption]];
-  Print[{rsort,ipeak}];
   If[Length[ipeak]!=1||ipeak==1||ipeak==Length[rsort],
-    Message[smoothedXi::badpk,rpeakOption];
+    Message[getXiPeak::badpk,rpeakOption];
     Return[$Failed]
   ];
   ipeak=First[ipeak];
   {rlo,rhi}=rsort[[{ipeak-1,ipeak+1}]];
+  If[!MemberQ[rvec,rlo]||!MemberQ[rvec,rhi],
+    Message[getXiPeak::nonzero,{rlo,rhi}];
+    Return[$Failed]
+  ];
   (* Build the coefficient matrix for the system of linear equations we need to solve *)
   M=ConstantArray[0,{ncoef,ncoef}];
   Do[
@@ -483,16 +502,20 @@ Module[{M,r,f,fp,xip,b,coefs,smooth,rsort,ipeak,rlo,rhi},
   (* Build the corresponding vector of RHS values *)
   xip=Function[r,xi'[r]];
   b=Join[xi/@rvec,xip/@rpvec];
-  Print[MatrixForm[M]];
-  Print[b];
   coefs=LinearSolve[M,b];
-  Print[coefs];
   smooth=Function[r,Evaluate[Simplify[coefs.Through[model[r]]]]];
   If[plotOption===True,
-    1
+    Print[Show[{
+      Plot[r^plotRPow xi[r],{r,plotRMin,plotRMax},PlotStyle->{Thick,Blue},Frame->True],
+      Plot[r^plotRPow smooth[r],{r,rlo,rhi},PlotStyle->{Opacity[0.5],Thick,Dashed,Red}],
+      ListPlot[{#,#^plotRPow xi[#]}&/@rpvec,PlotStyle->{Black,Opacity[0.3],PointSize[0.04]}],
+      ListPlot[{#,#^plotRPow xi[#]}&/@rsort,PlotStyle->{Red,Opacity[0.8],PointSize[0.02]}]
+    }]]
   ];
+  (* Return a peak function that is defined for all r and only non-zero on [rlo,rhi] *)
+  Function[r,UnitStep[(r-rlo)(rhi-r)](xi[Clip[r,{rlo,rhi}]]-smooth[Clip[r,{rlo,rhi}]])]
 ]]
-Options[smoothedXi]={"rpeak"->110,"plot"->True};
+Options[getXiPeak]={"rpeak"->105,"plot"->True,"plotRMin"->50,"plotRMax"->190,"plotRPow"->2};
 
 
 End[]
