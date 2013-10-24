@@ -640,7 +640,8 @@ Module[{path,raw,size,sparse,packed},
         If[verboseOption===True,Print["Automatically selected packed matrix format."]]; Return[packed]
     ];
 ]]
-Options[loadFitMatrix]={ "verbose"->False,"path"->None, "size"->Automatic, "invert"->False, "sparse"->Automatic, "sparseThreshold"->1 };
+Options[loadFitMatrix]={ "verbose"->False,"path"->None, "size"->Automatic, "invert"->False,
+  "sparse"->Automatic, "sparseThreshold"->1, "slowImport"->False };
 
 
 Clear[saveFitMatrix]
