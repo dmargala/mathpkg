@@ -171,6 +171,7 @@ of the 3D binned data associated with the specified tag. The following options a
     - zref: redshift that results should be adjusted to (default is Automatic, which uses
       redshift of first data point).
     - gammaBias: exponent of (1+z)/(1+zref) used to adjust data at z (default is 3.8).
+    - diagonal: only use diagonal of covariance matrix (default is False).
     - verbose: print verbose output (default is True).
 Returns {pvec,pcov,chisq,ndof,prob,lgrid} where pvec is the vector of multipole parameters xi(ell,r(k))
 with the ell index increasing fastest, then r(k) in rgrid, and pcov is the corresponding
@@ -1052,12 +1053,13 @@ With[{
   gammaBiasOption=OptionValue["gammaBias"],
   zrefOption=OptionValue["zref"],
   rpowOption=OptionValue["rpow"],
+  diagonalOption=OptionValue["diagonal"],
   verboseOption=OptionValue["verbose"]
 },
 Module[
   {
-    zref,rmin,rmax,ndata,keep,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,coefMatrix,cutData,cutICov,
-    pWgt,A,pVec,evec,eval,B,Y,pCov,delta,chisq,ndof,prob
+    zref,rmin,rmax,ndata,keep,nrcut,lgrid,npar,lindex,rindex,ell,rk,r,mu,z,t,coefMatrix,
+    cutData,cutCov,cutICov,pWgt,A,pVec,evec,eval,B,Y,pCov,delta,chisq,ndof,prob
   },
   (* Check for a valid tag *)
   If[!ValueQ[tag["RMUZ"]]||!ValueQ[tag["DATA"]]||!ValueQ[tag["ICOV"]],
@@ -1123,7 +1125,9 @@ Module[
   (* Prune the coefficient matrix and data to the bins within [rmin,rmax] *)
   coefMatrix=coefMatrix[[keep,;;]];
   cutData=tag["DATA"][[keep]];
-  cutICov=Inverse[Inverse[tag["ICOV"]][[keep,keep]]];
+  cutCov=Inverse[tag["ICOV"]][[keep,keep]];
+  If[diagonalOption===True,cutCov=DiagonalMatrix[Diagonal[cutCov]]];
+  cutICov=Inverse[cutCov];
   (* Calculate the best-fit parameter vector *)
   pWgt=Transpose[coefMatrix].cutICov;
   A=pWgt.coefMatrix;
@@ -1150,7 +1154,8 @@ Module[
   {pVec,pCov,chisq,ndof,prob,lgrid}
 ]]
 Options[fitResidualsInterpolatedMultipoles] = {
-  "verbose"->True, "lmax"->4, "lvec"->Automatic, "gammaBias"->3.8, "zref"->Automatic, "rpow"->2
+  "verbose"->True, "lmax"->4, "lvec"->Automatic, "gammaBias"->3.8, "zref"->Automatic,
+  "rpow"->2, "diagonal"->False
 };
 
 
