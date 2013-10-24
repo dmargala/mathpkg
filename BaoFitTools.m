@@ -550,7 +550,8 @@ With[{
   scan1DOption=OptionValue["scan1D"],
   plot1DOption=OptionValue["plot1D"],
   n1DOption=OptionValue["n1D"],
-  levels1DOption=OptionValue["levels1D"]
+  levels1DOption=OptionValue["levels1D"],
+  shadingOption=OptionValue["shading"]
 },
 Module[{s,styles,xr,yr,f,curves},
   (* Wrap scans in a List if there is only one *)
@@ -579,9 +580,12 @@ Module[{s,styles,xr,yr,f,curves},
   (* Make the graphics *)
   Show[{
     createFrame[Plot,xr,yr,FilterRules[{options},Options[ListPlot]],AspectRatio->1],
-    ContourPlot[f[[1]][x,y],{x,xr[[1]],xr[[-1]]},{y,yr[[1]],yr[[-1]]},
-      ContourStyle->None,Contours->Range[0,100],ColorFunction->temperatureMap,
-      PlotLegends->Automatic,PlotRange->All],
+    If[shadingOption===True,
+      ContourPlot[f[[1]][x,y],{x,xr[[1]],xr[[-1]]},{y,yr[[1]],yr[[-1]]},
+        ContourStyle->None,Contours->Range[0,100],ColorFunction->temperatureMap,
+        PlotLegends->Automatic,PlotRange->All],
+      {}B
+    ],
     Table[{
       ContourPlot[f[[i]][x,y],{x,xr[[1]],xr[[-1]]},{y,yr[[1]],yr[[-1]]},Contours->levelsOption,
         ContourShading->None,ContourStyle->styles[[i]]],
@@ -596,7 +600,7 @@ Module[{s,styles,xr,yr,f,curves},
 Options[fitContoursPlot]={
   "levels"->gaussianChiSquareContourLevel[{0.68,0.95,0.997},2],
   "xRange"->Automatic,"yRange"->Automatic,"styles"->Automatic,"scan1D"->True,
-  "plot1D"->False,"n1D"->40,"levels1D"->{1,4}
+  "plot1D"->False,"n1D"->40,"levels1D"->{1,4},"shading"->True
 };
 
 
