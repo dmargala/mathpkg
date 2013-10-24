@@ -23,7 +23,9 @@ are supported:
     - sparse : should result be returned as a SparseArray? (Automatic,True,False)
       (default is Automatic, which decides based on the space saving)
     - sparseThreshold : prefers sparse matrix if sparseSize < threshold * denseSize
-      (default is 1)";
+      (default is 1)
+    - slowImport: uses the slower but less picky Import method to read the file
+      instead of the default ReadList method (default is False).";
 
 
 saveFitMatrix::usage=
@@ -607,11 +609,15 @@ With[{
     sizeOption=OptionValue["size"],
     invertOption=OptionValue["invert"],
     sparseOption=OptionValue["sparse"],
-    sparseThresholdOption=OptionValue["sparseThreshold"]
+    sparseThresholdOption=OptionValue["sparseThreshold"],
+    slowImportOption=OptionValue["slowImport"]
 },
 Module[{path,raw,size,sparse,packed},
     path=makePath[filename,pathOption];
-    raw=ReadList[path,{Number,Number,Number}];
+    raw=If[slowImportOption===True,
+      Import[path,"Table"], (* slower, but should always work *)
+      ReadList[path,{Number,Number,Number}] (* faster but more picky *)
+    ];
     size=If[sizeOption===Automatic,Max[raw[[;;,1]]]+1,sizeOption];
     If[verboseOption===True,Print["Read matrix with size = ",size,"."]];
     With[{values=N[raw[[;;,3]]]},
