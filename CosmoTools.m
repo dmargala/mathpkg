@@ -368,8 +368,8 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     name/: Options[name]= { "h"->hopt,"Hzero"->Hzero,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
         "Tcmb"->Tcmb,"Nnu"->Nnu,"NnuMassive"->NnuMassive,"mnu"->mnu,
          "ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
-    name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu (3-NnuMassive)/3]/criticalDensityToday[h](1+z)^4]]];
-	name/: \[CapitalOmega]photons[name]=Function[z,Evaluate[Simplify[photonDensity[Tcmb]/criticalDensityToday[h](1+z)^4]]];
+    name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu (3-NnuMassive)/3]/criticalDensityToday[hval](1+z)^4]]];
+	name/: \[CapitalOmega]photons[name]=Function[z,Evaluate[Simplify[photonDensity[Tcmb]/criticalDensityToday[hval](1+z)^4]]];
     \[CapitalOmega]mval=If[\[CapitalOmega]m===Automatic,1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]m];
     \[CapitalOmega]\[CapitalLambda]val=If[\[CapitalOmega]\[CapitalLambda]===Automatic,1-\[CapitalOmega]m-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]\[CapitalLambda]];
     If[\[CapitalOmega]m+\[CapitalOmega]\[CapitalLambda]+\[CapitalOmega]k+\[CapitalOmega]rad[name][0]!=1,
