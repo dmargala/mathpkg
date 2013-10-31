@@ -98,6 +98,20 @@ exportToCamb::usage=
 specified filename in CAMB input format.";
 
 
+loadPlanckChain::usage=
+"loadPlanckChain[name,params] loads the named parameters from the specified Planck chain
+and returns a table where rows correspond to chain rows and columns correspond to the
+values of the named parameters. Options are:
+  - verbose: give verbose output (default is False).
+  - maxRows: maximum number of rows to return (default is All).
+  - path: path to prepend to name (default is \"/Volumes/Data/planck/\").
+This function has been tested wth the public Planck chains available from
+http://www.sciops.esa.int/wikiSI/planckpla/index.php?title=Cosmological_Parameters&instance=Planck_Public_PLA#Parameter_Chains
+and uses the parameter name tags specified in
+http://www.sciops.esa.int/wikiSI/planckpla/index.php?title=File:Parameter_tag_definitions.pdf&instance=Planck_Public_PLA
+which should be provided in a list, e.g., {\"omegabh2\",\"rdrag\"}.";
+
+
 \[CapitalOmega]rad::usage=
 "\[CapitalOmega]rad[name][z] returns the radiation energy density at the specified redshift relative
 to the critical density today. Divide by Hratio[z]^2 to get the density relative to the
@@ -511,6 +525,51 @@ Options[exportToCamb]={
   "form"->CForm,"kmax"->2,"kPerLogInt"->0,"redshifts"->{0},
   "boilerplate"->"DeepZot/camb_boilerplate.ini"
 };
+
+
+loadPlanckChain::nofile="No such file `1`.";
+loadPlanckChain::nopnames="Missing parameter names file `1`.";
+loadPlanckChain::nopar="No such parameter `1`.";
+loadPlanckChain[name_,parameters_List,OptionsPattern[]]:=
+With[{
+  verbose=OptionValue["verbose"],
+  maxRows=OptionValue["maxRows"],
+  path=OptionValue["path"]
+},
+Module[{pnamesFile,pnames,pos,columns,rows,raw},
+  (* Check that this file exists *)
+  If[!FileExistsQ[FileNameJoin[{path,name}]],
+    Message[loadPlanckChain::nofile,name];
+    Return[$Failed]
+  ];
+  (* Get the filename containing parameter names for this chain *)
+  pnamesFile=FileNameJoin[{path,StringReplace[name,RegularExpression["^(\\S+)?_[0-9]\\.txt"]->"$1.paramnames"]}];
+  If[!FileExistsQ[pnamesFile],
+    Message[loadPlanckChain::nopnames,pnamesFile];
+    Return[$Failed]
+  ];
+  (* Parse the parameter names file *)
+  pnames=Map[StringReplace[First[#],RegularExpression["^\\s*(\\w+)\\*?$"]->"$1"]&,Import[pnamesFile]];
+  (* Lookup the requested parameter indices *)
+  columns=Table[
+    pos=Position[pnames,p,{1},Heads->False];
+    If[pos=={},
+      Message[loadPlanckChain::nopar,p];
+      Return[$Failed]
+    ];
+    pos[[1,1]],{p,parameters}
+  ];
+  rows=If[IntegerQ[maxRows],Span[1,maxRows],All];
+  If[verbose===True,
+    Print["Reading parameters in columns ",columns," from ",maxRows," rows."]
+  ];
+  raw=ReadList[FileNameJoin[{path,name}],Real,RecordLists->True];
+  If[verbose===True,
+    Print["Chain contains ",Length[raw]," rows."]
+  ];
+  Part[raw,rows,columns]
+]]
+Options[loadPlanckChain]={"verbose"->False,"maxRows"->All,"path"->"/Volumes/Data/planck/"};
 
 
 (* Builds a function that evaluates f[z]=scale*transform[z,Integral[integrand[zz],{zz,0,z}]] using interpolation
