@@ -530,13 +530,15 @@ Options[exportToCamb]={
 loadPlanckChain::nofile="No such file `1`.";
 loadPlanckChain::nopnames="Missing parameter names file `1`.";
 loadPlanckChain::nopar="No such parameter `1`.";
+loadPlanckChain::notable="File is not in tabular format.";
+loadPlanckChain::ncols="Found `1` columns but expected `2`.";
 loadPlanckChain[name_,parameters_List,OptionsPattern[]]:=
 With[{
   verbose=OptionValue["verbose"],
   maxRows=OptionValue["maxRows"],
   path=OptionValue["path"]
 },
-Module[{pnamesFile,pnames,pos,columns,rows,raw},
+Module[{pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols},
   (* Check that this file exists *)
   If[!FileExistsQ[FileNameJoin[{path,name}]],
     Message[loadPlanckChain::nofile,name];
@@ -566,8 +568,18 @@ Module[{pnamesFile,pnames,pos,columns,rows,raw},
     Print["Reading parameters in columns ",columns," from ",maxRows," rows."]
   ];
   raw=ReadList[FileNameJoin[{path,name}],Real,RecordLists->True];
+  (* Check for the expected number of columns *)
+  If[ArrayDepth[raw]!=2,
+    Message[loadPlanckChain::notable];
+    Return[$Failed]
+  ];
+  {nrows,ncols}=Dimensions[raw];
+  If[ncols!=Length[pnames],
+    Message[loadPlanckChain::ncols,Length[pnames],ncols];
+    Return[$Failed]
+  ];
   If[verbose===True,
-    Print["Chain contains ",Length[raw]," rows."]
+    Print["Chain contains ",nrows," rows."]
   ];
   Part[raw,rows,columns]
 ]]
