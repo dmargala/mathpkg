@@ -433,7 +433,7 @@ With[{
 Module[{changesList,h0,h1,\[CapitalOmega]mh2,\[CapitalOmega]bh2,zstar0,zstar1,Dc0,Dc1,Dstar0,Dstar1,data,model,dh,h,interpolator,dhval},
   changesList=If[Head[changes]===Rule,{changes},changes];
   (* Extract base model parameters *)
-  h0=OptionValue[base,"h"];
+  h0=H0[base]/100;
   \[CapitalOmega]bh2=OptionValue[base,"\[CapitalOmega]bh2"];
   \[CapitalOmega]mh2=\[CapitalOmega]mat[base][0]h0^2;
   zstar0=zstar[base];
@@ -472,7 +472,7 @@ Options[createCMBVariant]={"verbose"->True,"hrange"->0.1,"nsteps"->2};
 
 Clear[exportToCamb]
 exportToCamb[filename_,cosmology_,OptionsPattern[]]:=With[{
-    h=OptionValue[cosmology,"h"],
+    h=H0[cosmology]/100,
     \[CapitalOmega]m=\[CapitalOmega]mat[cosmology][0],
     \[CapitalOmega]bh2=OptionValue[cosmology,"\[CapitalOmega]bh2"],
     Nnu=OptionValue[cosmology,"Nnu"],
@@ -634,7 +634,7 @@ Clear[buildDistanceFunction]
 buildDistanceFunction[cosmology_,zmax_,options:OptionsPattern[{buildDistanceFunction,buildFunction}]]:=
 With[{physical=OptionValue["physical"],transverse=OptionValue["transverse"],zpower=OptionValue["zpower"]},
 Module[{h,scale,transform},
-    h=If[physical===True,OptionValue[cosmology,"h"],1];
+    h=If[physical===True,H0[cosmology]/100,1];
     scale=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
     transform=If[transverse===True,curvatureTransform[cosmology][#2](1+#1)^zpower,#2 (1+#1)^zpower]&;
 	buildFunction[1/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->transform,
@@ -708,7 +708,7 @@ buildDistanceFunction[cosmology,zmax,"transverse"->True,"zpower"->+1,options]
 Clear[ageOfUniverse]
 ageOfUniverse[cosmology_]:=ageOfUniverse[cosmology]^=
 Module[{scale},
-    scale=hubbleScale[1,OptionValue[cosmology,"h"],Units`Giga Units`Year];
+    scale=hubbleScale[1,H0[cosmology]/100,Units`Giga Units`Year];
 	scale NIntegrate[1/Hratio[cosmology][Exp[s]-1],{s,0,Infinity}]
 ]
 
@@ -717,7 +717,7 @@ Clear[lookbackTimeFunction]
 lookbackTimeFunction[cosmology_,zmax_,options:OptionsPattern[{lookbackTimeFunction,buildFunction}]]:=
 With[{physical=OptionValue["physical"]},
 Module[{h,scale},
-    h=If[physical===True,OptionValue[cosmology,"h"],1];
+    h=If[physical===True,H0[cosmology]/100,1];
     scale=hubbleScale[1,h,Units`Giga Units`Year];
 	buildFunction[1/(1+#1)/Hratio[cosmology][#1]&,zmax,"scale"->scale,FilterRules[{options},Options[buildFunction]]]
 ]]
@@ -728,7 +728,7 @@ Clear[conformalTimeFunction]
 conformalTimeFunction[cosmology_,zmax_,options:OptionsPattern[{conformalTimeFunction,buildFunction}]]:=
 With[{physical=OptionValue["physical"]},
 Module[{h,scale,eta0},
-    h=If[physical===True,OptionValue[cosmology,"h"],1];
+    h=If[physical===True,H0[cosmology]/100,1];
     scale=hubbleScale[1,h,Units`Giga Units`Year];
     eta0=NIntegrate[1/Hratio[cosmology][Exp[s]-1]Exp[s],{s,0,Infinity}];
     buildFunction[1/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->((eta0-#2)&),FilterRules[{options},Options[buildFunction]]]
@@ -740,7 +740,7 @@ Clear[soundHorizonFunction]
 soundHorizonFunction[cosmology_,zmax_,options:OptionsPattern[{soundHorizonFunction,buildFunction}]]:=
 With[{physical=OptionValue["physical"]},
 Module[{h,scale,r0},
-    h=If[physical===True,OptionValue[cosmology,"h"],1];
+    h=If[physical===True,H0[cosmology]/100,1];
     scale=hubbleScale[PhysicalConstants`SpeedOfLight,h,Units`Mega Units`Parsec];
     r0=NIntegrate[betas[cosmology][Exp[s]-1]/Hratio[cosmology][Exp[s]-1]Exp[s],{s,0,Infinity}];
     buildFunction[betas[cosmology][#1]/Hratio[cosmology][#1]&,zmax,"scale"->scale,"transform"->((r0-#2)&),FilterRules[{options},Options[buildFunction]]]
@@ -751,7 +751,7 @@ Options[soundHorizonFunction]={"physical"->False};
 Clear[rsdrag]
 rsdrag[cosmology_]:=rsdrag[cosmology]^=
 Module[{scale,sdrag},
-    scale=hubbleScale[PhysicalConstants`SpeedOfLight,OptionValue[cosmology,"h"],Units`Mega Units`Parsec];
+    scale=hubbleScale[PhysicalConstants`SpeedOfLight,H0[cosmology]/100,Units`Mega Units`Parsec];
     sdrag=Log[1+zdrag[cosmology]];
     scale NIntegrate[betas[cosmology][Exp[s]-1]/Hratio[cosmology][Exp[s]-1]Exp[s],{s,sdrag,Infinity}]
 ]
@@ -780,8 +780,8 @@ With[{
   \[Lambda]\[Alpha]=1215.668 10^-10 Units`Meter (* Lyman Alpha wavelength *),
   \[CapitalLambda]2\[Gamma]=8.22458/Units`Second (* 2 photon decay rate *),
   YP=OptionValue[cosmology,"YP"] (* Helium fraction *),
-  \[CapitalOmega]b=OptionValue[cosmology,"\[CapitalOmega]bh2"]/OptionValue[cosmology,"h"]^2 (* Baryon Fraction Today *),
-  \[Rho]crit=criticalDensityToday[OptionValue[cosmology,"h"]] Units`Joule/Units`Meter^3 (* Critical Density Today *)
+  \[CapitalOmega]b=OptionValue[cosmology,"\[CapitalOmega]bh2"]/(H0[cosmology]/100)^2 (* Baryon Fraction Today *),
+  \[Rho]crit=criticalDensityToday[H0[cosmology]/100] Units`Joule/Units`Meter^3 (* Critical Density Today *)
 },
 Module[{zmax,z,H,Trad,Tmat,t,\[Rho]b,nez,nHz,nHez,xe,\[Alpha]B,\[Beta]B,K,C,eqns,xef},
     zmax=If[zmaxOption===Automatic,
@@ -838,7 +838,7 @@ With[{
 mp=PhysicalConstants`ProtonMass,
 c=PhysicalConstants`SpeedOfLight,
 \[CapitalOmega]\[Gamma]=\[CapitalOmega]photons[cosmology][0],
-\[Rho]crit=criticalDensityToday[OptionValue[cosmology,"h"]]Units`Joule/Units`Meter^3,
+\[Rho]crit=criticalDensityToday[H0[cosmology]/100]Units`Joule/Units`Meter^3,
 YP=OptionValue[cosmology,"YP"],
 h0=H0[cosmology] Convert[(Units`Kilo Units`Meter/Units`Second/(Units`Mega Units`Parsec)),1/Units`Second]
 },
