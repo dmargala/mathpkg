@@ -108,7 +108,7 @@ values of the named parameters. Options are:
 This function has been tested wth the public Planck chains available from
 http://www.sciops.esa.int/wikiSI/planckpla/index.php?title=Cosmological_Parameters&instance=Planck_Public_PLA#Parameter_Chains
 and uses the parameter name tags specified in
-http://www.sciops.esa.int/wikiSI/planckpla/index.php?title=File:Parameter_tag_definitions.pdf&instance=Planck_Public_PLA
+http://www.sciops.esa.int/SYS/WIKI/uploads/Planck_Public_PLA/5/59/Parameter_tag_definitions.pdf
 which should be provided in a list, e.g., {\"omegabh2\",\"rdrag\"}.";
 
 
