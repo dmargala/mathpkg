@@ -569,7 +569,7 @@ Module[{pnamesFile,pnames,pos,columns,rows,raw},
   ];
   Part[raw,rows,columns]
 ]]
-Options[loadPlanckChain]={"verbose"->False,"maxRows"->All,"path"->"/Volumes/Data/planck/"};
+Options[loadPlanckChain]={"verbose"->False,"maxRows"->All,"path"->"/Volumes/Data/planck/PLA/"};
 
 
 (* Builds a function that evaluates f[z]=scale*transform[z,Integral[integrand[zz],{zz,0,z}]] using interpolation
