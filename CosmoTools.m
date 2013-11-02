@@ -551,7 +551,7 @@ Module[{pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols},
     Return[$Failed]
   ];
   (* Parse the parameter names file *)
-  pnames=Map[StringReplace[First[#],RegularExpression["^\\s*(\\w+)\\*?$"]->"$1"]&,Import[pnamesFile]];
+  pnames=Map[First[StringCases[First[#],RegularExpression["^\\s*(\\w+)\\*?"]->"$1"]]&,Import[pnamesFile]];
   (* Add the names of the header columns *)
   pnames=Join[{"weight","likelihood"},pnames];
   (* Lookup the requested parameter indices *)
