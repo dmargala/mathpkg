@@ -88,7 +88,64 @@ pixel data, but can be changed with the ImageSize (absolute) or magnification
 (relative) options."
 
 
+histogramPlot::usage=
+"histogramPlot[data] draws the histogram of data using automatic binning. The following
+options are supported:
+  - weights: scalar or vector of weights to apply to each data value (default 1).
+  - scale: overall scale factor to apply to bin contents (default 1).
+  - bspec: binning specification to use (see HistogramList - default is Automatic).
+  - min: minimum y-axis value to display (default is 0).
+  - max: maximum y-axis value to display (default is Automatic).
+  - lineStyle: graphics style of histogram border.
+  - fillStyle: graphics style of histogram filling (use None for no filling).
+  - xlabel: label to use on the x axis.
+  - ylabel: label to use on the y axis (BINSIZE will be replaced appropriately).";
+
+
 Begin["Private`"]
+
+
+histogramPlot::nonequalbins="Cannot expand BINSIZE with non-equal bin sizes `1`";
+histogramPlot[data_,options:OptionsPattern[{histogramPlot,ListPlot}]]:=
+With[{
+  weightsOption=OptionValue["weights"],
+  scaleOption=OptionValue["scale"],
+  bspecOption=OptionValue["bspec"],
+  maxOption=OptionValue["max"],
+  minOption=OptionValue["min"],
+  lineStyleOption=OptionValue["lineStyle"],
+  fillStyleOption=OptionValue["fillStyle"],
+  xlabelOption=OptionValue["xlabel"],
+  ylabelOption=OptionValue["ylabel"]
+},
+Module[{bins,contents,maxValue,binsize,ylabelValue},
+  (* bin the data *)
+  {bins,contents}=HistogramList[weightsOption data,bspecOption];
+  contents=scaleOption contents;
+  maxValue=If[maxOption===Automatic,1.05 Max[contents],maxOption];
+  AppendTo[contents,Last[contents]];
+  (* replace BINSIZE in ylabel with the bin size if this is constant *)
+  ylabelValue=If[StringFreeQ[ylabelOption,"BINSIZE"],
+    ylabelOption,
+    binsize=Union[bins[[2;;]]-bins[[;;-2]],SameTest->(Chop[#1-#2]==0&)];
+    If[Length[binsize]>1,
+      Message[histogramPlot::nonequalbins,binsize];
+      Return[$Failed]
+    ];
+    StringReplace[ylabelOption,"BINSIZE"->ToString[binsize[[1]]]]
+  ];
+  ListPlot[Transpose[{bins,contents}],
+    FilterRules[{options},Options[ListPlot]],
+    Joined->True,InterpolationOrder->0,
+    Frame->True, FrameLabel->{xlabelOption,ylabelValue},
+    PlotStyle->lineStyleOption,Filling->{1->{0,fillStyleOption}},
+    PlotRange->{{First[bins],Last[bins]},{minOption,maxValue}}]
+]]
+Options[histogramPlot]={
+  "bspec"->Automatic,"weights"->1,"scale"->1,"max"->Automatic,"min"->0,
+  "fillStyle"->Directive[Opacity[0.25],Red],"lineStyle"->Directive[Thick,Red],
+  "xlabel"->None,"ylabel"->"Entries / BINSIZE"
+};
 
 
 createFrame[type_:Plot,{xmin_,xmax_},{ymin_,ymax_},options___]:=
