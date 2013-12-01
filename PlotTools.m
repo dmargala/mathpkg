@@ -88,6 +88,13 @@ pixel data, but can be changed with the ImageSize (absolute) or magnification
 (relative) options."
 
 
+select::usage=
+"select[data,what,selector] returns a list of what[x1,x2,...] for rows {x1,x2,...}
+having selector[x1,x2,...] True. Note that the what and selector functions are
+applied to the elements x1,x2,... rather than the list {x1,x2,...} so that #n refers
+to the n-th element xn, and select[data,#6&] is equivalent to data[[;;,6]].";
+
+
 histogram::usage=
 "histogram[data] returns a list {bins,contents} of bin edges and bin contents,
 with Length[bins] == Length[contents]+1, by default, or Length[bins]==Length[contents]
@@ -100,10 +107,7 @@ when the cummulative option is used. The following options are supported:
 
 histogramPlot::usage=
 "histogramPlot[data] draws the histogram of data using automatic binning. The following
-options are supported:
-  - weights: scalar or vector of weights to apply to each data value (default 1).
-  - scale: overall scale factor to apply to bin contents (default 1).
-  - bspec: binning specification to use (see HistogramList - default is Automatic).
+options are supported, in addition to those of histogram and ListPlot:
   - min: minimum y-axis value to display (default is 0).
   - max: maximum y-axis value to display (default is Automatic).
   - lineStyle: graphics style of histogram border.
@@ -113,6 +117,9 @@ options are supported:
 
 
 Begin["Private`"]
+
+
+select[data_,what_:List,selector_:(True&)]:=Apply[what,Pick[data,Apply[selector,data,1]],1]
 
 
 histogram[data_,OptionsPattern[]]:=
