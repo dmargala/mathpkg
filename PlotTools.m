@@ -89,13 +89,13 @@ pixel data, but can be changed with the ImageSize (absolute) or magnification
 
 
 histogram::usage=
-"histogram[data] returns a list of bin edges and bin contents. The following
-options are supported:
+"histogram[data] returns a list {bins,contents} of bin edges and bin contents,
+with Length[bins] == Length[contents]+1, by default, or Length[bins]==Length[contents]
+when the cummulative option is used. The following options are supported:
   - weights: scalar or vector of weights to apply to each data value (default 1).
   - bspec: binning specification to use (see HistogramList - default is Automatic).
-  - cummulative: contents of blo <= x < bhi bin is the cummulative total for x < bhi
-    if cummulative is \"up\", or else the cummulative total for x >= blo for \"down\".
-    The default is False.";
+  - cummulative: contents[[i]] is the cummulative weighted total data < bins[[i]]
+    if cummulative is \"up\", or else >= bins[[i]] for \"down\". The default is False.";
 
 
 histogramPlot::usage=
@@ -119,40 +119,55 @@ histogram[data_,OptionsPattern[]]:=
 With[{
   bspecOption=OptionValue["bspec"],
   weightsOption=OptionValue["weights"],
-  cummulativeOption=OptionValue["cummulative"]
+  cummulativeOption=OptionValue["cummulative"],
+  verboseOption=OptionValue["verbose"]
 },
-Module[{bins,contents,blo,bhi,keep},
+Module[{bins,centers,contents,wsum,blo,bhi,keep,uflow,oflow},
   (* start with HistogramList *)
   {bins,contents}=HistogramList[data,bspecOption];
   If[NumericQ[weightsOption],
     (* if weight is a global scalar, just apply it to contents *)
+    wsum=weightsOption Length[data];
     contents = weightsOption contents,
     (* if data is individually weighted, we need to redo the contents *)
+    wsum=Total[weightsOption];
     Do[
       blo=bins[[i]];
       bhi=bins[[i+1]];
       (* keep is 1 when blo \[LessEqual] x < bhi *)
       keep=UnitStep[data-blo]-UnitStep[data-bhi];
-      contents[[i]]=Total[keep weightsOption];
-      Print[{i,blo,bhi,keep,contents[[i]]}];
+      contents[[i]]=Total[keep N[weightsOption]];
       ,
       {i,Length[contents]}
     ]
   ];
+  (* calculate the under/overflow contents *)
+  uflow=Total[(1-UnitStep[data-First[bins]])N[weightsOption]];
+  oflow=Total[UnitStep[data-Last[bins]]N[weightsOption]];
+  (* verbose reporting, before accumulating, if requested *)
+  If[verboseOption===True,
+    Print["Totals: contents = ",Total[contents]," underflow = ",uflow," overflow = ",oflow," weights = ",wsum];
+  ];
+  (* accumulate, if requested *)
+  contents=Which[
+  cummulativeOption==="up",
+    uflow+Prepend[Accumulate[contents],0.],
+  cummulativeOption==="down",
+    oflow+Append[Reverse[Accumulate[Reverse[contents]]],0.],
+  True,
+    contents
+  ];
   {bins,contents}
 ]]
 Options[histogram]={
-  "bspec"->Automatic,"weights"->1,"scale"->1,"cummulative"->False
+  "bspec"->Automatic,"weights"->1,"scale"->1,"cummulative"->False,"verbose"->False
 };
 
 
 histogramPlot::nonequalbins="Cannot expand BINSIZE with non-equal bin sizes `1`";
-histogramPlot[data_,options:OptionsPattern[{histogramPlot,ListPlot}]]:=
+histogramPlot[data_,options:OptionsPattern[{histogramPlot,histogram,ListPlot}]]:=
 With[{
-  weightsOption=OptionValue["weights"],
-  scaleOption=OptionValue["scale"],
-  bspecOption=OptionValue["bspec"],
-  accumulateOption=OptionValue["accumulate"],
+  cummulativeOption=OptionValue["cummulative"],
   maxOption=OptionValue["max"],
   minOption=OptionValue["min"],
   lineStyleOption=OptionValue["lineStyle"],
@@ -161,17 +176,16 @@ With[{
   ylabelOption=OptionValue["ylabel"]
 },
 Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue},
-  (* bin the data *)
-  {bins,contents}=HistogramList[weightsOption data,bspecOption];
-  contents=scaleOption contents;
-  Which[
-    accumulateOption===None,
-      (* repeat the last point *)
-      AppendTo[contents,Last[contents]];
-      (* draw points joined with 0-th order interpolation for a histogram appearance *)
-      defaults={Joined->True,InterpolationOrder->0},
-    accumulateOption=="up",
-      (* all points are offset by the underflow contents *)
+  (* histogram the data *)
+  {bins,contents}=histogram[data,FilterRules[{options},Options[histogram]]];
+  If[cummulativeOption===False,
+    (* repeat the last point *)
+    AppendTo[contents,Last[contents]];
+    (* draw points joined with 0-th order interpolation for a histogram appearance *)
+    defaults={Joined->True,InterpolationOrder->0}
+    ,
+    (* draw line segments between each bin edge *)
+    defaults={Joined->True,InterpolationOrder->1}
   ];
   (* set the y-axis max value *)
   maxValue=If[maxOption===Automatic,1.05 Max[contents],maxOption];
@@ -188,13 +202,12 @@ Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue},
   ListPlot[Transpose[{bins,contents}],
     FilterRules[{options},Options[ListPlot]],defaults,
     Frame->True, FrameLabel->{xlabelOption,ylabelValue},
-    PlotStyle->lineStyleOption,Filling->{1->{0,fillStyleOption}},
+    PlotStyle->lineStyleOption,Filling->{1->{minOption,fillStyleOption}},
     PlotRange->{{First[bins],Last[bins]},{minOption,maxValue}}]
 ]]
 Options[histogramPlot]={
-  "bspec"->Automatic,"weights"->1,"scale"->1,"accumulate"->None,
   "max"->Automatic,"min"->0,
-  "fillStyle"->Directive[Opacity[0.25],Red],"lineStyle"->Directive[Thick,Red],
+  "lineStyle"->Directive[Thick,Red],"fillStyle"->Directive[Opacity[0.25],Red],
   "xlabel"->None,"ylabel"->"Entries / BINSIZE"
 };
 
