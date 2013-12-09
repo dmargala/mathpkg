@@ -154,6 +154,7 @@ Module[{bins,centers,contents,wsum,blo,bhi,keep,uflow,oflow},
   (* verbose reporting, before accumulating, if requested *)
   If[verboseOption===True,
     Print["Totals: contents = ",Total[contents]," underflow = ",uflow," overflow = ",oflow," weights = ",wsum];
+    Print["Mean = ",Total[weightsOption data]/wsum];
   ];
   (* accumulate, if requested *)
   contents=Which[
