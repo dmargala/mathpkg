@@ -540,7 +540,7 @@ Module[{x1grid,x2grid,fgrid,curves,x1min,x2min},
 ]
 
 
-fitContoursPlot::banscans="Scans have wrong shape `1`.";
+fitContoursPlot::badscans="Scans have wrong shape `1`.";
 fitContoursPlot::badlen="Number of styles (`1`) does not match number of scans (`2`).";
 fitContoursPlot[scans_,options:OptionsPattern[{fitContoursPlot,ListPlot}]]:=
 With[{
