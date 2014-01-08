@@ -187,7 +187,6 @@ With[{
 Module[{index,rescale,nk,dk,k,pts,interpolator},
   index=1+ell/2;
   rescale=Which[multipoleRescaling[name]===None,1,index<=Length[multipoleRescaling[name]],multipoleRescaling[name][[index]],True,1];
-  Print["using rescale = ",rescale," for ell = ",ell];
   nk=Max[10,Ceiling[Log[10,kmax/kmin]nPtsPerDecade]];
   dk=padFraction^2(kmax/kmin)^(1/(nk-1));
   pts=Table[
