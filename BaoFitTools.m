@@ -604,7 +604,7 @@ Module[{s,styles,xr,yr,f,curves},
 ]]
 Options[fitContoursPlot]={
   "levels"->gaussianChiSquareContourLevel[{0.68,0.95,0.997},2],
-  "xRange"->Automatic,"yRange"->Automatic,"styles"->Automatic,"scan1D"->True,
+  "xRange"->Automatic,"yRange"->Automatic,"styles"->Automatic,"scan1D"->False,
   "plot1D"->False,"n1D"->40,"levels1D"->{1,4},"shading"->True,
   "contourShadingOptions"->{},"contourCurveOptions"->{}
 };
