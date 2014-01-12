@@ -279,9 +279,9 @@ plfunc=callback[k0 Exp[-ntot dsf],k0 Exp[+ntot dsf],2 ntot];
 \[Alpha]=If[hankel,(1-2ell)/4,(1-ell)/2];
 ffunc=If[hankel,ffH,ff];
 fdata=Table[
-  n=wrap[m,nsg+nsf];
+  n=wrap[m,ntot];
   If[Abs[n]<=nsf,ffunc[n dsf,ell,kr,\[Alpha]]dsf,0],
-  {m,0,2(nsg+nsf)-1}
+  {m,0,2ntot-1}
 ];
 (* Note that we use -s here ! *)
 gfunc=If[hankel,ggH,gg];
