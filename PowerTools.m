@@ -334,17 +334,15 @@ multipoleTransform[fk_,rmin_,rmax_,ell_,veps_,OptionsPattern[]]:=
 With[{
   verboseOption=OptionValue["verbose"],
   hankelOption=OptionValue["hankel"],
-  npad=2
+  npad=3
 },
 Module[{callback,fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator},
   callback=Function[{kmin,kmax,nk},fk];
   {fdata,gdata,fgdata,rgrid,xigrid,nsf}=
     sbTransformWork[callback,rmin,rmax,ell,veps,hankelOption,verboseOption,npad];
-  rzoom=rgrid[[nsf+1;;-nsf]];
-  Print[rzoom];
-  xizoom=xigrid[[nsf+1;;-nsf]];
-  interpolator=Interpolation[Transpose[{Log[rzoom], xizoom}],InterpolationOrder->3];
-  Function[r,interpolator[Log[r]]]
+  rzoom=rgrid[[nsf+1;;-nsf-1]];
+  xizoom=xigrid[[nsf+1;;-nsf-1]];
+  Transpose[{rzoom,xizoom}]
 ]]
 Options[multipoleTransform]={"verbose"->False,"hankel"->False};
 
