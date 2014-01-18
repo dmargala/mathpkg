@@ -297,14 +297,14 @@ getndsf[veps_,ell_,hankel_]:=Module[{eps,ndsf,dsfmax,nsf,dsf},
 
 
 Clear[sbTransformWork]
-sbTransformWork[callback_,rmin_,rmax_,ell_,veps_,hankel_,verbose_]:=
+sbTransformWork[callback_,rmin_,rmax_,ell_,veps_,hankel_,verbose_,npad_:0]:=
 Module[{nsf,dsf,kr,k0,r0,nsg,ntot,n,\[Alpha],ffunc,gfunc,fdata,fnorm,plfunc,gdata,fgdata,rgrid,xigrid,rzoom,xizoom,popts},
 {nsf,dsf}=getndsf[veps,ell,hankel];
 kr=kr0[ell,hankel]//N;
 r0=Sqrt[rmin rmax];
 k0=kr/r0;
 (* Calculate the number of samples needed to cover (rmin,rmax) *)
-nsg=Ceiling[Log[rmax/rmin]/(2dsf)];
+nsg=Ceiling[Log[rmax/rmin]/(2dsf)+npad];
 ntot=nsf+nsg;
 (* Get the Pl(k) function to use *)
 plfunc=callback[k0 Exp[-ntot dsf],k0 Exp[+ntot dsf],2 ntot];
@@ -333,12 +333,13 @@ Clear[multipoleTransform]
 multipoleTransform[fk_,rmin_,rmax_,ell_,veps_,OptionsPattern[]]:=
 With[{
   verboseOption=OptionValue["verbose"],
-  hankelOption=OptionValue["hankel"]
+  hankelOption=OptionValue["hankel"],
+  npad=2
 },
 Module[{callback,fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator},
   callback=Function[{kmin,kmax,nk},fk];
   {fdata,gdata,fgdata,rgrid,xigrid,nsf}=
-    sbTransformWork[callback,rmin,rmax,ell,veps,hankelOption,verboseOption];
+    sbTransformWork[callback,rmin,rmax,ell,veps,hankelOption,verboseOption,npad];
   rzoom=rgrid[[nsf+1;;-nsf]];
   Print[rzoom];
   xizoom=xigrid[[nsf+1;;-nsf]];
