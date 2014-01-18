@@ -262,7 +262,7 @@ ds[ell_,eps_,hankel_:False]:= \[Pi]/kr0[ell,hankel] eps^(s0[ell,hankel])
 ff[s_,ell_,kr0_,\[Alpha]_]:=Exp[\[Alpha] s]SphericalBesselJ[ell,kr0 Exp[s]]
 
 
-gg[s_,plfunc_,ell_,k0_,\[Alpha]_]:=I^ell/(2\[Pi]^2)Exp[(3-\[Alpha])s]k0^3 plfunc[k0 Exp[s]]
+gg[s_,plfunc_,ell_,k0_,\[Alpha]_]:=Exp[(3-\[Alpha])s]k0^3 plfunc[k0 Exp[s]]
 
 
 ffH[s_,ell_,kr0_,\[Alpha]_]:=Exp[\[Alpha] s]BesselJ[ell,kr0 Exp[s]]
@@ -360,10 +360,10 @@ Module[{fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator,callback,d
   callback=Function[{kmin,kmax,nk},
     If[verboseOption===True,Print[kmin " \[LessEqual] k \[LessEqual] ",kmax," is covered with ",nk," samples (",nk/Log[kmax/kmin]," per logint)."]];
     If[distortionOption===None,
-      plfunc,
+      Function[k,I^ell/(2\[Pi]^2)plfunc[k]],
       If[verboseOption===True,Print["Sampling distortion model at ",distortionSamplingOption," points per decade."]];
       distortion=distortionMultipoleFunction[distortionOption,kmin,kmax,ell,"nPtsPerDecade"->distortionSamplingOption];
-      Function[k,plfunc[k]distortion[k]]
+      Function[k,I^ell/(2\[Pi]^2)plfunc[k]distortion[k]]
     ]
   ];
   {fdata,gdata,fgdata,rgrid,xigrid,nsf}=sbTransformWork[callback,rmin/padFractionOption,rmax padFractionOption,ell,veps,hankelOption,verboseOption];
