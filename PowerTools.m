@@ -292,14 +292,15 @@ getndsf[veps_,ell_,hankel_]:=Module[{eps,ndsf,dsfmax,nsf,dsf},
   dsfmax=Min[ds[ell,eps,hankel],Log[10]/40];
   nsf=Ceiling[ndsf/dsfmax];
   dsf=ndsf/nsf;
-  {nsf,dsf}
+  {nsf,dsf,eps}
 ]
 
 
 Clear[sbTransformWork]
 sbTransformWork[callback_,rmin_,rmax_,ell_,veps_,hankel_,verbose_,npad_:0]:=
-Module[{nsf,dsf,kr,k0,r0,nsg,ntot,n,\[Alpha],ffunc,gfunc,fdata,fnorm,plfunc,gdata,fgdata,rgrid,xigrid,rzoom,xizoom,popts},
-{nsf,dsf}=getndsf[veps,ell,hankel];
+Module[{nsf,dsf,eps,kr,k0,r0,nsg,ntot,n,\[Alpha],ffunc,gfunc,fdata,fnorm,plfunc,gdata,fgdata,rgrid,xigrid,rzoom,xizoom,popts},
+{nsf,dsf,eps}=getndsf[veps,ell,hankel];
+If[verbose,Print["Truncation fraction is ",eps]];
 kr=kr0[ell,hankel]//N;
 r0=Sqrt[rmin rmax];
 k0=kr/r0;
