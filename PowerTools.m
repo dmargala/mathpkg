@@ -53,13 +53,23 @@ distortionMultipoleFunction::usage=
 specified distortion model multipole.";
 
 
+multipoleTransform::usage=
+"multipoleTransform[fk,rmin,rmax,ell,veps] calculates the transform of the ell-th multipole with
+coefficient function fk. Returns an interpolating function defined for r in [rmin,rmax] that is free
+of any aliasing artifacts. Use the veps parameter to control the numerical accuracy of the result.
+By default. Support options are:
+ - verbose: generate verbose ouptut.
+ - hankel: perform a Hankel (2D) transform instead of a spherical Bessel (3D) transform.";
+
+
 sbTransform::usage=
 "sbTransform[plfunc,rmin,rmax,ell,veps] calculates the spherical Bessel transform
 of the specified function for multipole ell. Returns an interpolating function
 defined for r in [rmin,rmax] that is free of any aliasing artifacts.
 Use the veps parameter to control the numerical accuracy of the result.
-sbTransform[plfunc,rmin,rmax,ell,veps,True] displays the k range and
-sampling that is being used, which can be useful in building a suitable plfunc.";
+sbTransform[plfunc,rmin,rmax,ell,veps,verbose->True] displays the k range and
+sampling that is being used, which can be useful in building a suitable plfunc. This
+function is provided for backwards compatibility so try to use multipoleTransform instead.";
 
 
 createCorrelationFunction::usage=
@@ -317,6 +327,25 @@ rgrid=Table[r0 Exp[n dsf],{n,-ntot,ntot-1}];
 xigrid=fgdata (rgrid/r0)^(-\[Alpha])/dsf;
 {fdata,gdata,fgdata,rgrid,xigrid,nsf}
 ]
+
+
+Clear[multipoleTransform]
+multipoleTransform[fk_,rmin_,rmax_,ell_,veps_,OptionsPattern[]]:=
+With[{
+  verboseOption=OptionValue["verbose"],
+  hankelOption=OptionValue["hankel"]
+},
+Module[{callback,fdata,gdata,fgdata,rgrid,xigrid,nsf,rzoom,xizoom,interpolator},
+  callback=Function[{kmin,kmax,nk},fk];
+  {fdata,gdata,fgdata,rgrid,xigrid,nsf}=
+    sbTransformWork[callback,rmin,rmax,ell,veps,hankelOption,verboseOption];
+  rzoom=rgrid[[nsf+1;;-nsf]];
+  Print[rzoom];
+  xizoom=xigrid[[nsf+1;;-nsf]];
+  interpolator=Interpolation[Transpose[{Log[rzoom], xizoom}],InterpolationOrder->3];
+  Function[r,interpolator[Log[r]]]
+]]
+Options[multipoleTransform]={"verbose"->False,"hankel"->False};
 
 
 Clear[sbTransform]
