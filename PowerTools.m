@@ -128,14 +128,33 @@ Module[{a,c},
 
 Clear[makePower]
 makePower[tabulated_,OptionsPattern[]]:=
-With[{verbose=OptionValue["verbose"],extrapolateBelow=OptionValue["extrapolateBelow"],extrapolateAbove=OptionValue["extrapolateAbove"]},
-Module[{interpolator,kmin,kmax,plo,phi},
+With[{
+  verbose=OptionValue["verbose"],
+  extrapolateBelow=OptionValue["extrapolateBelow"],
+  extrapolateAbove=OptionValue["extrapolateAbove"],
+  maxRelError=OptionValue["maxRelError"]
+},
+Module[{interpolator,kmin,kmax,plo,phi,relerr},
 	interpolator=Interpolation[tabulated/.{k_,Pk_}:>{Log[k],Pk}];
 	kmin=tabulated[[1,1]];
 	kmax=tabulated[[-1,1]];
     If[verbose===True,Print["makePower using ",Length[tabulated]," points covering ",kmin," <= k <= ",kmax]];
-	plo=If[extrapolateBelow===True,powerLaw[tabulated[[;;2]]],Message[makePower::ExtrapolationDisabled,#1,"<",kmin]&];
-	phi=If[extrapolateAbove===True,powerLaw[tabulated[[-2;;]]],Message[makePower::ExtrapolationDisabled,#1,">",kmax]&];
+	If[extrapolateBelow===True,
+      plo=powerLaw[tabulated[[{1,3}]]];
+      relerr=Abs[plo[tabulated[[2,1]]]/tabulated[[2,2]]-1];
+      If[verbose,Print["Relative error for extrapolation below is ",relerr]];
+      If[relerr > maxRelError,Message[makePower::UnreliableBelow]; Return[$Failed]]
+      ,
+      plo=Message[makePower::ExtrapolationDisabled,#1,"<",kmin]&
+    ];
+	If[extrapolateAbove===True,
+      phi=powerLaw[tabulated[[{-3,-1}]]];
+      relerr=Abs[phi[tabulated[[-2,1]]]/tabulated[[-2,2]]-1];
+      If[verbose,Print["Relative error for extrapolation above is ",relerr]];
+      If[relerr > maxRelError,Message[makePower::UnreliableAbove]; Return[$Failed]]
+      ,
+      phi=Message[makePower::ExtrapolationDisabled,#1,">",kmax]&
+    ];
 	Function[k,
 		Which[
 			k<=kmin,plo[k],
@@ -144,8 +163,12 @@ Module[{interpolator,kmin,kmax,plo,phi},
 		]
 	]
 ]]
-Options[makePower]={"verbose"->False,"extrapolateBelow"->True,"extrapolateAbove"->True};
+Options[makePower]={
+  "verbose"->False,"extrapolateBelow"->True,"extrapolateAbove"->True,"maxRelError"->0.001
+};
 makePower::ExtrapolationDisabled="k = `1` is `2` `3`.";
+makePower::UnreliableBelow="Cannot reliably extrapolate below kmin.";
+makePower::UnreliableAbove="Cannot reliably extrapolate above kmax.";
 
 
 Clear[createDistortionModel]
