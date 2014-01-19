@@ -287,7 +287,7 @@ tmp^(1/s0[ell,hankel])
 
 
 getndsf[veps_,ell_,hankel_]:=Module[{eps,ndsf,dsfmax,nsf,dsf},
-  eps=epsApprox[veps,ell,hankel];
+  eps=If[veps>0,epsApprox[veps,ell,hankel],-veps];
   ndsf=nds[ell,eps,True,hankel];
   dsfmax=Min[ds[ell,eps,hankel],Log[10]/40];
   nsf=Ceiling[ndsf/dsfmax];
