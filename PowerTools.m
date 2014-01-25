@@ -142,10 +142,12 @@ With[{
   verbose=OptionValue["verbose"],
   extrapolateBelow=OptionValue["extrapolateBelow"],
   extrapolateAbove=OptionValue["extrapolateAbove"],
-  maxRelError=OptionValue["maxRelError"]
+  maxRelError=OptionValue["maxRelError"],
+  interpolationOrder=OptionValue["interpolationOrder"]
 },
 Module[{interpolator,kmin,kmax,plo,phi,relerr},
-	interpolator=Interpolation[tabulated/.{k_,Pk_}:>{Log[k],Pk}];
+    (* default interpolation method is "Hermite" but we use "Spline" here to better match GSL cspline behavior *)
+	interpolator=Interpolation[tabulated/.{k_,Pk_}:>{Log[k],Pk},InterpolationOrder->interpolationOrder,Method->"Spline"];
 	kmin=tabulated[[1,1]];
 	kmax=tabulated[[-1,1]];
     If[verbose===True,Print["makePower using ",Length[tabulated]," points covering ",kmin," <= k <= ",kmax]];
@@ -174,7 +176,7 @@ Module[{interpolator,kmin,kmax,plo,phi,relerr},
 	]
 ]]
 Options[makePower]={
-  "verbose"->False,"extrapolateBelow"->True,"extrapolateAbove"->True,"maxRelError"->0.001
+  "verbose"->False,"extrapolateBelow"->True,"extrapolateAbove"->True,"maxRelError"->0.001,"interpolationOrder"->3
 };
 makePower::ExtrapolationDisabled="k = `1` is `2` `3`.";
 makePower::UnreliableBelow="Cannot reliably extrapolate below kmin.";
