@@ -122,7 +122,9 @@ options are supported, in addition to those of histogram and ListPlot:
   - lineStyle: graphics style of histogram border.
   - fillStyle: graphics style of histogram filling (use None for no filling).
   - xlabel: label to use on the x axis.
-  - ylabel: label to use on the y axis (BINSIZE will be replaced appropriately).";
+  - ylabel: label to use on the y axis (BINSIZE will be replaced appropriately)
+  - colorMap: standard ColorTable name or custom color function to use for color-coding
+    bins according to their x-axis value.";
 
 
 Begin["Private`"]
@@ -205,9 +207,10 @@ With[{
   lineStyleOption=OptionValue["lineStyle"],
   fillStyleOption=OptionValue["fillStyle"],
   xlabelOption=OptionValue["xlabel"],
-  ylabelOption=OptionValue["ylabel"]
+  ylabelOption=OptionValue["ylabel"],
+  colorMap=OptionValue["colorMap"]
 },
-Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue},
+Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue,colorMapFunc},
   (* histogram the data *)
   {bins,contents}=histogram[data,FilterRules[{options},Options[histogram]]];
   If[cummulativeOption===False,
@@ -218,6 +221,12 @@ Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue},
     ,
     (* draw line segments between each bin edge *)
     defaults={Joined->True,InterpolationOrder->1}
+  ];
+  (* add a ColorFunction to the defaults if a colorMap has been specified *)
+  If[!(colorMap===None),
+    AppendTo[defaults,ColorFunction->
+      If[StringQ[colorMap],(ColorData[colorMap][#1]&),(colorMap[#1]&)]
+    ]
   ];
   (* set the y-axis max value *)
   maxValue=If[maxOption===Automatic,1.05 Max[contents],maxOption];
@@ -240,7 +249,7 @@ Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue},
 Options[histogramPlot]={
   "max"->Automatic,"min"->0,
   "lineStyle"->Directive[Thick,Red],"fillStyle"->Directive[Opacity[0.25],Red],
-  "xlabel"->None,"ylabel"->"Entries / BINSIZE"
+  "xlabel"->None,"ylabel"->"Entries / BINSIZE","colorMap"->None
 };
 
 
