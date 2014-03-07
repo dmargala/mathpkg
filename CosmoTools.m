@@ -43,6 +43,8 @@ createCosmology::usage=
  - \[CapitalOmega]rad[name][z]
  - \[CapitalOmega]de[name][z]
  - \[CapitalOmega]mat[name][z]
+ - \[CapitalOmega]photons[name][z]
+ - \[CapitalOmega]nu[name][z]
  - H0[name]
  - Hratio[name][z]
  - curvatureTransform[name][x]
