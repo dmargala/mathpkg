@@ -6,12 +6,12 @@ BeginPackage["DeepZot`PlotTools`"]
 
 
 PlotTools::usage=
-"A collection of plotting utilities."
+"A collection of plotting utilities.";
 
 
 createFrame::usage=
 "Creates an empty plot frame of the specified type (Plot,LogPlot,LogLogPlot,LogLinearPlot),
-with the specified axis limits and options."
+with the specified axis limits and options.";
 
 
 pointWithError::usage=
@@ -19,7 +19,7 @@ pointWithError::usage=
 
 
 valueWithFixedPrecision::usage=
-"valueWithFixedPrecision[val,prec] returns a string representation of val rounded to 10^(-prec)."
+"valueWithFixedPrecision[val,prec] returns a string representation of val rounded to 10^(-prec).";
 
 
 autoRangeValue::usage=
@@ -30,11 +30,11 @@ The following options are supported:
   - breakpoint (-1): ranged value is between 10^b and 10^(b+3), must be integer.
   - separator (\" \"): appears between <ranged> and <SI-mult>.
   - unit (None): appears after <SI-mult>.
-  - prefixes ({\"y\",\"z\",...,\"Z\",\"Y\"}): prefix labels to use for E-24 through E+24."
+  - prefixes ({\"y\",\"z\",...,\"Z\",\"Y\"}): prefix labels to use for E-24 through E+24.";
 
 
 temperatureMap::usage=
-"A replacement for the builtin TemperatureMap that is pure white at its midpoint."
+"A replacement for the builtin TemperatureMap that is pure white at its midpoint.";
 
 
 drawEllipse::usage=
@@ -42,7 +42,7 @@ drawEllipse::usage=
 dimensions are 2(dx,dy), with tangents at (dx, rho dy) and (rho dx, dy).
 Use dx = n \[Sigma]x, dy = n \[Sigma]y to draw the n-sigma contour of a likelihood.
 For a Gaussian likelihood, use n = 1.51517 for 68% CL and n = 2.44775 for 95% CL.
-Add options fillStyle and edgeStyle to customize the appearance."
+Add options fillStyle and edgeStyle to customize the appearance.";
 
 
 rasterize::usage=
@@ -51,13 +51,13 @@ rasterize[g,oversampling->os] increases anti-aliasing quality but takes longer.
 The default os=2 is usually ok.
 rasterize[g,magnification->mag] magnifies the generated bitmap relative to its
 on-screen size. The default mag=1 is best for exporting to a presentation, but
-mag=2 or higher is necessary when preparing latex figures."
+mag=2 or higher is necessary when preparing latex figures.";
 
 
 coverageContourPlot::usage=
 "coverageContourPlot[dataset,{x1,x2,dx},{y1,y2,dy}] plots contours containing 68% and 95% of the dataset points
 over the ranges (x1,x2) and (y1,y2) using a cell size (dx,dy) for kernel density estimation. Additional options
-supported are coverageFractions, which specifies the contour levels to draw, and any options of ContourPlot."
+supported are coverageFractions, which specifies the contour levels to draw, and any options of ContourPlot.";
 
 
 dataRange::usage=
@@ -69,7 +69,7 @@ includes all elements but the following options can be use:
   - clipHiValue: set the hi limit to the specified value (overrides clipHiFraction).
   - centerValue: expands the range, if necessary, to be symmetric about this value.
   - padFraction: expands the range by this fraction on both sides (default is zero).
-  - printRange: prints the returned range if True (default is False)."
+  - printRange: prints the returned range if True (default is False).";
 
 
 pixelImage::usage=
@@ -85,7 +85,7 @@ the ColorFunction option to change this. When using dataRange options to clip so
 data, the ClippingStyle->{loStyle,hiStyle} option can be used to control how
 clipped pixels are displayed. The default image size matches the dimensions of the
 pixel data, but can be changed with the ImageSize (absolute) or magnification
-(relative) options."
+(relative) options.";
 
 
 select::usage=
