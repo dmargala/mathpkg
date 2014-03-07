@@ -217,10 +217,10 @@ Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue,colorMapFunc}
     (* repeat the last point *)
     AppendTo[contents,Last[contents]];
     (* draw points joined with 0-th order interpolation for a histogram appearance *)
-    defaults={Joined->True,InterpolationOrder->0}
+    defaults={Joined->True,Axes->None,InterpolationOrder->0}
     ,
     (* draw line segments between each bin edge *)
-    defaults={Joined->True,InterpolationOrder->1}
+    defaults={Joined->True,Axes->None,InterpolationOrder->1}
   ];
   (* add a ColorFunction to the defaults if a colorMap has been specified *)
   If[!(colorMap===None),
@@ -238,7 +238,7 @@ Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue,colorMapFunc}
       Message[histogramPlot::nonequalbins,binsize];
       Return[$Failed]
     ];
-    StringReplace[ylabelOption,"BINSIZE"->ToString[binsize[[1]]]]
+    StringReplace[ylabelOption,"BINSIZE"->ToString[N[binsize[[1]]]]]
   ];
   ListPlot[Transpose[{bins,contents}],
     FilterRules[{options},Options[ListPlot]],defaults,
