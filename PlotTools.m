@@ -60,6 +60,15 @@ over the ranges (x1,x2) and (y1,y2) using a cell size (dx,dy) for kernel density
 supported are coverageFractions, which specifies the contour levels to draw, and any options of ContourPlot.";
 
 
+colorListPlot::usage=
+"colorListPlot[xyList,zList] plots points at coordinates given in xyList using colors for
+each point based on the corresponding entry in zList. The following options are supported:
+  - colorMap: mapping to use for colors specified as a color function or a standard
+              ColorTable name (default \"Rainbow\")
+  - pointStyle: Graphics directives used to style subsequent Point list (defaut is
+              {PointSize[0.005]; Opacity[0.5]})";
+
+
 dataRange::usage=
 "dataRange[dataset] returns a range {lo,hi} for the specified dataset. The default range
 includes all elements but the following options can be use:
@@ -117,6 +126,21 @@ options are supported, in addition to those of histogram and ListPlot:
 
 
 Begin["Private`"]
+
+
+colorListPlot[xyList_,zList_,opts:OptionsPattern[colorListPlot]]:=
+With[{
+  colorMap=OptionValue["colorMap"],
+  pointStyle=OptionValue["pointStyle"]
+},
+Module[{colorMapFunc,colors},
+  colorMapFunc=If[StringQ[colorMap],ColorData[colorMap,#]&,colorMap];
+  colors=colorMapFunc/@ Rescale[zList];
+  Graphics[Flatten[{pointStyle,Point[xyList,VertexColors->colors]}]]
+]]
+Options[colorListPlot]:={
+  "colorMap"->"Rainbow","pointStyle"->{PointSize[0.005],Opacity[0.5]}
+};
 
 
 select[data_,what_:List,selector_:(True&)]:=Apply[what,Pick[data,Apply[selector,data,1]],1]
