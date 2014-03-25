@@ -354,7 +354,7 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
         Message[createCosmology::badnnu];
         Return[$Failed]
     ];
-    If[mnu<0||(NnuMassive==0&&mnu==0),
+    If[mnu<0||(NnuMassive==0&&mnu>0),
         Message[createCosmology::badmnu];
         Return[$Failed]
     ];
