@@ -137,6 +137,11 @@ fitContoursPlot::usage=
 "fitContoursPlot[scans] plots the delta(chisq) contours for the specified scans.";
 
 
+scan1D::usage=
+"scan1D[f,{x1,x2},{y1,y2},n,levels] will perform a 1D scan of the chi-square probability
+f[x,y] using n equally spaced points covering [x1,x2] and marginalizing over y in [y1,y2].";
+
+
 fitModePlot::usage=
 "fitModePlot[tag,mode] plots the per-bin weights (left) and per-bin chisq contributions
 (right) of the specified eigenmode.";
@@ -494,8 +499,8 @@ Module[{f,x0,x,goal,min,xmin,ymin,y0,roots},
   y0=If[y0Option===Automatic,ymin,y0Option];
   roots=Table[
     {
-      xmin-(x/.First[FindRoot[f[x]==y0+level,{x,(Min[xgrid]+xmin)/2,Min[xgrid],xmin}]]),
-      (x/.First[FindRoot[f[x]==y0+level,{x,(Max[xgrid]+xmin)/2,xmin,Max[xgrid]}]])-xmin,
+      xmin-(x/.First[FindRoot[f[x]==y0+level,{x,Min[xgrid],xmin},Method->"Brent"]]),
+      (x/.First[FindRoot[f[x]==y0+level,{x,xmin,Max[xgrid]},Method->"Brent"]])-xmin,
       level
     },
     {level,errorLevels}
