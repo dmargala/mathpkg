@@ -110,6 +110,8 @@ with Length[bins] == Length[contents]+1, by default, or Length[bins]==Length[con
 when the cummulative option is used. The following options are supported:
   - weights: scalar or vector of weights to apply to each data value (default 1).
   - bspec: binning specification to use (see HistogramList - default is Automatic).
+    Note that an integer number of bins is taken as a guideline only, and might be
+    adjusted (by HistogramList) to round up or down the bin size.
   - cummulative: contents[[i]] is the cummulative weighted total data < bins[[i]]
     if cummulative is \"up\", or else >= bins[[i]] for \"down\". The default is False.";
 
