@@ -517,7 +517,7 @@ Module[{f,x0,x,goal,min,xmin,ymin,y0,roots},
     }]];
     Print["min(y) = ",y0," at x0 = ",xmin];
     Do[
-      Print["dy = ",roots[[k,3]]," at x = ",xmin-roots[[k,1]]," and ",xmin+roots[[k,2]],
+      Print["dy = ",roots[[k,3]]," at x = ",xmin," - ",roots[[k,1]]," + ",roots[[k,2]],
         " or x = ",x0+(roots[[k,2]]-roots[[k,1]])/2," +/- ",(roots[[k,2]]+roots[[k,1]])/2],
       {k,Length[roots]}
     ];
