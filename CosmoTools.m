@@ -106,7 +106,7 @@ and returns a table where rows correspond to chain rows and columns correspond t
 values of the named parameters. Options are:
   - verbose: give verbose output (default is False).
   - maxRows: maximum number of rows to return (default is All).
-  - path: path to prepend to name (default is \"/Volumes/Data/planck/\").
+  - path: path to prepend to name (default is \"/Volumes/Data/planck/PLA/\").
 This function has been tested wth the public Planck chains available from
 http://www.sciops.esa.int/wikiSI/planckpla/index.php?title=Cosmological_Parameters&instance=Planck_Public_PLA#Parameter_Chains
 and uses the parameter name tags specified in
@@ -577,7 +577,8 @@ Module[{pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols},
   ];
   {nrows,ncols}=Dimensions[raw];
   If[ncols!=Length[pnames],
-    Message[loadPlanckChain::ncols,Length[pnames],ncols];
+    Message[loadPlanckChain::ncols,ncols,Length[pnames]];
+	Print[pnames];
     Return[$Failed]
   ];
   If[verbose===True,
