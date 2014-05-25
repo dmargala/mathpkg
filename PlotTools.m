@@ -33,6 +33,16 @@ The following options are supported:
   - prefixes ({\"y\",\"z\",...,\"Z\",\"Y\"}): prefix labels to use for E-24 through E+24.";
 
 
+customTicks::usage=
+"customTicks[min,max] returns a Ticks option list that spans the plot range from min to max.
+The following options are supported:
+  - scale (1): default linear scaling to apply to coordinates.
+  - map (Automatic): the coordinate mapping function to use (Automatic is linear).
+  - inverse (Automatic): the inverse coordinate mapping function to use (Automatic uses InverseFunction[map]).
+  - nmajor (5): the approximate number of major ticks to use.
+  - nminor (5): the number subdivisions of each major interval to use (must be >= 1).";
+
+
 temperatureMap::usage=
 "A replacement for the builtin TemperatureMap that is pure white at its midpoint.";
 
@@ -198,6 +208,37 @@ Module[{bins,centers,contents,wsum,blo,bhi,keep,uflow,oflow},
 Options[histogram]={
   "bspec"->Automatic,"weights"->1,"scale"->1,"cummulative"->False,"verbose"->False
 };
+
+
+customTicks::nticks="Invalid number `1` of `2` subdivisions per major interval, should be integer >= 1.";
+customTicks[min_,max_,OptionsPattern[scaledTicks]]:=
+With[{
+  scale=OptionValue["scale"],
+  mapOption=OptionValue["map"],
+  inverseOption=OptionValue["inverse"],
+  nmajor=OptionValue["nmajor"],
+  nminor=OptionValue["nminor"]
+},
+Module[{map,inverse,major,div,ticks},
+  If[!IntegerQ[nmajor]||nmajor<1,
+    Message[customTicks::nticks,nmajor,"major"];
+    Return[$Failed]
+  ];
+  If[!IntegerQ[nminor]||nminor<1,
+    Message[customTicks::nticks,nminor,"minor"];
+    Return[$Failed]
+  ];
+  map=If[mapOption===Automatic,scale #&,mapOption];
+  inverse=If[inverseOption===Automatic,InverseFunction[map],inverseOption];
+  major=FindDivisions[{map[min],map[max]},nmajor];
+  div=(major[[2]]-major[[1]])/nminor;
+  ticks=Table[{
+    {{inverse[x],ToString[x]}},
+    Table[{inverse[x+k div],""},{k,1,nminor-1}]
+  },{x,major}];
+  Flatten[ticks,2]
+]]
+Options[scaledTicks]={"scale"->1,"map"->Automatic,"inverse"->Automatic,"nmajor"->5,"nminor"->5};
 
 
 histogramPlot::nonequalbins="Cannot expand BINSIZE with non-equal bin sizes `1`";
