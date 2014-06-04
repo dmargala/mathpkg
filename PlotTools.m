@@ -76,7 +76,9 @@ each point based on the corresponding entry in zList. The following options are 
   - colorMap: mapping to use for colors specified as a color function or a standard
               ColorTable name (default \"Rainbow\")
   - pointStyle: Graphics directives used to style subsequent Point list (defaut is
-              {PointSize[0.005]; Opacity[0.5]})";
+              {PointSize[0.005]; Opacity[0.5]})
+  - zRange: range of z values corresponding to full color map range (default is
+              Automatic which means {Min[zList],Max[zList]})";
 
 
 dataRange::usage=
@@ -145,15 +147,17 @@ Begin["Private`"]
 colorListPlot[xyList_,zList_,opts:OptionsPattern[colorListPlot]]:=
 With[{
   colorMap=OptionValue["colorMap"],
-  pointStyle=OptionValue["pointStyle"]
+  pointStyle=OptionValue["pointStyle"],
+  zRangeOption=OptionValue["zRange"]
 },
-Module[{colorMapFunc,colors},
+Module[{colorMapFunc,zRange,colors},
   colorMapFunc=If[StringQ[colorMap],ColorData[colorMap,#]&,colorMap];
-  colors=colorMapFunc/@ Rescale[zList];
+  zRange=If[zRangeOption===Automatic,{Min[zList],Max[zList]},zRangeOption];
+  colors=colorMapFunc/@ Rescale[zList,zRange];
   Graphics[Flatten[{pointStyle,Point[xyList,VertexColors->colors]}]]
 ]]
 Options[colorListPlot]:={
-  "colorMap"->"Rainbow","pointStyle"->{PointSize[0.005],Opacity[0.5]}
+  "colorMap"->"Rainbow","pointStyle"->{PointSize[0.005],Opacity[0.5]},"zRange"->Automatic
 };
 
 
@@ -233,7 +237,7 @@ Module[{map,inverse,major,div,ticks},
   major=FindDivisions[{map[min],map[max]},nmajor];
   div=(major[[2]]-major[[1]])/nminor;
   ticks=Table[{
-    {{inverse[x],ToString[x]}},
+    {{inverse[x],ToString[N[x]]}},
     Table[{inverse[x+k div],""},{k,1,nminor-1}]
   },{x,major}];
   Flatten[ticks,2]
@@ -251,9 +255,11 @@ With[{
   fillStyleOption=OptionValue["fillStyle"],
   xlabelOption=OptionValue["xlabel"],
   ylabelOption=OptionValue["ylabel"],
-  colorMap=OptionValue["colorMap"]
+  colorMap=OptionValue["colorMap"],
+  colorMapRangeOption=OptionValue["colorMapRange"]
 },
-Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue,colorMapFunc},
+Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue,
+colorMapRange,colorMapNormalize,colorMapFunc},
   (* histogram the data *)
   {bins,contents}=histogram[data,FilterRules[{options},Options[histogram]]];
   If[cummulativeOption===False,
@@ -267,9 +273,12 @@ Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue,colorMapFunc}
   ];
   (* add a ColorFunction to the defaults if a colorMap has been specified *)
   If[!(colorMap===None),
-    AppendTo[defaults,ColorFunction->
-      If[StringQ[colorMap],(ColorData[colorMap][#1]&),(colorMap[#1]&)]
-    ]
+    colorMapRange=If[colorMapRangeOption===Automatic,{Min[data],Max[data]},colorMapRangeOption];
+    colorMapNormalize=Function[z,Clip[Rescale[z,colorMapRange],{0,1}]];
+    AppendTo[defaults,ColorFunction->If[StringQ[colorMap],
+      (ColorData[colorMap][colorMapNormalize[#1]]&),(colorMap[colorMapNormalize[#1]]&)
+    ]];
+    AppendTo[defaults,ColorFunctionScaling->False];
   ];
   (* set the y-axis max value *)
   maxValue=If[maxOption===Automatic,1.05 Max[contents],maxOption];
@@ -292,7 +301,8 @@ Module[{bins,contents,defaults,offset,maxValue,binsize,ylabelValue,colorMapFunc}
 Options[histogramPlot]={
   "max"->Automatic,"min"->0,
   "lineStyle"->Directive[Thick,Red],"fillStyle"->Directive[Opacity[0.25],Red],
-  "xlabel"->None,"ylabel"->"Entries / BINSIZE","colorMap"->None
+  "xlabel"->None,"ylabel"->"Entries / BINSIZE",
+  "colorMap"->None,"colorMapRange"->Automatic
 };
 
 
