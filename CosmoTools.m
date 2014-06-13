@@ -347,7 +347,9 @@ With[{
     amps=OptionValue["amps"],
     kpivot=OptionValue["kpivot"],
     retau=OptionValue["retau"],
-	YP=OptionValue["YP"]
+	YP=OptionValue["YP"],
+	\[CapitalOmega]q=OptionValue["\[CapitalOmega]q"],
+	\[CapitalOmega]mf=OptionValue["\[CapitalOmega]mf"]
 },
 Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     If[!MemberQ[{0,1,2,3},NnuMassive],
@@ -369,20 +371,20 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     ];
     name/: Options[name]= { "h"->hopt,"Hzero"->Hzero,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
         "Tcmb"->Tcmb,"Nnu"->Nnu,"NnuMassive"->NnuMassive,"mnu"->mnu,
-         "ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
+         "ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau,"YP"->YP,"\[CapitalOmega]q"->\[CapitalOmega]q,"\[CapitalOmega]mf"->\[CapitalOmega]mf };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu (3-NnuMassive)/3]/criticalDensityToday[hval](1+z)^4]]];
 	name/: \[CapitalOmega]photons[name]=Function[z,Evaluate[Simplify[photonDensity[Tcmb]/criticalDensityToday[hval](1+z)^4]]];
-    \[CapitalOmega]mval=If[\[CapitalOmega]m===Automatic,1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]m];
-    \[CapitalOmega]\[CapitalLambda]val=If[\[CapitalOmega]\[CapitalLambda]===Automatic,1-\[CapitalOmega]m-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]\[CapitalLambda]];
-    If[\[CapitalOmega]m+\[CapitalOmega]\[CapitalLambda]+\[CapitalOmega]k+\[CapitalOmega]rad[name][0]!=1,
+    \[CapitalOmega]mval=If[\[CapitalOmega]m===Automatic,1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0]-\[CapitalOmega]q[0],\[CapitalOmega]m];
+    \[CapitalOmega]\[CapitalLambda]val=If[\[CapitalOmega]\[CapitalLambda]===Automatic,1-\[CapitalOmega]m*\[CapitalOmega]mf[0]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0]-\[CapitalOmega]q[0],\[CapitalOmega]\[CapitalLambda]];
+    If[\[CapitalOmega]m*\[CapitalOmega]mf[0]+\[CapitalOmega]\[CapitalLambda]+\[CapitalOmega]k+\[CapitalOmega]rad[name][0]!=1,
         Message[createCosmology::overconstrained,\[CapitalOmega]\[CapitalLambda],\[CapitalOmega]m,\[CapitalOmega]rad[name][0],\[CapitalOmega]k];
         Return[$Failed]
     ];
     name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda]val Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
-    name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]mval (1+z)^3]]];
+    name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]mval (1+z)^3 \[CapitalOmega]mf[z]]]];
     name/: \[CapitalOmega]nu[name]=Function[z,Evaluate[Simplify[NnuMassive (mnu/93.04)/hval^2 (1+z)^3]]];
     name/: H0[name]=100 hval;
-    name/: Hratio[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]]]]];
+    name/: Hratio[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]+\[CapitalOmega]q[z]+\[CapitalOmega]q[z]]]]];
     name/: hubbleDistance[name]=hubbleScale[PhysicalConstants`SpeedOfLight,hval,Units`Mega Units`Parsec];
     name/: curvatureTransform[name]=Function[x,Evaluate[Simplify[Which[
         \[CapitalOmega]k>0,Sinh[Sqrt[\[CapitalOmega]k]x]/Sqrt[\[CapitalOmega]k],\[CapitalOmega]k<0,Sin[Sqrt[-\[CapitalOmega]k]x]/Sqrt[-\[CapitalOmega]k],True,x]]]];
@@ -421,7 +423,7 @@ SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
     "h"->0.6704,"Hzero"->Automatic,"\[CapitalOmega]\[CapitalLambda]"->Automatic,"\[CapitalOmega]m"->0.3183,"\[CapitalOmega]bh2"->0.022032,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
     "Tcmb"->2.7255,"Nnu"->3.046,"NnuMassive"->1,"mnu"->0.06,
-    "ns"->0.9619,"amps"->(2.215*10^-9),"kpivot"->0.05,"retau"->0.0925,"YP"->0.247695
+    "ns"->0.9619,"amps"->(2.215*10^-9),"kpivot"->0.05,"retau"->0.0925,"YP"->0.247695,"\[CapitalOmega]mf"->Function[z,1],"\[CapitalOmega]q"->Function[z,0]
 };
 
 
