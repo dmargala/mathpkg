@@ -44,6 +44,10 @@ nonlinearDistortion::usage=
 "nonlinearDistortion[model][k,mu] calculates the non-linear distortion factor.";
 
 
+combinedDistortion::usage=
+"combinedDistortion[model][k,mu] combines all distortion factors into a single function of (k,mu).";
+
+
 projectMultipole::usage=
 "projectMultipole[f,ell] evaluates the multipole projection integral of f(mu)P(ell,mu) over {-1,+1}, scaled by (2 ell+1)/2.";
 
@@ -203,6 +207,8 @@ Module[{bias2,beta2},
     redshiftSpaceDistortion[name]^=Function[{k,mu},Evaluate[Simplify[bias bias2(1+beta mu^2)(1+beta2 mu^2)]]];
     nonlinearDistortion[name]^=Function[{k,mu},Evaluate[Simplify[
         Exp[-(mu^2 sigL^2+(1-mu^2)sigT^2)k^2/2]/(1+(mu sigS k)^2)^2]]];
+    combinedDistortion[name]^=Function[{k,mu},
+      redshiftSpaceDistortion[name][k,mu]nonlinearDistortion[name][k,mu]];
     multipoleRescaling[name]^=multipoleRescalingOption;
 ]]
 SetAttributes[createDistortionModel,HoldFirst]
@@ -226,7 +232,7 @@ Module[{index,rescale,nk,dk,k,pts,interpolator},
   dk=padFraction^2(kmax/kmin)^(1/(nk-1));
   pts=Table[
     k=(kmin/padFraction) dk^(i-1);
-    {Log[k],projectMultipole[rescale redshiftSpaceDistortion[name][k,##] nonlinearDistortion[name][k,##]&,ell]},
+    {Log[k],projectMultipole[rescale combinedDistortion[name][k,##]&,ell]},
     {i,nk}
   ];
   interpolator=Interpolation[pts];
