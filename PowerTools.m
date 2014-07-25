@@ -57,6 +57,11 @@ distortionMultipoleFunction::usage=
 specified distortion model multipole.";
 
 
+project1DPower::usage=
+"project1DPower[linearPower,distModel,kparMin,kparMax] returns an interpolated function for kparMin < kpar < kparMax
+for the 1D power corresponding to the specified linear P(k) and distortion model.";
+
+
 multipoleTransform::usage=
 "multipoleTransform[fk,rmin,rmax,ell,veps] calculates the transform of the ell-th multipole with
 coefficient function fk. Returns an interpolating function defined for r in [rmin,rmax] that is free
@@ -239,6 +244,26 @@ Module[{index,rescale,nk,dk,k,pts,interpolator},
   Function[k,interpolator[Log[k]]]
 ]]
 Options[distortionMultipoleFunction]={"nPtsPerDecade"->5,"padFraction"->1.05};
+
+
+project1DPower[linearPower_,distModel_,kmin_,kmax_,OptionsPattern[]]:=
+With[{
+  nPtsPerDecade=OptionValue["nPtsPerDecade"],
+  padFraction=OptionValue["padFraction"]
+},
+Module[{nk,dk,pts,kpar,p1d,interpolator},
+  nk=Max[10,Ceiling[Log[10,kmax/kmin]nPtsPerDecade]];
+  dk=padFraction^2(kmax/kmin)^(1/(nk-1));
+  pts=Table[
+    kpar=(kmin/padFraction) dk^(i-1);
+    p1d=NIntegrate[(k^2-kpar^2)/(2\[Pi] k) linearPower[k] combinedDistortion[distModel][k,kpar/k],{k,kpar,Infinity}];
+    {Log[kpar],p1d},
+    {i,nk}
+  ];
+  interpolator=Interpolation[pts];
+  Function[k,interpolator[Log[k]]]
+]]
+Options[project1DPower]={"nPtsPerDecade"->5,"padFraction"->1.05};
 
 
 kr0[ell_,hankel_:False]:=
