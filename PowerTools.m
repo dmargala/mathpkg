@@ -44,6 +44,10 @@ nonlinearDistortion::usage=
 "nonlinearDistortion[model][k,mu] calculates the non-linear distortion factor.";
 
 
+lymanAlphaDistortion::usage=
+"lymanAlphaDistortion[model][k,mu] calculates the Lyman-alpha distortion eqn(20) of McDonald 2003.";
+
+
 combinedDistortion::usage=
 "combinedDistortion[model][k,mu] combines all distortion factors into a single function of (k,mu).";
 
@@ -202,6 +206,14 @@ With[{
     sigL=OptionValue["sigL"],
     sigT=OptionValue["sigT"],
     sigS=OptionValue["sigS"],
+    kNL=OptionValue["kNL"],
+    alphaNL=OptionValue["alphaNL"],
+    kP=OptionValue["kP"],
+    alphaP=OptionValue["alphaP"],
+    kV0=OptionValue["kV0"],
+    kVp=OptionValue["kVp"],
+    alphaV=OptionValue["alphaV"],
+    alphaVp=OptionValue["alphaVp"],
     multipoleRescalingOption=OptionValue["multipoleRescaling"]
 },
 Module[{bias2,beta2},
@@ -211,14 +223,21 @@ Module[{bias2,beta2},
     Options[name]^={ "bias"->bias,"beta"->beta,"bias2"->bias,"beta2"->beta2,"sigL"->sigL,"sigT"->sigT,"sigS"->sigS };
     redshiftSpaceDistortion[name]^=Function[{k,mu},Evaluate[Simplify[bias bias2(1+beta mu^2)(1+beta2 mu^2)]]];
     nonlinearDistortion[name]^=Function[{k,mu},Evaluate[Simplify[
-        Exp[-(mu^2 sigL^2+(1-mu^2)sigT^2)k^2/2]/(1+(mu sigS k)^2)^2]]];
+      Exp[-(mu^2 sigL^2+(1-mu^2)sigT^2)k^2/2]/(1+(mu sigS k)^2)^2]]];
+    If[kNL===None,
+      lymanAlphaDistortion[name]^=Function[{k,mu},1],
+      lymanAlphaDistortion[name]^=Function[{k,mu},Evaluate[Simplify[
+        Exp[(k/kNL)^alphaNL - (k/kP)^alphaP - ((mu k)/(kV0 (1+k/kVp)^alphaVp))^alphaV]]]]
+    ];
     combinedDistortion[name]^=Function[{k,mu},
-      redshiftSpaceDistortion[name][k,mu]nonlinearDistortion[name][k,mu]];
+      redshiftSpaceDistortion[name][k,mu] nonlinearDistortion[name][k,mu] lymanAlphaDistortion[name][k,mu]];
     multipoleRescaling[name]^=multipoleRescalingOption;
 ]]
 SetAttributes[createDistortionModel,HoldFirst]
 Options[createDistortionModel]={
-    "bias"->1,"beta"->0,"bias2"->Automatic,"beta2"->Automatic,"sigL"->0,"sigT"->0,"sigS"->0,"multipoleRescaling"->None
+    "bias"->1,"beta"->0,"bias2"->Automatic,"beta2"->Automatic,"sigL"->0,"sigT"->0,"sigS"->0,
+    "kNL"->None,"alphaNL"->0,"kP"->None,"alphaP"->0,"kV0"->None,"alphaV"->0,"kVp"->None,"alphaVp"->0.451,
+    "multipoleRescaling"->None
 };
 
 
@@ -256,7 +275,7 @@ Module[{nk,dk,pts,kpar,p1d,interpolator},
   dk=padFraction^2(kmax/kmin)^(1/(nk-1));
   pts=Table[
     kpar=(kmin/padFraction) dk^(i-1);
-    p1d=NIntegrate[(k^2-kpar^2)/(2\[Pi] k) linearPower[k] combinedDistortion[distModel][k,kpar/k],{k,kpar,Infinity}];
+    p1d=NIntegrate[k linearPower[k] combinedDistortion[distModel][k,kpar/k],{k,kpar,Infinity}]/(2\[Pi]);
     {Log[kpar],p1d},
     {i,nk}
   ];
