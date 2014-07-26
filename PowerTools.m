@@ -48,6 +48,10 @@ lymanAlphaDistortion::usage=
 "lymanAlphaDistortion[model][k,mu] calculates the Lyman-alpha distortion eqn(20) of McDonald 2003.";
 
 
+continuumFitDistortion::usage=
+"continuumFitDistortion[model][k,mu] calculates Michael's Distortion Model 2.";
+
+
 combinedDistortion::usage=
 "combinedDistortion[model][k,mu] combines all distortion factors into a single function of (k,mu).";
 
@@ -214,6 +218,8 @@ With[{
     kVp=OptionValue["kVp"],
     alphaV=OptionValue["alphaV"],
     alphaVp=OptionValue["alphaVp"],
+    kC=OptionValue["kC"],
+    pC=OptionValue["pC"],
     multipoleRescalingOption=OptionValue["multipoleRescaling"]
 },
 Module[{bias2,beta2},
@@ -229,15 +235,18 @@ Module[{bias2,beta2},
       lymanAlphaDistortion[name]^=Function[{k,mu},Evaluate[Simplify[
         Exp[(k/kNL)^alphaNL - (k/kP)^alphaP - ((mu k)/(kV0 (1+k/kVp)^alphaVp))^alphaV]]]]
     ];
+    continuumFitDistortion[name]^=Function[{k,mu},Evaluate[Simplify[
+      (((mu k/kC+1)^2-1)/((mu k/kC+1)^2+1))^pC]]];
     combinedDistortion[name]^=Function[{k,mu},
-      redshiftSpaceDistortion[name][k,mu] nonlinearDistortion[name][k,mu] lymanAlphaDistortion[name][k,mu]];
+      redshiftSpaceDistortion[name][k,mu] nonlinearDistortion[name][k,mu]
+      lymanAlphaDistortion[name][k,mu] continuumFitDistortion[name][k,mu]];
     multipoleRescaling[name]^=multipoleRescalingOption;
 ]]
 SetAttributes[createDistortionModel,HoldFirst]
 Options[createDistortionModel]={
     "bias"->1,"beta"->0,"bias2"->Automatic,"beta2"->Automatic,"sigL"->0,"sigT"->0,"sigS"->0,
     "kNL"->None,"alphaNL"->0,"kP"->None,"alphaP"->0,"kV0"->None,"alphaV"->0,"kVp"->None,"alphaVp"->0.451,
-    "multipoleRescaling"->None
+    "kC"->0.0043,"pC"->0,"multipoleRescaling"->None
 };
 
 
