@@ -65,9 +65,12 @@ mag=2 or higher is necessary when preparing latex figures.";
 
 
 coverageContourPlot::usage=
-"coverageContourPlot[dataset,{x1,x2,dx},{y1,y2,dy}] plots contours containing 68% and 95% of the dataset points
-over the ranges (x1,x2) and (y1,y2) using a cell size (dx,dy) for kernel density estimation. Additional options
-supported are coverageFractions, which specifies the contour levels to draw, and any options of ContourPlot.";
+"coverageContourPlot[dataset,{x1,x2,dx},{y1,y2,dy}] plots contours containing 68% and 95%
+of the dataset points over the ranges (x1,x2) and (y1,y2) using a cell size (dx,dy) for
+kernel density estimation. Additional options supported are coverageFractions, which
+specifies the contour levels to draw, and any options of ContourPlot. The input dataset
+should either be a list of 2D points or else a 2D WeightedData object (which will take
+longer to plot).";
 
 
 colorListPlot::usage=
@@ -432,16 +435,25 @@ Options[rasterize]={ magnification->1,oversampling->2 };
 
 
 Clear[coverageContourPlot]
+coverageContourPlot::baddims="Data has unexpected dimensions `1`";
 coverageContourPlot[data_,{plotXmin_,plotXmax_,dx_},{plotYmin_,plotYmax_,dy_},options:OptionsPattern[{coverageContourPlot,ContourPlot}]]:=
 With[{plotOptions=FilterRules[{options},Options[ContourPlot]],fractions=OptionValue["coverageFractions"]},
-Module[{kde,xmin,xmax,ymin,ymax,hist,sorted,cummulative,contourLevels},
+Module[{kde,idata,dims,xmin,xmax,ymin,ymax,hist,sorted,cummulative,contourLevels},
+    (* Get the unweighted input data *)
+    idata=If[Head[data]===WeightedData,data["InputData"],data];
+    (* Check that data is 2D *)
+    dims=Dimensions[idata];
+    If[Length[dims]!=2||dims[[2]]!=2,
+      Message[coverageContourPlot::baddims,dims];
+      Return[$Failed]
+    ];
     (* Build a kernel density estimate of the PDF *)
     kde=SmoothKernelDistribution[data];
     (* Calculate the binning to use *)
-    xmin=Ceiling[Min[data[[;;,1]]]-dx,dx];
-    ymin=Ceiling[Min[data[[;;,2]]]-dy,dy];
-    xmax=Floor[Max[data[[;;,1]]]+dx,dx];
-    ymax=Floor[Max[data[[;;,2]]]+dy,dy];
+    xmin=Ceiling[Min[idata[[;;,1]]]-dx,dx];
+    ymin=Ceiling[Min[idata[[;;,2]]]-dy,dy];
+    xmax=Floor[Max[idata[[;;,1]]]+dx,dx];
+    ymax=Floor[Max[idata[[;;,2]]]+dy,dy];
     (* Estimate the KDE integral over each bin *)
     hist=Table[PDF[kde,{x,y}]dx dy,{x,xmin+dx/2,xmax-dx/2,dx},{y,ymin+dy/2,ymax-dy/2,dy}];
     (* calculate the cummulative bin counts when bins are in descending contents order *)
