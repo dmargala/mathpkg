@@ -102,8 +102,8 @@ specified filename in CAMB input format.";
 
 loadPlanckChain::usage=
 "loadPlanckChain[name,params] loads the named parameters from the specified Planck chain
-and returns a table where rows correspond to chain rows and columns correspond to the
-values of the named parameters. Options are:
+and returns a WeightedData object whose rows correspond to chain rows and columns correspond
+to the values of the named parameters. Options are:
   - verbose: give verbose output (default is False).
   - maxRows: maximum number of rows to return (default is All).
   - path: path to prepend to name (default is \"/Volumes/Data/planck/PLA/\").
@@ -540,7 +540,7 @@ With[{
   maxRows=OptionValue["maxRows"],
   path=OptionValue["path"]
 },
-Module[{pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols},
+Module[{pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols,data,wgts},
   (* Check that this file exists *)
   If[!FileExistsQ[FileNameJoin[{path,name}]],
     Message[loadPlanckChain::nofile,name];
@@ -584,7 +584,12 @@ Module[{pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols},
   If[verbose===True,
     Print["Chain contains ",nrows," rows."]
   ];
-  Part[raw,rows,columns]
+  (* Extract the requested parameter values *)
+  data=Part[raw,rows,columns];
+  (* Extract the corresponding weights *)
+  wgts=Part[raw,rows,1];
+  (* Return a weighted dataset *)
+  WeightedData[data,wgts]
 ]]
 Options[loadPlanckChain]={"verbose"->False,"maxRows"->All,"path"->"/Volumes/Data/planck/PLA/"};
 
