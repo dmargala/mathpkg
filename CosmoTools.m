@@ -529,25 +529,39 @@ Options[exportToCamb]={
 };
 
 
-loadPlanckChain::nofile="No such file `1`.";
+Clear[loadPlanckChain];
+loadPlanckChain::nofile="No chains found for `1`.";
 loadPlanckChain::nopnames="Missing parameter names file `1`.";
 loadPlanckChain::nopar="No such parameter `1`.";
 loadPlanckChain::notable="File is not in tabular format.";
 loadPlanckChain::ncols="Found `1` columns but expected `2`.";
-loadPlanckChain[name_,parameters_List,OptionsPattern[]]:=
+loadPlanckChain[model_,dataset_,parameters_List,OptionsPattern[]]:=
 With[{
   verbose=OptionValue["verbose"],
   maxRows=OptionValue["maxRows"],
-  path=OptionValue["path"]
+  PLA=OptionValue["PLA"],
+  post=OptionValue["post"],
+  fileIndex=OptionValue["fileIndex"]
 },
-Module[{pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols,data,wgts},
-  (* Check that this file exists *)
-  If[!FileExistsQ[FileNameJoin[{path,name}]],
-    Message[loadPlanckChain::nofile,name];
+Module[{path,indexPattern,files,pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols,data,wgts},
+  (* Prepare the path for the requested chains *)
+  path=FileNameJoin[{model,dataset,model<>"_"<>dataset}];
+  If[StringQ[post],
+    (* Append posterior tag to file path *)
+    path=path<>"_post_"<>post
+  ];
+  If[verbose===True,
+    Print["Reading chains from ",path]
+  ];
+  (* Find the names of all available chain files *)
+  indexPattern=If[fileIndex === All,DigitCharacter..,ToString[fileIndex]];
+  files = FileNames[path~~"_"~~indexPattern~~".txt",{PLA}];
+  If[files==={},
+    Message[loadPlanckChain::nofile,path];
     Return[$Failed]
   ];
   (* Get the filename containing parameter names for this chain *)
-  pnamesFile=FileNameJoin[{path,StringReplace[name,RegularExpression["^(\\S+)?_[0-9]\\.txt"]->"$1.paramnames"]}];
+  pnamesFile=FileNameJoin[{PLA,path<>".paramnames"}];
   If[!FileExistsQ[pnamesFile],
     Message[loadPlanckChain::nopnames,pnamesFile];
     Return[$Failed]
@@ -569,29 +583,38 @@ Module[{pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols,data,wgts},
   If[verbose===True,
     Print["Reading parameters in columns ",columns," from ",maxRows," rows."]
   ];
-  raw=ReadList[FileNameJoin[{path,name}],Real,RecordLists->True];
-  (* Check for the expected number of columns *)
-  If[ArrayDepth[raw]!=2,
-    Message[loadPlanckChain::notable];
-    Return[$Failed]
+  (* Loop over chain files *)
+  data={};
+  wgts={};
+  Do[
+    raw=ReadList[file,Real,RecordLists->True];
+    (* Check for the expected number of columns *)
+    If[ArrayDepth[raw]!=2,
+      Message[loadPlanckChain::notable];
+      Return[$Failed]
+    ];
+    {nrows,ncols}=Dimensions[raw];
+    If[ncols!=Length[pnames],
+      Message[loadPlanckChain::ncols,ncols,Length[pnames]];
+	  Print[pnames];
+      Return[$Failed]
+    ];
+    If[verbose===True,
+      Print["Chain ",file," contains ",nrows," rows."]
+    ];
+    (* Extract the requested parameter values *)
+    data=Join[data,Part[raw,rows,columns]];
+    (* Extract the corresponding weights *)
+    wgts=Join[wgts,Part[raw,rows,1]];
+    ,
+    {file,files}
   ];
-  {nrows,ncols}=Dimensions[raw];
-  If[ncols!=Length[pnames],
-    Message[loadPlanckChain::ncols,ncols,Length[pnames]];
-	Print[pnames];
-    Return[$Failed]
-  ];
-  If[verbose===True,
-    Print["Chain contains ",nrows," rows."]
-  ];
-  (* Extract the requested parameter values *)
-  data=Part[raw,rows,columns];
-  (* Extract the corresponding weights *)
-  wgts=Part[raw,rows,1];
   (* Return a weighted dataset *)
   WeightedData[data,wgts]
 ]]
-Options[loadPlanckChain]={"verbose"->False,"maxRows"->All,"path"->"/Volumes/Data/planck/PLA/"};
+Options[loadPlanckChain]={
+  "verbose"->False,"maxRows"->All,"PLA"->"/Volumes/Data/planck/PLA/","post"->None,"fileIndex"->All
+};
 
 
 (* Builds a function that evaluates f[z]=scale*transform[z,Integral[integrand[zz],{zz,0,z}]] using interpolation
