@@ -69,8 +69,9 @@ coverageContourPlot::usage=
 of the dataset points over the ranges (x1,x2) and (y1,y2) using a cell size (dx,dy) for
 kernel density estimation. Additional options supported are coverageFractions, which
 specifies the contour levels to draw, and any options of ContourPlot. The input dataset
-should either be a list of 2D points or else a 2D WeightedData object (which will take
-longer to plot).";
+should either be a 2D table of values or else a 2D WeightedData object (which will take
+longer to plot).  Use the columns parameter to specify which columns of the 2D to plot.
+The default columns are {1,2}.";
 
 
 colorListPlot::usage=
@@ -435,25 +436,46 @@ Options[rasterize]={ magnification->1,oversampling->2 };
 
 
 Clear[coverageContourPlot]
-coverageContourPlot::baddims="Data has unexpected dimensions `1`";
+coverageContourPlot::badcols="Invalid columns option `1`.";
+coverageContourPlot::baddims="Invalid data dimensions `1`.";
+coverageContourPlot::colrange="Requested columns `1` out of valid range 1-`2`.";
 coverageContourPlot[data_,{plotXmin_,plotXmax_,dx_},{plotYmin_,plotYmax_,dy_},options:OptionsPattern[{coverageContourPlot,ContourPlot}]]:=
-With[{plotOptions=FilterRules[{options},Options[ContourPlot]],fractions=OptionValue["coverageFractions"]},
-Module[{kde,idata,dims,xmin,xmax,ymin,ymax,hist,sorted,cummulative,contourLevels},
-    (* Get the unweighted input data *)
-    idata=If[Head[data]===WeightedData,data["InputData"],data];
-    (* Check that data is 2D *)
-    dims=Dimensions[idata];
-    If[Length[dims]!=2||dims[[2]]!=2,
-      Message[coverageContourPlot::baddims,dims];
+With[{
+  plotOptions=FilterRules[{options},Options[ContourPlot]],
+  fractions=OptionValue["coverageFractions"],
+  columns=OptionValue["columns"]
+},
+Module[{kde,rawdata,xydata,dims,xmin,xmax,ymin,ymax,hist,sorted,cummulative,contourLevels},
+    (* Get the raw (unweighted) input data *)
+    rawdata=If[Head[data]===WeightedData,data["InputData"],data];
+    (* Check that raw data is 2D and has at least 2 columns *)
+    dims=Dimensions[rawdata];
+    If[Length[dims]!=2||dims[[2]]<2,
+      Message[coverageContourPlot::baddims,dims,columns];
       Return[$Failed]
     ];
+    (* Check the format of the columns parameter *)
+    If[!ListQ[columns] || !(Map[IntegerQ,columns]==={True,True}),
+      Message[coverageContourPlot::badcols,columns];
+      Return[$Failed]
+    ];
+    (* Check that the requested columns are in range *)
+    If[Min[columns]<1 || Max[columns]>dims[[2]] || columns[[1]]==columns[[2]],
+      Message[coverageContourPlot::colrange,columns,dims[[2]]];
+      Return[$Failed]
+    ];
+    (* Use the specified columns *)
+    xydata=rawdata[[;;,columns]];
     (* Build a kernel density estimate of the PDF *)
-    kde=SmoothKernelDistribution[data];
+    kde=If[Head[data]===WeightedData,
+      SmoothKernelDistribution[WeightedData[xydata,data["Weights"]]],
+      SmoothKernelDistribution[xydata]
+    ];
     (* Calculate the binning to use *)
-    xmin=Ceiling[Min[idata[[;;,1]]]-dx,dx];
-    ymin=Ceiling[Min[idata[[;;,2]]]-dy,dy];
-    xmax=Floor[Max[idata[[;;,1]]]+dx,dx];
-    ymax=Floor[Max[idata[[;;,2]]]+dy,dy];
+    xmin=Ceiling[Min[xydata[[;;,1]]]-dx,dx];
+    ymin=Ceiling[Min[xydata[[;;,2]]]-dy,dy];
+    xmax=Floor[Max[xydata[[;;,1]]]+dx,dx];
+    ymax=Floor[Max[xydata[[;;,2]]]+dy,dy];
     (* Estimate the KDE integral over each bin *)
     hist=Table[PDF[kde,{x,y}]dx dy,{x,xmin+dx/2,xmax-dx/2,dx},{y,ymin+dy/2,ymax-dy/2,dy}];
     (* calculate the cummulative bin counts when bins are in descending contents order *)
@@ -467,7 +489,7 @@ Module[{kde,idata,dims,xmin,xmax,ymin,ymax,hist,sorted,cummulative,contourLevels
         Contours->contourLevels,PlotRange->{{plotXmin,plotXmax},{plotYmin,plotYmax},All},ContourShading->None
     ]
 ]]
-Options[coverageContourPlot]={"coverageFractions"->{0.6827,0.9545}};
+Options[coverageContourPlot]={"coverageFractions"->{0.6827,0.9545},"columns"->{1,2}};
 
 
 dataRange[data_,OptionsPattern[]]:=
