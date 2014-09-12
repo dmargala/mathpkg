@@ -543,7 +543,7 @@ With[{
   post=OptionValue["post"],
   fileIndex=OptionValue["fileIndex"]
 },
-Module[{path,indexPattern,files,pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols,data,wgts},
+Module[{path,indexPattern,files,pnamesFile,pnames,pos,columns,rows,raw,nrows,ncols,userows,data,wgts},
   (* Prepare the path for the requested chains *)
   path=FileNameJoin[{model,dataset,model<>"_"<>dataset}];
   If[StringQ[post],
@@ -579,9 +579,8 @@ Module[{path,indexPattern,files,pnamesFile,pnames,pos,columns,rows,raw,nrows,nco
     ];
     pos[[1,1]],{p,parameters}
   ];
-  rows=If[IntegerQ[maxRows],Span[1,maxRows],All];
   If[verbose===True,
-    Print["Reading parameters in columns ",columns," from ",maxRows," rows."]
+    Print["Reading parameters in columns ",columns]
   ];
   (* Loop over chain files *)
   data={};
@@ -599,13 +598,15 @@ Module[{path,indexPattern,files,pnamesFile,pnames,pos,columns,rows,raw,nrows,nco
 	  Print[pnames];
       Return[$Failed]
     ];
+    userows=If[!IntegerQ[maxRows]||Length[data]+nrows<=maxRows,nrows,maxRows-Length[data]];
+    If[userows===0,Break[]];
     If[verbose===True,
-      Print["Chain ",file," contains ",nrows," rows."]
+      Print["Reading ",userows," of ",nrows," rows from ",file]
     ];
     (* Extract the requested parameter values *)
-    data=Join[data,Part[raw,rows,columns]];
-    (* Extract the corresponding weights *)
-    wgts=Join[wgts,Part[raw,rows,1]];
+    data=Join[data,raw[[;;userows,columns]]];
+    (* Extract the corresponding weights, which are always in column 1 *)
+    wgts=Join[wgts,raw[[;;userows,1]]];
     ,
     {file,files}
   ];
