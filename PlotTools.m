@@ -442,10 +442,12 @@ coverageContourPlot::colrange="Requested columns `1` out of valid range 1-`2`.";
 coverageContourPlot[data_,{plotXmin_,plotXmax_,dx_},{plotYmin_,plotYmax_,dy_},options:OptionsPattern[{coverageContourPlot,ContourPlot}]]:=
 With[{
   plotOptions=FilterRules[{options},Options[ContourPlot]],
-  fractions=OptionValue["coverageFractions"],
-  columns=OptionValue["columns"]
+  coverageFractions=OptionValue["coverageFractions"],
+  columns=OptionValue["columns"],
+  maxRows=OptionValue["maxRows"]
 },
-Module[{kde,rawdata,xydata,dims,xmin,xmax,ymin,ymax,hist,sorted,cummulative,contourLevels},
+Module[{kde,rawdata,rows,xydata,dims,estimator,dist,xmin,xmax,ymin,ymax,hist,sorted,pdf,
+contourData,contourFunction,max,contourLevels},
     (* Get the raw (unweighted) input data *)
     rawdata=If[Head[data]===WeightedData,data["InputData"],data];
     (* Check that raw data is 2D and has at least 2 columns *)
@@ -464,32 +466,52 @@ Module[{kde,rawdata,xydata,dims,xmin,xmax,ymin,ymax,hist,sorted,cummulative,cont
       Message[coverageContourPlot::colrange,columns,dims[[2]]];
       Return[$Failed]
     ];
-    (* Use the specified columns *)
-    xydata=rawdata[[;;,columns]];
+    (* Use the specified rows and columns *)
+    rows=If[IntegerQ[maxRows],Span[1,maxRows],All];
+    xydata=Part[rawdata,rows,columns];
     (* Build a kernel density estimate of the PDF *)
-    kde=If[Head[data]===WeightedData,
-      SmoothKernelDistribution[WeightedData[xydata,data["Weights"]]],
-      SmoothKernelDistribution[xydata]
+Print["building pdf..."];
+    (*estimator=EmpiricalDistribution;*)
+    estimator=SmoothKernelDistribution;
+    (*estimator=HistogramDistribution;*)
+    dist=If[Head[data]===WeightedData,
+      estimator[WeightedData[xydata,N[Part[data["Weights"],rows]]]],
+      estimator[xydata]
     ];
     (* Calculate the binning to use *)
     xmin=Ceiling[Min[xydata[[;;,1]]]-dx,dx];
     ymin=Ceiling[Min[xydata[[;;,2]]]-dy,dy];
     xmax=Floor[Max[xydata[[;;,1]]]+dx,dx];
     ymax=Floor[Max[xydata[[;;,2]]]+dy,dy];
-    (* Estimate the KDE integral over each bin *)
-    hist=Table[PDF[kde,{x,y}]dx dy,{x,xmin+dx/2,xmax-dx/2,dx},{y,ymin+dy/2,ymax-dy/2,dy}];
-    (* calculate the cummulative bin counts when bins are in descending contents order *)
-    sorted=Sort[Flatten[hist],Greater];
-    cummulative=Accumulate[sorted];
-    (* calculate the contour levels for each fraction *)
-    contourLevels=Map[sorted[[Position[cummulative,First[Nearest[cummulative,#1]],1,1][[1,1]]]]/(dx dy)&,fractions];
+    (* Estimate the KDE integral over the grid specified by the input args *)
+Print["histogramming..."];
+    pdf=Function[{x,y},N[PDF[dist,{x,y}]]];
+    hist=Table[pdf[x,y]dx dy,{x,xmin+dx/2,xmax-dx/2,dx},{y,ymin+dy/2,ymax-dy/2,dy}];
+Print["contouring..."];
+    (* Tabulate pairs of {integral,level} from the histogram bins *)
+    sorted=Reverse[Sort[Flatten[hist]]];
+Print["sorted ",sorted[[;;10]]];
+    contourData=Transpose[{N[Accumulate[sorted]],sorted}];
+    (* Remove duplicate values of the integral so that we can interpolate in this data.
+    This is tricky to do efficiently since Union and DeleteDuplicates are both O(n^2).
+    We use a method described here:
+    https://groups.google.com/forum/#!topic/comp.soft-sys.math.mathematica/nhCG4PrDC7M *)
+Print["deleting duplicates..."];
+    contourData=Tally[contourData,(First@#1==First@#2&)][[All,1]];
+    (*contourData=DeleteDuplicates[contourData,#1[[1]]\[Equal]#2[[1]]&];*)
+(*Print[ListPlot[contourData,PlotRange\[Rule]All]];*)
+    (* calculate the contour levels for each fraction using linear interpolation in contourData *)
+    contourFunction=Interpolation[contourData,InterpolationOrder->1];
+    max = Max[contourData[[;;,1]]];
+    contourLevels=Map[contourFunction,coverageFractions max]/(dx dy);
+Print["levels ",contourLevels];
     (* plot the contours *)
-    ContourPlot[PDF[kde,{x,y}],{x,plotXmin,plotXmax},{y,plotYmin,plotYmax},
+    ContourPlot[PDF[dist,{x,y}],{x,plotXmin,plotXmax},{y,plotYmin,plotYmax},
         Sequence[plotOptions], (* following options can be overridden in plotOptions *)
         Contours->contourLevels,PlotRange->{{plotXmin,plotXmax},{plotYmin,plotYmax},All},ContourShading->None
     ]
 ]]
-Options[coverageContourPlot]={"coverageFractions"->{0.6827,0.9545},"columns"->{1,2}};
+Options[coverageContourPlot]={"coverageFractions"->{0.6827,0.9545},"columns"->{1,2},"maxRows"->None};
 
 
 dataRange[data_,OptionsPattern[]]:=
