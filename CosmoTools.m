@@ -101,17 +101,21 @@ specified filename in CAMB input format.";
 
 
 loadPlanckChain::usage=
-"loadPlanckChain[name,params] loads the named parameters from the specified Planck chain
+"loadPlanckChain[model,dataset,params] loads the named parameters from the specified Planck chain
 and returns a WeightedData object whose rows correspond to chain rows and columns correspond
 to the values of the named parameters. Options are:
   - verbose: give verbose output (default is False).
   - maxRows: maximum number of rows to return (default is All).
-  - path: path to prepend to name (default is \"/Volumes/Data/planck/PLA/\").
+  - PLA: path of the Planck Legacy Archive (default is \"/Volumes/Data/planck/PLA/\").
+  - post: posterior to apply (\"BAO\", \"HST\", \"SNLS\", \"Union2\", etc, default is None).
+  - fileIndex: index of a single chain file to read (default is All).
 This function has been tested wth the public Planck chains available from
 http://www.sciops.esa.int/wikiSI/planckpla/index.php?title=Cosmological_Parameters&instance=Planck_Public_PLA#Parameter_Chains
 and uses the parameter name tags specified in
 http://www.sciops.esa.int/SYS/WIKI/uploads/Planck_Public_PLA/5/59/Parameter_tag_definitions.pdf
-which should be provided in a list, e.g., {\"omegabh2\",\"rdrag\"}.";
+which should be provided in a list, e.g., {\"omegabh2\",\"rdrag\"}. Reads all available chain files
+in order until maxRows are reached or no more files are available. Use the fileIndex option to instead
+read a single file.";
 
 
 \[CapitalOmega]rad::usage=
