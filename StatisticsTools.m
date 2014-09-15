@@ -32,7 +32,8 @@ off-diagonal elements are all between -1 and +1.";
 
 sampleWeightedData::usage=
 "sampleWeightedData[wdata,n] returns n samples drawn from a WeightedData object, with
-some samples possibly repeated.";
+some samples possibly repeated. If an optional integer seed is provided, uses the
+specified random seed to fix the selected random sample.";
 
 
 Begin["Private`"]
@@ -86,14 +87,23 @@ Module[{sigvec,sigmat},
 
 
 sampleWeightedData::badn="Number of samples must be a positive integer.";
-sampleWeightedData[wdata_,n_]:=
-Module[{},
+sampleWeightedData[wdata_,n_,OptionsPattern[]]:=
+With[{
+  seed=OptionValue["seed"]
+  },
   If[!IntegerQ[n]||n<=0,
     Message[sampleWeightedData::badn];
     Return[$Failed]
   ];
-  RandomChoice[wdata["Weights"]->wdata["InputData"],n]
+  If[IntegerQ[seed],
+    BlockRandom[
+      SeedRandom[seed];
+      Return[RandomChoice[wdata["Weights"]->wdata["InputData"],n]]
+    ],
+    Return[RandomChoice[wdata["Weights"]->wdata["InputData"],n]]
+  ]
 ]
+Options[sampleWeightedData]={"seed"->Automatic};
 
 
 End[]
