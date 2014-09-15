@@ -30,6 +30,11 @@ cov(i,j)/sqrt(cov(i)cov(j)), whose diagonal elements are all one and whose
 off-diagonal elements are all between -1 and +1.";
 
 
+sampleWeightedData::usage=
+"sampleWeightedData[wdata,n] returns n samples drawn from a WeightedData object, with
+some samples possibly repeated.";
+
+
 Begin["Private`"]
 
 
@@ -77,6 +82,17 @@ Module[{sigvec,sigmat},
   sigvec=N[Sqrt[Diagonal[cov]]];
   sigmat=ConstantArray[sigvec,Length[sigvec]];
   cov/(sigmat Transpose[sigmat])
+]
+
+
+sampleWeightedData::badn="Number of samples must be a positive integer.";
+sampleWeightedData[wdata_,n_]:=
+Module[{},
+  If[!IntegerQ[n]||n<=0,
+    Message[sampleWeightedData::badn];
+    Return[$Failed]
+  ];
+  RandomChoice[wdata["Weights"]->wdata["InputData"],n]
 ]
 
 
