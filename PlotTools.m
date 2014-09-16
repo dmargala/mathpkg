@@ -2,7 +2,7 @@
 
 (* Created 5-Jan-2013 by David Kirkby (University of California, Irvine) <dkirkby@uci.edu> *)
 
-BeginPackage["DeepZot`PlotTools`"]
+BeginPackage["DeepZot`PlotTools`",{"DeepZot`StatisticsTools`"}];
 
 
 PlotTools::usage=
@@ -69,9 +69,9 @@ coverageContourPlot::usage=
 of the dataset points over the ranges (x1,x2) and (y1,y2) using a cell size (dx,dy) for
 kernel density estimation. Additional options supported are coverageFractions, which
 specifies the contour levels to draw, and any options of ContourPlot. The input dataset
-should either be a 2D table of values or else a 2D WeightedData object (which will take
-longer to plot).  Use the columns parameter to specify which columns of the 2D to plot.
-The default columns are {1,2}.";
+should either be a 2D table of values or else a 2D WeightedData object. Use the columns
+parameter to specify which columns of the 2D to plot. The default columns are {1,2}. A
+WeightedData object will be sampled to create maxRows of unweighted data before plotting.";
 
 
 colorListPlot::usage=
@@ -436,6 +436,7 @@ Options[rasterize]={ magnification->1,oversampling->2 };
 
 
 Clear[coverageContourPlot]
+coverageContourPlot::needrows="Must specify integer maxRows with WeightedData.";
 coverageContourPlot::badcols="Invalid columns option `1`.";
 coverageContourPlot::baddims="Invalid data dimensions `1`.";
 coverageContourPlot::colrange="Requested columns `1` out of valid range 1-`2`.";
@@ -446,10 +447,18 @@ With[{
   columns=OptionValue["columns"],
   maxRows=OptionValue["maxRows"]
 },
-Module[{kde,rawdata,rows,xydata,dims,estimator,dist,xmin,xmax,ymin,ymax,hist,sorted,pdf,
+Module[{kde,rawdata,rows,xydata,dims,dist,xmin,xmax,ymin,ymax,hist,sorted,pdf,
 contourData,contourFunction,max,contourLevels},
-    (* Get the raw (unweighted) input data *)
-    rawdata=If[Head[data]===WeightedData,data["InputData"],data];
+    (* If the data is weighted, use it to generate maxRows of unweighted samples *)
+    If[Head[data]===WeightedData,
+      If[!IntegerQ[maxRows],
+        Message[coverageContourPlot::needrows];
+        Return[$Failed]
+      ];
+      (* fix the seed so we always generate the same output *)
+      rawdata=sampleWeightedData[data,maxRows,seed->1],
+      rawdata=data
+    ];
     (* Check that raw data is 2D and has at least 2 columns *)
     dims=Dimensions[rawdata];
     If[Length[dims]!=2||dims[[2]]<2,
@@ -470,41 +479,28 @@ contourData,contourFunction,max,contourLevels},
     rows=If[IntegerQ[maxRows],Span[1,maxRows],All];
     xydata=Part[rawdata,rows,columns];
     (* Build a kernel density estimate of the PDF *)
-Print["building pdf..."];
-    (*estimator=EmpiricalDistribution;*)
-    estimator=SmoothKernelDistribution;
-    (*estimator=HistogramDistribution;*)
-    dist=If[Head[data]===WeightedData,
-      estimator[WeightedData[xydata,N[Part[data["Weights"],rows]]]],
-      estimator[xydata]
-    ];
+    dist=SmoothKernelDistribution[xydata];
     (* Calculate the binning to use *)
     xmin=Ceiling[Min[xydata[[;;,1]]]-dx,dx];
     ymin=Ceiling[Min[xydata[[;;,2]]]-dy,dy];
     xmax=Floor[Max[xydata[[;;,1]]]+dx,dx];
     ymax=Floor[Max[xydata[[;;,2]]]+dy,dy];
     (* Estimate the KDE integral over the grid specified by the input args *)
-Print["histogramming..."];
     pdf=Function[{x,y},N[PDF[dist,{x,y}]]];
     hist=Table[pdf[x,y]dx dy,{x,xmin+dx/2,xmax-dx/2,dx},{y,ymin+dy/2,ymax-dy/2,dy}];
-Print["contouring..."];
     (* Tabulate pairs of {integral,level} from the histogram bins *)
     sorted=Reverse[Sort[Flatten[hist]]];
-Print["sorted ",sorted[[;;10]]];
     contourData=Transpose[{N[Accumulate[sorted]],sorted}];
     (* Remove duplicate values of the integral so that we can interpolate in this data.
     This is tricky to do efficiently since Union and DeleteDuplicates are both O(n^2).
     We use a method described here:
-    https://groups.google.com/forum/#!topic/comp.soft-sys.math.mathematica/nhCG4PrDC7M *)
-Print["deleting duplicates..."];
-    contourData=Tally[contourData,(First@#1==First@#2&)][[All,1]];
-    (*contourData=DeleteDuplicates[contourData,#1[[1]]\[Equal]#2[[1]]&];*)
-(*Print[ListPlot[contourData,PlotRange\[Rule]All]];*)
+    https://groups.google.com/forum/#!topic/comp.soft-sys.math.mathematica/nhCG4PrDC7M
+    The Rounding below should not be necessary but seems to be. *)
+    contourData=Tally[contourData,(Round[First[#1],10^-8]==Round[First[#2],10^-8]&)][[All,1]];
     (* calculate the contour levels for each fraction using linear interpolation in contourData *)
     contourFunction=Interpolation[contourData,InterpolationOrder->1];
     max = Max[contourData[[;;,1]]];
     contourLevels=Map[contourFunction,coverageFractions max]/(dx dy);
-Print["levels ",contourLevels];
     (* plot the contours *)
     ContourPlot[PDF[dist,{x,y}],{x,plotXmin,plotXmax},{y,plotYmin,plotYmax},
         Sequence[plotOptions], (* following options can be overridden in plotOptions *)
