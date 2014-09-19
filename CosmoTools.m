@@ -48,6 +48,8 @@ createCosmology::usage=
  - H0[name]
  - Hratio[name][z]
  - curvatureTransform[name][x]
+ - logGrowthRate[name][z]
+ - primordialPower[name][k]
  - zstar[name]
  - zeq[name]
  - zdrag[name]
@@ -56,9 +58,9 @@ createCosmology::usage=
  - nH[name][z]
  - XeEq[name][z]
 Separate help is available for each of these definitions, e.g., ?\[CapitalOmega]rad.
-Use the following options (defaults in parentheses from Planck+WP column of Table 2
-in Planck 2013 results paper or CAMB July 2013 params.ini) to customize the
-created cosmology:
+Use the following options (defaults in parentheses from Planck+WP best-fit column
+of Table 2 in Planck 2013 results paper or CAMB July 2013 params.ini) to customize
+the created cosmology:
  - h (0.6704) value of H0/(100 km/s/Mpc) or calculated from Hzero if Automatic.
  - Hzero (Automatic) value of H0 in km/s/Mpc or calculated from h if Automatic.
  - \[CapitalOmega]m (0.3183) present-day fraction of matter, including any massive neutrinos.
