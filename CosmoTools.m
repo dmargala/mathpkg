@@ -74,7 +74,7 @@ the created cosmology:
  - NnuMassive (1) number of massive neutrino species (must be 0,1,2 or 3).
  - mnu (0.06) Mass of massive neutrino species in eV.
  - ns (0.9619) scalar primordial power spectral index.
- - amps (2.20e-9) scalar primordial power amplitude.
+ - logA (3.0980) log(10^10 As) where As is the scalar primordial power amplitude.
  - kpivot (0.05/Mpc) pivot wavenumber used to define primordial scalar power.
  - retau (0.0925) optical depth to reionization.
  - YP (0.247695) Helimum fraction.
@@ -350,7 +350,7 @@ With[{
     NnuMassive=OptionValue["NnuMassive"],
     mnu=OptionValue["mnu"],
     ns=OptionValue["ns"],
-    amps=OptionValue["amps"],
+    logA=OptionValue["logA"],
     kpivot=OptionValue["kpivot"],
     retau=OptionValue["retau"],
 	YP=OptionValue["YP"]
@@ -375,7 +375,7 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     ];
     name/: Options[name]= { "h"->hopt,"Hzero"->Hzero,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
         "Tcmb"->Tcmb,"Nnu"->Nnu,"NnuMassive"->NnuMassive,"mnu"->mnu,
-         "ns"->ns,"amps"->amps,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
+         "ns"->ns,"logA"->logA,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu (3-NnuMassive)/3]/criticalDensityToday[hval](1+z)^4]]];
 	name/: \[CapitalOmega]photons[name]=Function[z,Evaluate[Simplify[photonDensity[Tcmb]/criticalDensityToday[hval](1+z)^4]]];
     \[CapitalOmega]mval=If[\[CapitalOmega]m===Automatic,1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]m];
@@ -392,7 +392,7 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
     name/: hubbleDistance[name]=hubbleScale[PhysicalConstants`SpeedOfLight,hval,Units`Mega Units`Parsec];
     name/: curvatureTransform[name]=Function[x,Evaluate[Simplify[Which[
         \[CapitalOmega]k>0,Sinh[Sqrt[\[CapitalOmega]k]x]/Sqrt[\[CapitalOmega]k],\[CapitalOmega]k<0,Sin[Sqrt[-\[CapitalOmega]k]x]/Sqrt[-\[CapitalOmega]k],True,x]]]];
-    name/: primordialPower[name]=Function[k,Evaluate[Simplify[amps (k/kpivot)^(ns-1)k]]];
+    name/: primordialPower[name]=Function[k,Evaluate[Simplify[10^-10 Exp[logA](k/kpivot)^(ns-1)k]]];
     name/: logGrowthRate[name]=
         With[{\[Gamma]=0.55+0.05(1+w0+wa/2)},
             Function[z,Evaluate[Simplify[(\[CapitalOmega]mat[name][z]/Hratio[name][z]^2)^\[Gamma]]]]
@@ -427,7 +427,7 @@ SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
     "h"->0.6704,"Hzero"->Automatic,"\[CapitalOmega]\[CapitalLambda]"->Automatic,"\[CapitalOmega]m"->0.3183,"\[CapitalOmega]bh2"->0.022032,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
     "Tcmb"->2.7255,"Nnu"->3.046,"NnuMassive"->1,"mnu"->0.06,
-    "ns"->0.9619,"amps"->(2.215*10^-9),"kpivot"->0.05,"retau"->0.0925,"YP"->0.247695
+    "ns"->0.9619,"logA"->3.0980,"kpivot"->0.05,"retau"->0.0925,"YP"->0.247695
 };
 
 
@@ -485,6 +485,7 @@ exportToCamb[filename_,cosmology_,OptionsPattern[]]:=With[{
     \[CapitalOmega]bh2=OptionValue[cosmology,"\[CapitalOmega]bh2"],
     Nnu=OptionValue[cosmology,"Nnu"],
     NnuMassive=OptionValue[cosmology,"NnuMassive"],
+    logA=OptionValue[cosmology,"logA"],
     \[CapitalOmega]\[Nu]=\[CapitalOmega]nu[cosmology][0],
     path=DirectoryName[filename],
     tag=FileBaseName[filename],
@@ -510,7 +511,7 @@ lines={
 "massless_neutrinos = "<>ToString[If[\[CapitalOmega]\[Nu]>0,((3-NnuMassive)/3)Nnu,Nnu],form],
 "massive_neutrinos  = "<>ToString[If[\[CapitalOmega]\[Nu]>0,(NnuMassive/3)Nnu,0],form],
 "helium_fraction = "<>ToString[OptionValue[cosmology,"YP"],form],
-"scalar_amp(1) = "<>ToString[OptionValue[cosmology,"amps"],form],
+"scalar_amp(1) = "<>ToString[10^-10 Exp[logA],form],
 "scalar_spectral_index(1) = "<>ToString[OptionValue[cosmology,"ns"],form],
 "pivot_scalar = "<>ToString[OptionValue[cosmology,"kpivot"],form],
 "re_optical_depth = "<>ToString[OptionValue[cosmology,"retau"],form],
