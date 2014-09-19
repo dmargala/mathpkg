@@ -447,8 +447,8 @@ With[{
   columns=OptionValue["columns"],
   maxRows=OptionValue["maxRows"]
 },
-Module[{kde,rawdata,rows,xydata,dims,dist,xmin,xmax,ymin,ymax,hist,sorted,pdf,
-contourData,contourFunction,max,contourLevels},
+Module[{kde,rawdata,rows,xydata,dims,dist,xmin,xmax,ymin,ymax,xGrid,yGrid,pdfTable,sorted,pdf,
+levelsData,levelsFunction,max,contourLevels,contourData},
     (* If the data is weighted, use it to generate maxRows of unweighted samples *)
     If[Head[data]===WeightedData,
       If[!IntegerQ[maxRows],
@@ -480,31 +480,37 @@ contourData,contourFunction,max,contourLevels},
     xydata=Part[rawdata,rows,columns];
     (* Build a kernel density estimate of the PDF *)
     dist=SmoothKernelDistribution[xydata];
-    (* Calculate the binning to use *)
+    (* Find the smallest interval (xmin,xmax) that covers the data with xmin,xmax multiples of dx *)
     xmin=Ceiling[Min[xydata[[;;,1]]]-dx,dx];
-    ymin=Ceiling[Min[xydata[[;;,2]]]-dy,dy];
     xmax=Floor[Max[xydata[[;;,1]]]+dx,dx];
+    (* Same for (ymin,ymax) *)
+    ymin=Ceiling[Min[xydata[[;;,2]]]-dy,dy];
     ymax=Floor[Max[xydata[[;;,2]]]+dy,dy];
-    (* Estimate the KDE integral over the grid specified by the input args *)
+    (* Prepare a grid of values covering the data with spacings dx,dy *)
+    xGrid=Table[N[x],{x,xmin+dx/2,xmax-dx/2,dx}];
+    yGrid=Table[N[y],{y,ymin+dy/2,ymax-dy/2,dy}];
+    (* Estimate the KDE integral over each grid cell *)
     pdf=Function[{x,y},N[PDF[dist,{x,y}]]];
-    hist=Table[pdf[x,y]dx dy,{x,xmin+dx/2,xmax-dx/2,dx},{y,ymin+dy/2,ymax-dy/2,dy}];
-    (* Tabulate pairs of {integral,level} from the histogram bins *)
-    sorted=Reverse[Sort[Flatten[hist]]];
-    contourData=Transpose[{N[Accumulate[sorted]],sorted}];
+    pdfTable=Table[pdf[x,y]dx dy,{x,xGrid},{y,yGrid}];
+    (* Tabulate pairs of {integral,level} *)
+    sorted=Reverse[Sort[Flatten[pdfTable]]];
+    levelsData=Transpose[{N[Accumulate[sorted]],sorted}];
     (* Remove duplicate values of the integral so that we can interpolate in this data.
     This is tricky to do efficiently since Union and DeleteDuplicates are both O(n^2).
     We use a method described here:
     https://groups.google.com/forum/#!topic/comp.soft-sys.math.mathematica/nhCG4PrDC7M
     The Rounding below should not be necessary but seems to be. *)
-    contourData=Tally[contourData,(Round[First[#1],10^-8]==Round[First[#2],10^-8]&)][[All,1]];
+    levelsData=Tally[levelsData,(Round[First[#1],10^-8]==Round[First[#2],10^-8]&)][[All,1]];
     (* calculate the contour levels for each fraction using linear interpolation in contourData *)
-    contourFunction=Interpolation[contourData,InterpolationOrder->1];
-    max = Max[contourData[[;;,1]]];
-    contourLevels=Map[contourFunction,coverageFractions max]/(dx dy);
-    (* plot the contours *)
-    ContourPlot[PDF[dist,{x,y}],{x,plotXmin,plotXmax},{y,plotYmin,plotYmax},
+    levelsFunction=Interpolation[levelsData,InterpolationOrder->1];
+    max = Max[levelsData[[;;,1]]];
+    contourLevels=Map[levelsFunction,coverageFractions max]/(dx dy);
+    (* plot the contours using the tabulated pdf values *)
+    contourData=Flatten[Table[{xGrid[[i]],yGrid[[j]],pdfTable[[i,j]]/(dx dy)},{i,Length[xGrid]},{j,Length[yGrid]}],1];
+    ListContourPlot[contourData,
         Sequence[plotOptions], (* following options can be overridden in plotOptions *)
-        Contours->contourLevels,PlotRange->{{plotXmin,plotXmax},{plotYmin,plotYmax},All},ContourShading->None
+        ContourShading->None,PlotRange->{{plotXmin,plotXmax},{plotYmin,plotYmax},All},
+        PlotRangePadding->0,Contours->contourLevels
     ]
 ]]
 Options[coverageContourPlot]={"coverageFractions"->{0.6827,0.9545},"columns"->{1,2},"maxRows"->None};
