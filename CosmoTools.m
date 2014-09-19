@@ -515,7 +515,8 @@ lines={
 "output_root = "<>path<>tag,
 "transfer_kmax = "<>ToString[OptionValue["kmax"],form],
 "transfer_k_per_logint = "<>ToString[OptionValue["kPerLogInt"],form],
-"transfer_num_redshifts = "<>ToString[Length[redshifts],form]
+"transfer_num_redshifts = "<>ToString[Length[redshifts],form],
+"accuracy_boost = "<>ToString[OptionValue["accuracyBoost"],form]
 };
 lines=Join[lines,
   Flatten[Table[{
@@ -528,7 +529,7 @@ lines=Join[lines,boilerplate];
 Export[filename,Append[lines,""],"Table"]
 ]]
 Options[exportToCamb]={
-  "form"->CForm,"kmax"->2,"kPerLogInt"->0,"redshifts"->{0},
+  "form"->CForm,"kmax"->2,"kPerLogInt"->0,"redshifts"->{0},"accuracyBoost"->1,
   "boilerplate"->"DeepZot/camb_boilerplate.ini"
 };
 
