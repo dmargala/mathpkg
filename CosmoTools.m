@@ -332,7 +332,10 @@ Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`M
 Clear[createCosmology]
 createCosmology::overconstrained = "Parameters are overconstrained: \[CapitalOmega]\[CapitalLambda]=`1`, \[CapitalOmega]m=`2`, \[CapitalOmega]rad=`3`, \[CapitalOmega]k=`4`.";
 createCosmology::overconstrained2 = "Parameters are overconstrained: h=`1`, Hzero=`2`.";
+createCosmology::overconstrained3 = "Parameters are overconstrainted: \[CapitalOmega]cdm=`1`, \[CapitalOmega]bh2=`2`, h=`3`, \[CapitalOmega]\[Nu]=`4`, \[CapitalOmega]m=`5`.";
 createCosmology::noh = "One of h or Hzero must be specified.";
+createCosmology::noml = "One of \[CapitalOmega]m or \[CapitalOmega]\[CapitalLambda] must be specified.";
+createCosmology::nobc = "One of \[CapitalOmega]bh2 or \[CapitalOmega]cdm must be specified.";
 createCosmology::badnnu = "Number of massive neutrinos must be 0,1,2 or 3.";
 createCosmology::badmnu = "Cannot have mnu < 0, or mnu > 0 with NnuMassive = 0.";
 createCosmology[name_,OptionsPattern[]]:=
@@ -342,6 +345,7 @@ With[{
     \[CapitalOmega]\[CapitalLambda]=OptionValue["\[CapitalOmega]\[CapitalLambda]"],
     \[CapitalOmega]m=OptionValue["\[CapitalOmega]m"],
     \[CapitalOmega]bh2=OptionValue["\[CapitalOmega]bh2"],
+    \[CapitalOmega]cdm=OptionValue["\[CapitalOmega]cdm"],
     w0=OptionValue["w0"],
     wa=OptionValue["wa"],
     \[CapitalOmega]k=OptionValue["\[CapitalOmega]k"],
@@ -355,7 +359,7 @@ With[{
     retau=OptionValue["retau"],
 	YP=OptionValue["YP"]
 },
-Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
+Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val,\[CapitalOmega]bh2val,\[CapitalOmega]cdmval},
     If[!MemberQ[{0,1,2,3},NnuMassive],
         Message[createCosmology::badnnu];
         Return[$Failed]
@@ -373,21 +377,40 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
       Message[createCosmology::overconstrained2,hopt,Hzero];
       Return[$Failed]
     ];
-    name/: Options[name]= { "h"->hopt,"Hzero"->Hzero,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
+    name/: Options[name]= { "h"->hopt,"Hzero"->Hzero,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,
+        "\[CapitalOmega]cdm"->\[CapitalOmega]cdm,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
         "Tcmb"->Tcmb,"Nnu"->Nnu,"NnuMassive"->NnuMassive,"mnu"->mnu,
-         "ns"->ns,"logA"->logA,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
+        "ns"->ns,"logA"->logA,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu (3-NnuMassive)/3]/criticalDensityToday[hval](1+z)^4]]];
 	name/: \[CapitalOmega]photons[name]=Function[z,Evaluate[Simplify[photonDensity[Tcmb]/criticalDensityToday[hval](1+z)^4]]];
+    (* Determine values of \[CapitalOmega]m and \[CapitalOmega]\[CapitalLambda], one of which might be automatically calculated *)
+    If[\[CapitalOmega]m===Automatic&&\[CapitalOmega]\[CapitalLambda]===Automatic,
+      Message[createCosmology::noml];
+      Return[$Failed]
+    ];
     \[CapitalOmega]mval=If[\[CapitalOmega]m===Automatic,1-\[CapitalOmega]\[CapitalLambda]-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]m];
     \[CapitalOmega]\[CapitalLambda]val=If[\[CapitalOmega]\[CapitalLambda]===Automatic,1-\[CapitalOmega]m-\[CapitalOmega]k-\[CapitalOmega]rad[name][0],\[CapitalOmega]\[CapitalLambda]];
-    If[\[CapitalOmega]m+\[CapitalOmega]\[CapitalLambda]+\[CapitalOmega]k+\[CapitalOmega]rad[name][0]!=1,
-        Message[createCosmology::overconstrained,\[CapitalOmega]\[CapitalLambda],\[CapitalOmega]m,\[CapitalOmega]rad[name][0],\[CapitalOmega]k];
+    (* In case both are specified, check that they are self consistent *)
+    If[\[CapitalOmega]mval+\[CapitalOmega]\[CapitalLambda]val+\[CapitalOmega]k+\[CapitalOmega]rad[name][0]!=1,
+        Message[createCosmology::overconstrained,\[CapitalOmega]\[CapitalLambda]val,\[CapitalOmega]mval,\[CapitalOmega]rad[name][0],\[CapitalOmega]k];
         Return[$Failed]
     ];
     name/: \[CapitalOmega]de[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]\[CapitalLambda]val Exp[3(-((wa z)/(1 + z)) + (1 + w0 + wa) Log[1 + z])]]]];
     name/: \[CapitalOmega]mat[name]=Function[z,Evaluate[Simplify[\[CapitalOmega]mval (1+z)^3]]];
     name/: \[CapitalOmega]nu[name]=Function[z,Evaluate[Simplify[NnuMassive (mnu/93.04)/hval^2 (1+z)^3]]];
     name/: H0[name]=100 hval;
+    (* Determine values of \[CapitalOmega]bh2 and \[CapitalOmega]cdm, one of which might be automatically calculated *)
+    If[\[CapitalOmega]bh2===Automatic&&\[CapitalOmega]cdm===Automatic,
+      Message[createCosmology::nobc];
+      Return[$Failed]
+    ];
+    \[CapitalOmega]bh2val=If[\[CapitalOmega]bh2===Automatic,(\[CapitalOmega]mval-\[CapitalOmega]cdm-\[CapitalOmega]nu[name][0])hval^2,\[CapitalOmega]bh2];
+    \[CapitalOmega]cdmval=If[\[CapitalOmega]cdm===Automatic,\[CapitalOmega]mval-\[CapitalOmega]bh2/hval^2-\[CapitalOmega]nu[name][0],\[CapitalOmega]cdm];
+    (* In case both are specified, check that they are self consistent *)
+    If[\[CapitalOmega]cdmval+\[CapitalOmega]bh2val/hval^2+\[CapitalOmega]nu[name][0]!=\[CapitalOmega]mval,
+      Message[createCosmology::overconstrained3,\[CapitalOmega]cdmval,\[CapitalOmega]bh2val,hval,\[CapitalOmega]nu[name][0],\[CapitalOmega]mval];
+      Return[$Failed]
+    ];
     name/: Hratio[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]]]]];
     name/: hubbleDistance[name]=hubbleScale[PhysicalConstants`SpeedOfLight,hval,Units`Mega Units`Parsec];
     name/: curvatureTransform[name]=Function[x,Evaluate[Simplify[Which[
@@ -425,7 +448,8 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val},
 ]]
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
-    "h"->0.6704,"Hzero"->Automatic,"\[CapitalOmega]\[CapitalLambda]"->Automatic,"\[CapitalOmega]m"->0.3183,"\[CapitalOmega]bh2"->0.022032,"w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
+    "h"->0.6704,"Hzero"->Automatic,"\[CapitalOmega]\[CapitalLambda]"->Automatic,"\[CapitalOmega]m"->0.3183,"\[CapitalOmega]bh2"->0.022032,"\[CapitalOmega]cdm"->Automatic,
+    "w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
     "Tcmb"->2.7255,"Nnu"->3.046,"NnuMassive"->1,"mnu"->0.06,
     "ns"->0.9619,"logA"->3.0980,"kpivot"->0.05,"retau"->0.0925,"YP"->0.247695
 };
