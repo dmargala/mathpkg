@@ -66,6 +66,7 @@ the created cosmology:
  - \[CapitalOmega]m (0.3183) present-day fraction of matter, including any massive neutrinos.
  - \[CapitalOmega]\[CapitalLambda] (Automatic) present-day fraction of dark energy.
  - \[CapitalOmega]bh2 (0.022032) present-day physical baryon fraction.
+ - \[CapitalOmega]ch2 (Automatic) present-day cold dark matter fraction.
  - w0 (-1) dark-energy equation parameter state present-day value.
  - wa (0) dark-energy equation of state parameter derivative wrt scale a.
  - \[CapitalOmega]k (0) present-day curvature fraction.
@@ -148,6 +149,12 @@ critical density at z. Includes dark matter, baryons and any massive neutrinos."
 "\[CapitalOmega]nu[name][z] returns the massive neutrino energy density at the specified redshift relative
 to the critical density today. Divide by Hratio[z]^2 to get the density relative to the
 critical density at z. Calculated as NnuMassive (mnu/93.04)/ h^2.";
+
+
+\[CapitalOmega]baryon::usage=
+"\[CapitalOmega]baryon[name][z] returns the baryonic energy density at the specified redshift relative to
+the critical density today. Divide by Hratio[z]^2 to get the density relative to the
+critical density at z.";
 
 
 H0::usage=
@@ -332,10 +339,10 @@ Units`Convert[numerator/(100 hValue Units`Kilo Units`Meter/Units`Second/(Units`M
 Clear[createCosmology]
 createCosmology::overconstrained = "Parameters are overconstrained: \[CapitalOmega]\[CapitalLambda]=`1`, \[CapitalOmega]m=`2`, \[CapitalOmega]rad=`3`, \[CapitalOmega]k=`4`.";
 createCosmology::overconstrained2 = "Parameters are overconstrained: h=`1`, Hzero=`2`.";
-createCosmology::overconstrained3 = "Parameters are overconstrainted: \[CapitalOmega]cdm=`1`, \[CapitalOmega]bh2=`2`, h=`3`, \[CapitalOmega]\[Nu]=`4`, \[CapitalOmega]m=`5`.";
+createCosmology::overconstrained3 = "Parameters are overconstrainted: \[CapitalOmega]ch2=`1`, \[CapitalOmega]bh2=`2`, h=`3`, \[CapitalOmega]\[Nu]=`4`, \[CapitalOmega]m=`5`.";
 createCosmology::noh = "One of h or Hzero must be specified.";
 createCosmology::noml = "One of \[CapitalOmega]m or \[CapitalOmega]\[CapitalLambda] must be specified.";
-createCosmology::nobc = "One of \[CapitalOmega]bh2 or \[CapitalOmega]cdm must be specified.";
+createCosmology::nobc = "One of \[CapitalOmega]bh2 or \[CapitalOmega]ch2 must be specified.";
 createCosmology::badnnu = "Number of massive neutrinos must be 0,1,2 or 3.";
 createCosmology::badmnu = "Cannot have mnu < 0, or mnu > 0 with NnuMassive = 0.";
 createCosmology[name_,OptionsPattern[]]:=
@@ -345,7 +352,7 @@ With[{
     \[CapitalOmega]\[CapitalLambda]=OptionValue["\[CapitalOmega]\[CapitalLambda]"],
     \[CapitalOmega]m=OptionValue["\[CapitalOmega]m"],
     \[CapitalOmega]bh2=OptionValue["\[CapitalOmega]bh2"],
-    \[CapitalOmega]cdm=OptionValue["\[CapitalOmega]cdm"],
+    \[CapitalOmega]ch2=OptionValue["\[CapitalOmega]ch2"],
     w0=OptionValue["w0"],
     wa=OptionValue["wa"],
     \[CapitalOmega]k=OptionValue["\[CapitalOmega]k"],
@@ -359,7 +366,7 @@ With[{
     retau=OptionValue["retau"],
 	YP=OptionValue["YP"]
 },
-Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val,\[CapitalOmega]bh2val,\[CapitalOmega]cdmval},
+Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val,\[CapitalOmega]bh2val,\[CapitalOmega]ch2val},
     If[!MemberQ[{0,1,2,3},NnuMassive],
         Message[createCosmology::badnnu];
         Return[$Failed]
@@ -378,7 +385,7 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val,\[CapitalOme
       Return[$Failed]
     ];
     name/: Options[name]= { "h"->hopt,"Hzero"->Hzero,"\[CapitalOmega]\[CapitalLambda]"->\[CapitalOmega]\[CapitalLambda],"\[CapitalOmega]m"->\[CapitalOmega]m,"\[CapitalOmega]bh2"->\[CapitalOmega]bh2,
-        "\[CapitalOmega]cdm"->\[CapitalOmega]cdm,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
+        "\[CapitalOmega]ch2"->\[CapitalOmega]ch2,"w0"->w0,"wa"->wa,"\[CapitalOmega]k"->\[CapitalOmega]k,
         "Tcmb"->Tcmb,"Nnu"->Nnu,"NnuMassive"->NnuMassive,"mnu"->mnu,
         "ns"->ns,"logA"->logA,"kpivot"->kpivot,"retau"->retau,"YP"->YP };
     name/: \[CapitalOmega]rad[name]=Function[z,Evaluate[Simplify[radiationDensity[Tcmb,Nnu (3-NnuMassive)/3]/criticalDensityToday[hval](1+z)^4]]];
@@ -400,17 +407,18 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val,\[CapitalOme
     name/: \[CapitalOmega]nu[name]=Function[z,Evaluate[Simplify[NnuMassive (mnu/93.04)/hval^2 (1+z)^3]]];
     name/: H0[name]=100 hval;
     (* Determine values of \[CapitalOmega]bh2 and \[CapitalOmega]cdm, one of which might be automatically calculated *)
-    If[\[CapitalOmega]bh2===Automatic&&\[CapitalOmega]cdm===Automatic,
+    If[\[CapitalOmega]bh2===Automatic&&\[CapitalOmega]ch2===Automatic,
       Message[createCosmology::nobc];
       Return[$Failed]
     ];
-    \[CapitalOmega]bh2val=If[\[CapitalOmega]bh2===Automatic,(\[CapitalOmega]mval-\[CapitalOmega]cdm-\[CapitalOmega]nu[name][0])hval^2,\[CapitalOmega]bh2];
-    \[CapitalOmega]cdmval=If[\[CapitalOmega]cdm===Automatic,\[CapitalOmega]mval-\[CapitalOmega]bh2/hval^2-\[CapitalOmega]nu[name][0],\[CapitalOmega]cdm];
+    \[CapitalOmega]bh2val=If[\[CapitalOmega]bh2===Automatic,(\[CapitalOmega]mval-\[CapitalOmega]nu[name][0])hval^2-\[CapitalOmega]ch2,\[CapitalOmega]bh2];
+    \[CapitalOmega]ch2val=If[\[CapitalOmega]ch2===Automatic,(\[CapitalOmega]mval-\[CapitalOmega]nu[name][0])hval^2-\[CapitalOmega]bh2,\[CapitalOmega]ch2];
     (* In case both are specified, check that they are self consistent *)
-    If[\[CapitalOmega]cdmval+\[CapitalOmega]bh2val/hval^2+\[CapitalOmega]nu[name][0]!=\[CapitalOmega]mval,
-      Message[createCosmology::overconstrained3,\[CapitalOmega]cdmval,\[CapitalOmega]bh2val,hval,\[CapitalOmega]nu[name][0],\[CapitalOmega]mval];
+    If[(\[CapitalOmega]ch2val+\[CapitalOmega]bh2val)/hval^2+\[CapitalOmega]nu[name][0]!=\[CapitalOmega]mval,
+      Message[createCosmology::overconstrained3,\[CapitalOmega]ch2val,\[CapitalOmega]bh2val,hval,\[CapitalOmega]nu[name][0],\[CapitalOmega]mval];
       Return[$Failed]
     ];
+    name/: \[CapitalOmega]baryon[name]=Function[z,Evaluate[Simplify[(\[CapitalOmega]mval-\[CapitalOmega]ch2val/hval^2-\[CapitalOmega]nu[name][0])(1+z)^3]]];
     name/: Hratio[name]=Function[z,Evaluate[Sqrt[Simplify[\[CapitalOmega]de[name][z]+\[CapitalOmega]k (1+z)^2+\[CapitalOmega]mat[name][z]+\[CapitalOmega]rad[name][z]]]]];
     name/: hubbleDistance[name]=hubbleScale[PhysicalConstants`SpeedOfLight,hval,Units`Mega Units`Parsec];
     name/: curvatureTransform[name]=Function[x,Evaluate[Simplify[Which[
@@ -448,7 +456,7 @@ Module[{hval,\[CapitalOmega]mval,\[CapitalOmega]\[CapitalLambda]val,\[CapitalOme
 ]]
 SetAttributes[createCosmology,HoldFirst]
 Options[createCosmology]={
-    "h"->0.6704,"Hzero"->Automatic,"\[CapitalOmega]\[CapitalLambda]"->Automatic,"\[CapitalOmega]m"->0.3183,"\[CapitalOmega]bh2"->0.022032,"\[CapitalOmega]cdm"->Automatic,
+    "h"->0.6704,"Hzero"->Automatic,"\[CapitalOmega]\[CapitalLambda]"->Automatic,"\[CapitalOmega]m"->0.3183,"\[CapitalOmega]bh2"->0.022032,"\[CapitalOmega]ch2"->Automatic,
     "w0"->-1,"wa"->0,"\[CapitalOmega]k"->0,
     "Tcmb"->2.7255,"Nnu"->3.046,"NnuMassive"->1,"mnu"->0.06,
     "ns"->0.9619,"logA"->3.0980,"kpivot"->0.05,"retau"->0.0925,"YP"->0.247695
