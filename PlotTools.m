@@ -445,7 +445,8 @@ With[{
   plotOptions=FilterRules[{options},Options[ContourPlot]],
   coverageFractions=OptionValue["coverageFractions"],
   columns=OptionValue["columns"],
-  maxRows=OptionValue["maxRows"]
+  maxRows=OptionValue["maxRows"],
+  bandwidth=OptionValue["bandwidth"]
 },
 Module[{kde,rawdata,rows,xydata,dims,dist,xmin,xmax,ymin,ymax,xGrid,yGrid,pdfTable,sorted,pdf,
 levelsData,levelsFunction,max,contourLevels,contourData},
@@ -479,7 +480,7 @@ levelsData,levelsFunction,max,contourLevels,contourData},
     rows=If[IntegerQ[maxRows],Span[1,maxRows],All];
     xydata=Part[rawdata,rows,columns];
     (* Build a kernel density estimate of the PDF *)
-    dist=SmoothKernelDistribution[xydata];
+    dist=SmoothKernelDistribution[xydata,bandwidth];
     (* Find the smallest interval (xmin,xmax) that covers the data with xmin,xmax multiples of dx *)
     xmin=Ceiling[Min[xydata[[;;,1]]]-dx,dx];
     xmax=Floor[Max[xydata[[;;,1]]]+dx,dx];
@@ -513,7 +514,8 @@ levelsData,levelsFunction,max,contourLevels,contourData},
         PlotRangePadding->0,Contours->contourLevels
     ]
 ]]
-Options[coverageContourPlot]={"coverageFractions"->{0.6827,0.9545},"columns"->{1,2},"maxRows"->None};
+Options[coverageContourPlot]={
+"coverageFractions"->{0.6827,0.9545},"columns"->{1,2},"maxRows"->None,"bandwidth"->Automatic};
 
 
 dataRange[data_,OptionsPattern[]]:=
